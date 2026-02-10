@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@airalogy/aimd-core": ["./packages/aimd-core/src"],
+      "@airalogy/aimd-core/*": ["./packages/aimd-core/src/*"],
+      "@airalogy/aimd-editor": ["./packages/aimd-editor/src"],
+      "@airalogy/aimd-editor/*": ["./packages/aimd-editor/src/*"],
+      "@airalogy/aimd-renderer": ["./packages/aimd-renderer/src"],
+      "@airalogy/aimd-renderer/*": ["./packages/aimd-renderer/src/*"],
+      "@airalogy/aimd-recorder": ["./packages/aimd-recorder/src"],
+      "@airalogy/aimd-recorder/*": ["./packages/aimd-recorder/src/*"]
+    },
+    "resolveJsonModule": true,
+    "types": ["vite/client"],
+    "allowJs": true,
+    "strict": true,
+    "declaration": true,
+    "noEmit": true,
+    "stripInternal": true,
+    "allowSyntheticDefaultImports": true,
+    "noErrorTruncation": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts", "scripts/*.ts"],
+  "exclude": ["node_modules", "dist", "./**/*.js", "./.history/*"]
+}

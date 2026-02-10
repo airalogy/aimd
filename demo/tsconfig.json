@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@airalogy/aimd-core": ["../packages/aimd-core/src"],
+      "@airalogy/aimd-core/*": ["../packages/aimd-core/src/*"],
+      "@airalogy/aimd-editor": ["../packages/aimd-editor/src"],
+      "@airalogy/aimd-editor/*": ["../packages/aimd-editor/src/*"],
+      "@airalogy/aimd-renderer": ["../packages/aimd-renderer/src"],
+      "@airalogy/aimd-renderer/*": ["../packages/aimd-renderer/src/*"],
+      "@airalogy/aimd-recorder": ["../packages/aimd-recorder/src"],
+      "@airalogy/aimd-recorder/*": ["../packages/aimd-recorder/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"]
+}
