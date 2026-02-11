@@ -649,7 +649,10 @@ export function hastToVue(
       const childVNodes = children
         .map(child => hastToVue(child, options, figCtx))
         .filter(Boolean)
-      return elementRenderers[tagName](element, childVNodes, context)
+      const rendered = elementRenderers[tagName](element, childVNodes, context)
+      if (rendered !== null && rendered !== undefined) {
+        return rendered
+      }
     }
 
     // Convert properties
@@ -831,7 +834,11 @@ export function createMermaidRenderer(
       .map(child => (child.type === "text" ? child.value : ""))
       .join("")
 
-    return h(MermaidComponent, { code: codeContent })
+    return h(MermaidComponent, {
+      code: codeContent,
+      // Keep compatibility with MermaidBlock-style component APIs.
+      attrs: {},
+    })
   }
 }
 
