@@ -5,6 +5,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "dev:demo": "pnpm --filter @airalogy/aimd-demo dev",
+    "test": "pnpm -r --if-present test",
     "type-check": "pnpm -r type-check"
   }
 }
