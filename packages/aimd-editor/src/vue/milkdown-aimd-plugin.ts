@@ -145,9 +145,9 @@ export const aimdFieldNode = $node('aimd_field', () => ({
   toMarkdown: {
     match: (node: ProsemirrorNode) => node.type.name === 'aimd_field',
     runner: (state, node) => {
-      state.addNode('text', undefined, undefined, {
-        value: `{{${node.attrs.fieldType}|${node.attrs.fieldContent}}}`,
-      })
+      // Use `html` node to preserve AIMD raw content without markdown escaping
+      // (e.g. `_` should stay `_`, not `\\_`, when toggling WYSIWYG <-> source).
+      state.addNode('html', undefined, `{{${node.attrs.fieldType}|${node.attrs.fieldContent}}}`)
     },
   },
 } as NodeSchema))

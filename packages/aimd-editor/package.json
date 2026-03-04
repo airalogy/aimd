@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-editor",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AIMD editor with Monaco source mode and Milkdown WYSIWYG mode",
   "keywords": [
     "aimd",
@@ -31,7 +31,8 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "node --test ./tests/**/*.test.mjs"
   },
   "dependencies": {
     "@airalogy/aimd-core": "workspace:*",
