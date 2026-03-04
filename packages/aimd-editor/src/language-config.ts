@@ -56,13 +56,13 @@ export const language: languagesNS.IMonarchLanguage = {
     // This state is active inside {{ ... }}
     protocol: [
       // Match the keywords from your regexes
-      // [/(var_table|var|step|check|r[rq]|timer|ref_step|rv_ref)/, AimdToken.KEYWORD_CONTROL_AIMD],
+      // [/(var_table|var|quiz|step|check|ref_step|ref_var|ref_fig|cite|fig)/, AimdToken.KEYWORD_CONTROL_AIMD],
       [/var(\s*\|)/, AimdToken.KEYWORD_VARIABLE_AIMD],
       [/var_table(\s*\|)/, AimdToken.KEYWORD_VARIABLE_TABLE_AIMD],
       [/step(\s*\|)/, AimdToken.KEYWORD_STEP_AIMD],
       [/check(\s*\|)/, AimdToken.KEYWORD_CHECKPOINT_AIMD],
-      [/rv_ref(\s*\|)/, AimdToken.KEYWORD_REFERENCE_VARIABLE_AIMD],
-      [/step_ref(\s*\|)/, AimdToken.KEYWORD_REFERENCE_STEP_AIMD],
+      [/ref_var(\s*\|)/, AimdToken.KEYWORD_REFERENCE_VARIABLE_AIMD],
+      [/ref_step(\s*\|)/, AimdToken.KEYWORD_REFERENCE_STEP_AIMD],
       // Match the pipe delimiter
       [/\|/, { token: AimdToken.DELIMITER_PIPE_AIMD, next: "@protocolContent" }],
       // Match the closing '}}' and pop back to the root state

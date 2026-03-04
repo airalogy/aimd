@@ -8,12 +8,58 @@
 /**
  * AIMD field types
  */
-export type AimdFieldType = "var" | "var_table" | "step" | "check" | "ref_step" | "ref_var" | "ref_fig" | "cite" | "fig"
+export type AimdFieldType =
+  | "var"
+  | "var_table"
+  | "quiz"
+  | "step"
+  | "check"
+  | "ref_step"
+  | "ref_var"
+  | "ref_fig"
+  | "cite"
+  | "fig"
 
 /**
  * AIMD scopes
  */
-export type AimdScope = "rv" | "rs" | "rc" | "rt" | "rf" | "cite"
+export type AimdScope =
+  | "var"
+  | "var_table"
+  | "quiz"
+  | "step"
+  | "check"
+  | "ref_step"
+  | "ref_var"
+  | "ref_fig"
+  | "cite"
+  | "fig"
+
+/**
+ * AIMD quiz metadata
+ */
+export type AimdQuizType = "choice" | "blank" | "open"
+export type AimdQuizMode = "single" | "multiple"
+
+export interface AimdQuizOption {
+  key: string
+  text: string
+}
+
+export interface AimdQuizBlank {
+  key: string
+  answer: string
+}
+
+/**
+ * Quiz preview visibility control
+ */
+export interface QuizPreviewOptions {
+  /** Whether to reveal standard answers in preview (choice answer / blank answers) */
+  showAnswers?: boolean
+  /** Whether to reveal rubric in preview (open questions) */
+  showRubric?: boolean
+}
 
 /**
  * AIMD variable definition
@@ -54,6 +100,23 @@ export interface AimdVarTableNode extends BaseNode {
   fieldType: "var_table"
   columns: string[]
   definition?: AimdVarDefinition
+}
+
+/**
+ * AIMD quiz node (from ```quiz code blocks)
+ */
+export interface AimdQuizNode extends BaseNode {
+  fieldType: "quiz"
+  quizType: AimdQuizType
+  stem: string
+  score?: number
+  mode?: AimdQuizMode
+  options?: AimdQuizOption[]
+  answer?: string | string[]
+  blanks?: AimdQuizBlank[]
+  rubric?: string
+  default?: unknown
+  extra?: Record<string, unknown>
 }
 
 /**
@@ -143,6 +206,7 @@ export interface AimdFigNode extends BaseNode {
 export type AimdNode = 
   | AimdVarNode 
   | AimdVarTableNode 
+  | AimdQuizNode
   | AimdStepNode 
   | AimdCheckNode 
   | AimdRefNode 
@@ -159,6 +223,8 @@ export interface ProcessorOptions {
   sanitize?: boolean
   /** Enable single line break to <br> conversion (default: true for AIMD) */
   breaks?: boolean
+  /** Quiz preview visibility policy */
+  quizPreview?: QuizPreviewOptions
 }
 
 /**
@@ -168,6 +234,8 @@ export interface RenderContext {
   mode: "preview" | "edit" | "report"
   value?: Record<string, Record<string, unknown>>
   readonly?: boolean
+  /** Quiz preview visibility policy */
+  quizPreview?: QuizPreviewOptions
 }
 
 /**

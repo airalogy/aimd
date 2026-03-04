@@ -1,6 +1,6 @@
 import type { Element, Root as HastRoot, Text as HastText, RootContent } from "hast"
 import type { Component, VNode, VNodeChild } from "vue"
-import type { AimdNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
+import type { AimdNode, AimdQuizNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
 import { Fragment, h } from "vue"
 
 /**
@@ -33,21 +33,73 @@ export type ElementRenderer = (
  * Scope display name mapping
  */
 const SCOPE_DISPLAY_MAP: Record<string, string> = {
-  rv: "VAR",
-  rs: "STEP",
-  rc: "CHECK",
-  rt: "TABLE",
-  var: "VAR",
-  step: "STEP",
-  check: "CHECK",
-  var_table: "TABLE",
+  var: "var",
+  quiz: "quiz",
+  step: "step",
+  check: "check",
+  var_table: "table",
 }
 
 /**
  * Get display name for scope
  */
 function getScopeDisplay(scope: string): string {
-  return SCOPE_DISPLAY_MAP[scope] || scope.toUpperCase()
+  return SCOPE_DISPLAY_MAP[scope] || scope
+}
+
+interface ResolvedQuizPreviewOptions {
+  showAnswers: boolean
+  showRubric: boolean
+}
+
+function resolveQuizPreviewOptionsFromContext(ctx: RenderContext): ResolvedQuizPreviewOptions {
+  const defaultReveal = ctx.mode === "report"
+  return {
+    showAnswers: ctx.quizPreview?.showAnswers ?? defaultReveal,
+    showRubric: ctx.quizPreview?.showRubric ?? defaultReveal,
+  }
+}
+
+const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
+
+function buildQuizStemChildren(
+  quizType: AimdQuizNode["quizType"],
+  stem: string,
+): VNodeChild[] {
+  if (quizType !== "blank") {
+    return [stem]
+  }
+
+  const children: VNodeChild[] = []
+  let lastIndex = 0
+
+  for (const match of stem.matchAll(BLANK_PLACEHOLDER_PATTERN)) {
+    const start = match.index ?? 0
+    const fullMatch = match[0]
+    const key = match[1]
+
+    if (start > lastIndex) {
+      children.push(stem.slice(lastIndex, start))
+    }
+
+    children.push(
+      h("span", {
+        class: "aimd-quiz__blank-placeholder",
+        "data-blank-key": key,
+      }, key),
+    )
+    lastIndex = start + fullMatch.length
+  }
+
+  if (lastIndex < stem.length) {
+    children.push(stem.slice(lastIndex))
+  }
+
+  if (children.length === 0) {
+    children.push(stem)
+  }
+
+  return children
 }
 
 /**
@@ -98,7 +150,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       // Preview mode: render tag with table preview inside
       const children: VNodeChild[] = [
         h("div", { class: "aimd-field__header" }, [
-          h("span", { class: "aimd-field__scope" }, "TABLE"),
+          h("span", { class: "aimd-field__scope" }, "table"),
           h("span", { class: "aimd-field__name" }, name),
         ]),
       ]
@@ -127,8 +179,94 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       "class": "aimd-field aimd-field--var-table aimd-field--editable",
       "data-aimd-type": "var_table",
       "data-aimd-name": name,
-      "id": `rt-${name}`,
+      "id": `var_table-${name}`,
     })
+  },
+
+  quiz: (node, ctx) => {
+    const quizNode = node as AimdQuizNode
+    const { name, scope, quizType, stem, score } = quizNode
+    const typeLabel = quizType || "quiz"
+
+    if (ctx.mode === "preview") {
+      const previewChildren: VNodeChild[] = [
+        h("div", { class: "aimd-quiz__meta" }, [
+          h("span", { class: "aimd-field__scope" }, getScopeDisplay(scope)),
+          h("span", { class: "aimd-field__name" }, name),
+          h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
+          score !== undefined ? h("span", { class: "aimd-quiz__score" }, `${score} pt`) : null,
+        ]),
+        h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
+      ]
+
+      if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
+        previewChildren.push(
+          h("ul", { class: "aimd-quiz__options" }, quizNode.options.map(opt =>
+            h("li", `${opt.key}. ${opt.text}`),
+          )),
+        )
+      }
+
+      const quizPreview = resolveQuizPreviewOptionsFromContext(ctx)
+
+      if (quizPreview.showAnswers && quizType === "choice" && quizNode.answer !== undefined) {
+        const answerText = Array.isArray(quizNode.answer)
+          ? quizNode.answer.join(", ")
+          : String(quizNode.answer)
+        if (answerText.trim()) {
+          previewChildren.push(
+            h("div", { class: "aimd-quiz__answer" }, `Answer: ${answerText}`),
+          )
+        }
+      }
+
+      if (quizPreview.showAnswers && quizType === "blank" && Array.isArray(quizNode.blanks) && quizNode.blanks.length > 0) {
+        previewChildren.push(
+          h("ul", { class: "aimd-quiz__blanks" }, quizNode.blanks.map(blank =>
+            h("li", `${blank.key}: ${blank.answer}`),
+          )),
+        )
+      }
+
+      if (quizPreview.showRubric && quizType === "open" && typeof quizNode.rubric === "string" && quizNode.rubric.trim()) {
+        previewChildren.push(
+          h("div", { class: "aimd-quiz__rubric" }, `Rubric: ${quizNode.rubric}`),
+        )
+      }
+
+      return h("div", {
+        "class": "aimd-field aimd-field--quiz",
+        "data-aimd-type": "quiz",
+        "data-aimd-name": name,
+        "data-aimd-scope": scope,
+        "id": `quiz-${name}`,
+      }, previewChildren)
+    }
+
+    const fieldData = ctx.value?.[scope]?.[name]
+    let displayValue: string
+    if (Array.isArray(fieldData)) {
+      displayValue = fieldData.join(", ")
+    }
+    else if (isPlainObject(fieldData)) {
+      displayValue = JSON.stringify(fieldData)
+    }
+    else if (fieldData === undefined || fieldData === null || fieldData === "") {
+      displayValue = name
+    }
+    else {
+      displayValue = String(fieldData)
+    }
+
+    return h("div", {
+      "class": "aimd-field aimd-field--quiz aimd-field--editable",
+      "data-aimd-type": "quiz",
+      "data-aimd-name": name,
+      "data-aimd-scope": scope,
+      "id": `quiz-${name}`,
+    }, [
+      h("span", { class: "aimd-field__value" }, displayValue),
+    ])
   },
 
   step: (node, ctx, children) => {
@@ -137,16 +275,16 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     const stepNum = stepNode.step || "1"
 
     if (ctx.mode === "preview") {
-      // Preview mode: render as "Step N :" format
+      // Preview mode: render as "step N name" format
       return h("span", {
         "class": "aimd-field aimd-field--step",
         "data-aimd-type": "step",
         "data-aimd-name": name,
         "data-aimd-step": stepNum,
-        "id": `rs-${name}`,
+        "id": `step-${name}`,
       }, [
         h("span", { class: "aimd-field__scope" }, getScopeDisplay(scope)),
-        h("span", { class: "aimd-field__step-num" }, `Step ${stepNum}`),
+        h("span", { class: "aimd-field__step-num" }, stepNum),
         h("span", { class: "aimd-field__name" }, name),
       ])
     }
@@ -158,7 +296,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       "data-aimd-name": name,
       "data-aimd-step": stepNum,
       "data-aimd-level": stepNode.level,
-      "id": `rs-${name}`,
+      "id": `step-${name}`,
     }, [
       h("div", { class: "research-step__header" }, [
         h("span", { class: "research-step__sequence" }, `Step ${stepNum} :`),
@@ -179,7 +317,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
         "class": "aimd-field aimd-field--check",
         "data-aimd-type": "check",
         "data-aimd-name": name,
-        "id": `rc-${name}`,
+        "id": `check-${name}`,
       }, [
         h("input", {
           type: "checkbox",
@@ -199,7 +337,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       "class": "aimd-field aimd-field--check aimd-field--editable",
       "data-aimd-type": "check",
       "data-aimd-name": name,
-      "id": `rc-${name}`,
+      "id": `check-${name}`,
     }, [
       h("input", {
         type: "checkbox",
@@ -256,7 +394,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     }, [
       h("span", { class: "aimd-ref__content" }, [
         h("span", { class: "aimd-field aimd-field--var" }, [
-          h("span", { class: "aimd-field__scope" }, "VAR"),
+          h("span", { class: "aimd-field__scope" }, "var"),
           h("span", { class: "aimd-field__name" }, refTarget),
         ]),
       ]),
@@ -269,14 +407,14 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     const figureNumber = "figureNumber" in node ? (node as any).figureNumber : undefined
 
     // Display figure number if available, otherwise show ID
-    const displayText = figureNumber !== undefined ? `Figure ${figureNumber}` : `FIGURE ${refTarget}`
+    const displayText = figureNumber !== undefined ? `figure ${figureNumber}` : `figure ${refTarget}`
 
     // Render as link reference to the figure
     return h("a", {
       "class": "aimd-ref aimd-ref--fig",
       "data-aimd-type": "ref_fig",
       "data-aimd-ref": refTarget,
-      "href": `#rf-${refTarget}`,
+      "href": `#fig-${refTarget}`,
     }, [
       h("span", { class: "aimd-ref__content" }, displayText),
     ])
@@ -321,7 +459,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       // Figure number and title
       if (figSequence !== undefined || figTitle) {
         const titleText = figSequence !== undefined
-          ? `Figure ${figSequence + 1}${figTitle ? `: ${figTitle}` : ""}`
+          ? `figure ${figSequence + 1}${figTitle ? `: ${figTitle}` : ""}`
           : figTitle
         captionChildren.push(
           h("div", { class: "aimd-figure__title" }, titleText),
@@ -345,7 +483,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       "data-aimd-type": "fig",
       "data-aimd-fig-id": figId,
       "data-aimd-fig-src": figSrc,
-      "id": `rf-${figId}`,
+      "id": `fig-${figId}`,
     }, children)
   },
 }
@@ -354,6 +492,14 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
  * Render options
  */
 export interface VueRendererOptions {
+  /**
+   * Render mode shorthand (used when context is not provided)
+   */
+  mode?: RenderContext["mode"]
+  /**
+   * Quiz preview visibility shorthand (used when context is not provided)
+   */
+  quizPreview?: RenderContext["quizPreview"]
   /**
    * Render context
    */
@@ -381,6 +527,19 @@ export interface VueRendererOptions {
 const defaultContext: RenderContext = {
   mode: "preview",
   readonly: false,
+}
+
+function resolveRenderContext(options: VueRendererOptions): RenderContext {
+  const topLevelMode = options.mode
+  const topLevelQuizPreview = options.quizPreview
+  const context = options.context
+
+  return {
+    ...defaultContext,
+    ...(context ?? {}),
+    mode: context?.mode ?? topLevelMode ?? defaultContext.mode,
+    quizPreview: context?.quizPreview ?? topLevelQuizPreview ?? undefined,
+  }
 }
 
 /**
@@ -472,7 +631,7 @@ function parseAimdFromProps(props: Record<string, unknown>): AimdNode | undefine
     type: "aimd" as const,
     fieldType: fieldType as AimdNode["fieldType"],
     name,
-    scope: (scope || "rv") as AimdNode["scope"],
+    scope: (scope || "var") as AimdNode["scope"],
     raw: raw || `{{${fieldType}|${name}}}`,
   }
 
@@ -500,6 +659,18 @@ function parseAimdFromProps(props: Record<string, unknown>): AimdNode | undefine
       src: figSrc || "",
       title: undefined,
       legend: undefined,
+    } as AimdNode
+  }
+
+  // Add quiz-specific properties
+  if (fieldType === "quiz") {
+    const quizType = (props["data-aimd-quiz-type"] || props.dataAimdQuizType || "open") as string
+    const stem = (props["data-aimd-quiz-stem"] || props.dataAimdQuizStem || "") as string
+    return {
+      ...baseNode,
+      fieldType: "quiz",
+      quizType: quizType as AimdQuizNode["quizType"],
+      stem,
     } as AimdNode
   }
 
@@ -537,6 +708,10 @@ function isPromiseLike<T>(value: unknown): value is PromiseLike<T> {
   return typeof value === "object" && value !== null && "then" in value
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 /**
  * Void elements that don't have children
  */
@@ -566,11 +741,11 @@ export function hastToVue(
   figCtx?: FigureContext,
 ): VNodeChild {
   const {
-    context = defaultContext,
     aimdRenderers = {},
     elementRenderers = {},
     componentMap = {},
   } = options
+  const context = resolveRenderContext(options)
 
   // Merge custom renderers with defaults
   const mergedAimdRenderers = { ...defaultAimdRenderers, ...aimdRenderers }

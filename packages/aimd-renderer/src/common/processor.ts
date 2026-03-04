@@ -3,9 +3,9 @@ import type { VFile } from "vfile"
 import type { VNode } from "vue"
 import type {
   AimdNode,
+  AimdQuizNode,
   AimdStepNode,
   ProcessorOptions,
-  RenderContext,
 } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
 
@@ -42,11 +42,82 @@ function getFieldTypeClass(fieldType: AimdNode["fieldType"]): string {
   }
 }
 
+interface ResolvedQuizPreviewOptions {
+  showAnswers: boolean
+  showRubric: boolean
+}
+
+const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
+
+function resolveQuizPreviewOptions(
+  options: Pick<ProcessorOptions, "mode" | "quizPreview">,
+): ResolvedQuizPreviewOptions {
+  const mode = options.mode ?? "preview"
+  const defaultReveal = mode === "report"
+  return {
+    showAnswers: options.quizPreview?.showAnswers ?? defaultReveal,
+    showRubric: options.quizPreview?.showRubric ?? defaultReveal,
+  }
+}
+
+function buildQuizStemChildren(
+  quizType: AimdQuizNode["quizType"],
+  stem: string,
+): Array<Element | HastText> {
+  if (quizType !== "blank") {
+    return [{ type: "text", value: stem }]
+  }
+
+  const children: Array<Element | HastText> = []
+  let lastIndex = 0
+
+  for (const match of stem.matchAll(BLANK_PLACEHOLDER_PATTERN)) {
+    const start = match.index ?? 0
+    const fullMatch = match[0]
+    const key = match[1]
+
+    if (start > lastIndex) {
+      children.push({
+        type: "text",
+        value: stem.slice(lastIndex, start),
+      })
+    }
+
+    children.push({
+      type: "element",
+      tagName: "span",
+      properties: {
+        className: ["aimd-quiz__blank-placeholder"],
+        "data-blank-key": key,
+      },
+      children: [{ type: "text", value: key }],
+    } as Element)
+
+    lastIndex = start + fullMatch.length
+  }
+
+  if (lastIndex < stem.length) {
+    children.push({
+      type: "text",
+      value: stem.slice(lastIndex),
+    })
+  }
+
+  if (children.length === 0) {
+    children.push({ type: "text", value: stem })
+  }
+
+  return children
+}
+
 /**
  * Custom handler for AIMD nodes in remark-rehype
  * Converts MDAST AIMD nodes to HAST elements
  */
-function aimdHandler(state: any, node: AimdNode): Element {
+function createAimdHandler(options: ProcessorOptions = {}) {
+  const quizPreview = resolveQuizPreviewOptions(options)
+
+  return function aimdHandler(state: any, node: AimdNode): Element {
   // Build full node data including step hierarchy
   const nodeData: Record<string, unknown> = {
     type: node.type,
@@ -67,6 +138,21 @@ function aimdHandler(state: any, node: AimdNode): Element {
     nodeData.refTarget = node.refTarget
   if ("checkedMessage" in node)
     nodeData.checkedMessage = node.checkedMessage
+
+  // Add quiz-specific fields
+  if (node.fieldType === "quiz") {
+    const quizNode = node as AimdQuizNode
+    nodeData.quizType = quizNode.quizType
+    nodeData.stem = quizNode.stem
+    nodeData.score = quizNode.score
+    nodeData.mode = quizNode.mode
+    nodeData.options = quizNode.options
+    nodeData.answer = quizNode.answer
+    nodeData.blanks = quizNode.blanks
+    nodeData.rubric = quizNode.rubric
+    nodeData.default = quizNode.default
+    nodeData.extra = quizNode.extra
+  }
 
   // Add fig-specific fields
   if (node.fieldType === "fig") {
@@ -101,8 +187,11 @@ function aimdHandler(state: any, node: AimdNode): Element {
   // Determine if this is a reference type
   const isRef = fieldType === "ref_step" || fieldType === "ref_var" || fieldType === "ref_fig"
   const isCite = fieldType === "cite"
+  const isQuiz = fieldType === "quiz"
   const isFig = fieldType === "fig"
-  const baseClass = isRef ? "aimd-ref" : (isCite ? "aimd-cite" : (isFig ? "aimd-figure" : "aimd-field"))
+  const baseClass = isRef
+    ? "aimd-ref"
+    : (isCite ? "aimd-cite" : (isFig ? "aimd-figure" : "aimd-field"))
   const modifierClass = isRef
     ? `aimd-ref--${fieldType === "ref_step" ? "step" : (fieldType === "ref_var" ? "var" : "fig")}`
     : (isCite ? "" : (isFig ? "" : `aimd-field--${typeClass}`))
@@ -130,7 +219,7 @@ function aimdHandler(state: any, node: AimdNode): Element {
     }
     else {
       // Variable or figure reference: show as field with scope + name
-      const scopeLabel = fieldType === "ref_var" ? "VAR" : "FIGURE"
+      const scopeLabel = fieldType === "ref_var" ? "var" : "figure"
       children.push({
         type: "element",
         tagName: "span",
@@ -177,7 +266,7 @@ function aimdHandler(state: any, node: AimdNode): Element {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__scope"] },
-        children: [{ type: "text", value: "VAR" }],
+        children: [{ type: "text", value: "var" }],
       } as Element,
       {
         type: "element",
@@ -208,7 +297,7 @@ function aimdHandler(state: any, node: AimdNode): Element {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__scope"] },
-            children: [{ type: "text", value: "TABLE" }],
+            children: [{ type: "text", value: "table" }],
           } as Element,
           {
             type: "element",
@@ -266,7 +355,7 @@ function aimdHandler(state: any, node: AimdNode): Element {
     }
   }
   else if (fieldType === "step") {
-    // Step: scope label + step number + name
+    // Step: scope label + sequence + name
     const stepNode = node as AimdStepNode
     const stepNum = stepNode.step || "1"
 
@@ -275,13 +364,13 @@ function aimdHandler(state: any, node: AimdNode): Element {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__scope"] },
-        children: [{ type: "text", value: "STEP" }],
+        children: [{ type: "text", value: "step" }],
       } as Element,
       {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__step-num"] },
-        children: [{ type: "text", value: `Step ${stepNum}` }],
+        children: [{ type: "text", value: stepNum }],
       } as Element,
       {
         type: "element",
@@ -308,6 +397,103 @@ function aimdHandler(state: any, node: AimdNode): Element {
         children: [{ type: "text", value: label || name }],
       } as Element,
     )
+  }
+  else if (fieldType === "quiz") {
+    const quizNode = node as AimdQuizNode
+    const quizType = quizNode.quizType
+
+    children.push(
+      {
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-quiz__meta"] },
+        children: [
+          {
+            type: "element",
+            tagName: "span",
+            properties: { className: ["aimd-field__scope"] },
+            children: [{ type: "text", value: "quiz" }],
+          } as Element,
+          {
+            type: "element",
+            tagName: "span",
+            properties: { className: ["aimd-field__name"] },
+            children: [{ type: "text", value: name }],
+          } as Element,
+          {
+            type: "element",
+            tagName: "span",
+            properties: { className: ["aimd-field__type"] },
+            children: [{ type: "text", value: `(${quizType})` }],
+          } as Element,
+          ...(quizNode.score !== undefined
+            ? [{
+                type: "element",
+                tagName: "span",
+                properties: { className: ["aimd-quiz__score"] },
+                children: [{ type: "text", value: `${quizNode.score} pt` }],
+              } as Element]
+            : []),
+        ],
+      } as Element,
+      {
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-quiz__stem"] },
+        children: buildQuizStemChildren(quizType, quizNode.stem),
+      } as Element,
+    )
+
+    if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
+      children.push({
+        type: "element",
+        tagName: "ul",
+        properties: { className: ["aimd-quiz__options"] },
+        children: quizNode.options.map(option => ({
+          type: "element",
+          tagName: "li",
+          properties: {},
+          children: [{ type: "text", value: `${option.key}. ${option.text}` }],
+        } as Element)),
+      } as Element)
+    }
+
+    if (quizPreview.showAnswers && quizType === "choice" && quizNode.answer !== undefined) {
+      const answerText = Array.isArray(quizNode.answer)
+        ? quizNode.answer.join(", ")
+        : String(quizNode.answer)
+      if (answerText.trim()) {
+        children.push({
+          type: "element",
+          tagName: "div",
+          properties: { className: ["aimd-quiz__answer"] },
+          children: [{ type: "text", value: `Answer: ${answerText}` }],
+        } as Element)
+      }
+    }
+
+    if (quizPreview.showAnswers && quizType === "blank" && Array.isArray(quizNode.blanks) && quizNode.blanks.length > 0) {
+      children.push({
+        type: "element",
+        tagName: "ul",
+        properties: { className: ["aimd-quiz__blanks"] },
+        children: quizNode.blanks.map(blank => ({
+          type: "element",
+          tagName: "li",
+          properties: {},
+          children: [{ type: "text", value: `${blank.key}: ${blank.answer}` }],
+        } as Element)),
+      } as Element)
+    }
+
+    if (quizPreview.showRubric && quizType === "open" && typeof quizNode.rubric === "string" && quizNode.rubric.trim()) {
+      children.push({
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-quiz__rubric"] },
+        children: [{ type: "text", value: `Rubric: ${quizNode.rubric}` }],
+      } as Element)
+    }
   }
   else if (fieldType === "fig") {
     // Figure: image + title + legend
@@ -372,7 +558,15 @@ function aimdHandler(state: any, node: AimdNode): Element {
 
   // Add reference href
   if (isRef) {
-    properties.href = `#${node.scope}-${name}`
+    if (fieldType === "ref_step") {
+      properties.href = `#step-${name}`
+    }
+    else if (fieldType === "ref_var") {
+      properties.href = `#var-${name}`
+    }
+    else if (fieldType === "ref_fig") {
+      properties.href = `#fig-${name}`
+    }
   }
 
   // Add step-specific properties
@@ -380,41 +574,54 @@ function aimdHandler(state: any, node: AimdNode): Element {
     const stepNode = node as AimdStepNode
     properties["data-aimd-step"] = stepNode.step
     properties["data-aimd-level"] = stepNode.level
-    properties.id = `rs-${name}`
+    properties.id = `step-${name}`
   }
 
   // Add check id
   if (node.fieldType === "check") {
-    properties.id = `rc-${name}`
+    properties.id = `check-${name}`
   }
 
   // Add var id
   if (node.fieldType === "var") {
-    properties.id = `rv-${name}`
+    properties.id = `var-${name}`
   }
 
   // Add var_table id
   if (node.fieldType === "var_table") {
-    properties.id = `rt-${name}`
+    properties.id = `var_table-${name}`
+  }
+
+  // Add quiz id
+  if (node.fieldType === "quiz") {
+    properties.id = `quiz-${name}`
   }
 
   // Add fig id
   if (node.fieldType === "fig") {
     const figNode = node as any
-    properties.id = `rf-${figNode.id || name}`
+    properties.id = `fig-${figNode.id || name}`
     properties["data-aimd-fig-id"] = figNode.id
     properties["data-aimd-fig-src"] = figNode.src
   }
 
+  // Add quiz metadata for fallback reconstruction
+  if (node.fieldType === "quiz") {
+    const quizNode = node as AimdQuizNode
+    properties["data-aimd-quiz-type"] = quizNode.quizType
+    properties["data-aimd-quiz-stem"] = quizNode.stem
+  }
+
   const element: Element = {
     type: "element",
-    tagName: isRef ? "a" : (isFig ? "figure" : (fieldType === "var_table" ? "div" : "span")),
+    tagName: isRef ? "a" : (isFig ? "figure" : ((fieldType === "var_table" || isQuiz) ? "div" : "span")),
     properties,
     children,
   }
   // Store AIMD data for Vue renderer (may be lost after rehypeRaw)
   ;(element as any).data = { aimd: node }
   return element
+  }
 }
 
 /**
@@ -453,6 +660,7 @@ function createBaseProcessor(options: ProcessorOptions = {}) {
  */
 export function createHtmlProcessor(options: ProcessorOptions = {}) {
   const { math = true, sanitize = true } = options
+  const aimdHandler = createAimdHandler(options)
 
   const processor = createBaseProcessor(options)
     .use(remarkRehype, {
@@ -489,6 +697,7 @@ export async function renderToHtml(
   const fields = (file.data.aimdFields as ExtractedAimdFields) || {
     var: [],
     var_table: [],
+    quiz: [],
     step: [],
     check: [],
     ref_step: [],
@@ -518,6 +727,7 @@ export async function renderToVue(
   const fields = (file.data.aimdFields as ExtractedAimdFields) || {
     var: [],
     var_table: [],
+    quiz: [],
     step: [],
     check: [],
     ref_step: [],
@@ -545,6 +755,7 @@ export function parseAndExtract(content: string): ExtractedAimdFields {
   return (file.data.aimdFields as ExtractedAimdFields) || {
     var: [],
     var_table: [],
+    quiz: [],
     step: [],
     check: [],
     ref_step: [],
@@ -563,6 +774,7 @@ export function renderToHtmlSync(
   options: ProcessorOptions = {},
 ): { html: string, fields: ExtractedAimdFields } {
   const { gfm = true, math = false, breaks = true } = options
+  const aimdHandler = createAimdHandler(options)
 
   // Sync mode does not support KaTeX (requires async loading)
   const processor = unified()
@@ -598,6 +810,7 @@ export function renderToHtmlSync(
   const fields = (file.data.aimdFields as ExtractedAimdFields) || {
     var: [],
     var_table: [],
+    quiz: [],
     step: [],
     check: [],
     ref_step: [],

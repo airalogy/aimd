@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-core",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AIMD (Airalogy Markdown) core parser and syntax definitions",
   "keywords": [
     "aimd",
@@ -56,7 +56,8 @@
     "remark-rehype": "^11.1.2",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.0.0",
-    "vfile": "^6.0.3"
+    "vfile": "^6.0.3",
+    "yaml": "^2.4.2"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

@@ -1,0 +1,104 @@
+# 研究协议示例
+
+## 变量定义
+
+请输入样本名称：{{var|sample_name: str}}
+
+温度设定：{{var|temperature: float = 25.0}}
+
+浓度参数：{{var|concentration: float = 1.0, title = "浓度 (M)", unit = "mol/L"}}
+
+是否激活：{{var|is_active: bool = true}}
+
+## 变量表
+
+{{var|samples, subvars=[sample_id, concentration, volume]}}
+
+## 实验步骤
+
+{{step|sample_preparation}} 准备样本，确认样本名称 {{ref_var|sample_name}}。
+
+{{step|data_analysis}} 分析数据，检查温度 {{ref_var|temperature}}。
+
+## 质量检查
+
+{{check|quality_control}}
+
+{{check|safety_verification}}
+
+## 题目（Quiz）
+
+```quiz
+id: quiz_single_1
+type: choice
+mode: single
+stem: 样本应优先保存在什么温度？
+score: 2
+options:
+  - key: A
+    text: -20°C
+  - key: B
+    text: 4°C
+  - key: C
+    text: 室温
+answer: B
+```
+
+```quiz
+id: quiz_multiple_1
+type: choice
+mode: multiple
+stem: 以下哪些是实验记录中必须包含的信息？
+score: 3
+options:
+  - key: A
+    text: 样本编号
+  - key: B
+    text: 操作时间
+  - key: C
+    text: 操作者
+  - key: D
+    text: 天气情况
+answer: [A, B, C]
+```
+
+```quiz
+id: quiz_blank_1
+type: blank
+stem: 反应体系中 NaCl 的目标浓度为 [[b1]]。
+score: 2
+blanks:
+  - key: b1
+    answer: 0.9%
+```
+
+```quiz
+id: quiz_open_1
+type: open
+stem: 请解释为什么在该步骤中需要控温，并给出至少两个原因。
+score: 5
+rubric: 至少提到反应速率和样本稳定性两个方面。
+```
+
+## 引用
+
+参考步骤：{{ref_step|sample_preparation}}
+
+## Markdown 特性
+
+**粗体** *斜体* ~~删除线~~
+
+- 列表项 1
+- 列表项 2
+
+| 列 A | 列 B | 列 C |
+|------|------|------|
+| 1    | 2    | 3    |
+
+> 引用块内容
+
+行内公式 $E = mc^2$
+
+$$
+\sum_{i=1}^{n} x_i = x_1 + x_2 + \cdots + x_n
+$$

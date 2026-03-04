@@ -10,7 +10,7 @@
 /**
  * Scope field key (for referencing fields)
  */
-export type ScopeFieldKey = `${'rv' | 'rs' | 'rc' | 'rt' | 'rf'}:${string}`
+export type ScopeFieldKey = `${AimdScopeKey}:${string}`
 
 /**
  * Field key type
@@ -105,23 +105,26 @@ export interface ExtractResult {
  * Scope keys used in AIMD
  */
 export type AimdScopeKey =
-  | "rv" // research_variable
-  | "rs" // research_step
-  | "rc" // research_check
-  | "rt" // research_table (var_table)
-  | "rq" // research_question
-  | "rr" // research_reference
+  | "var"
+  | "var_table"
+  | "quiz"
+  | "step"
+  | "check"
+  | "ref_step"
+  | "ref_var"
+  | "ref_fig"
+  | "cite"
+  | "fig"
 
 /**
- * Full scope names
+ * High-level scope names for semantic grouping
  */
 export type AimdScopeName =
-  | "research_variable"
-  | "research_step"
-  | "research_check"
-  | "research_workflow"
-  | "ref_step"
-  | "rv_ref"
+  | "var"
+  | "step"
+  | "check"
+  | "quiz"
+  | "workflow"
 
 /**
  * AIMD field types
@@ -129,10 +132,14 @@ export type AimdScopeName =
 export type AimdFieldType =
   | "var"
   | "var_table"
+  | "quiz"
   | "step"
   | "check"
   | "ref_step"
-  | "rv_ref"
+  | "ref_var"
+  | "ref_fig"
+  | "cite"
+  | "fig"
 
 /**
  * Variable type annotation (e.g., str, int, float, bool, list)
@@ -185,7 +192,7 @@ export interface AimdVarTableField {
   /** Table name */
   name: string
   /** Scope key */
-  scope: "rt" | "research_variable"
+  scope: "var_table"
   /** Column definitions - always use AimdSubvar[] format */
   subvars: AimdSubvar[]
   /** Table link for linked tables */
@@ -217,6 +224,60 @@ export interface AimdVarField {
   title?: string
   /** Description */
   description?: string
+}
+
+/**
+ * Quiz type
+ */
+export type AimdQuizType = "choice" | "blank" | "open"
+
+/**
+ * Choice mode for choice quiz
+ */
+export type AimdQuizMode = "single" | "multiple"
+
+/**
+ * Choice option definition
+ */
+export interface AimdQuizOption {
+  key: string
+  text: string
+}
+
+/**
+ * Blank item definition
+ */
+export interface AimdQuizBlank {
+  key: string
+  answer: string
+}
+
+/**
+ * Quiz field definition
+ */
+export interface AimdQuizField {
+  /** Quiz id (also used as field key) */
+  id: string
+  /** Quiz type */
+  type: AimdQuizType
+  /** Question stem */
+  stem: string
+  /** Optional score */
+  score?: number
+  /** Choice mode */
+  mode?: AimdQuizMode
+  /** Choice options */
+  options?: AimdQuizOption[]
+  /** Standard answer */
+  answer?: string | string[]
+  /** Blank definitions */
+  blanks?: AimdQuizBlank[]
+  /** Open question rubric */
+  rubric?: string
+  /** Optional default value */
+  default?: unknown
+  /** Extra unreserved metadata */
+  extra?: Record<string, unknown>
 }
 
 /**
@@ -252,7 +313,7 @@ export interface AimdRefField {
   /** Reference name */
   name: string
   /** Reference type */
-  type: "ref_step" | "rv_ref"
+  type: "ref_step" | "ref_var" | "ref_fig"
 }
 
 /**
@@ -280,6 +341,8 @@ export interface ExtractedAimdFields {
   var: string[]
   /** Variable tables with full definitions */
   var_table: AimdVarTableField[]
+  /** Quiz definitions from ```quiz code blocks */
+  quiz: AimdQuizField[]
   /** Steps */
   step: string[]
   /** Checkpoints */
@@ -318,20 +381,6 @@ export interface AimdTemplateEnv {
   /** Reference definitions */
   refs?: {
     ref_step: Array<{ name: string, line: number, sequence: number }>
-    rv_ref: Array<{ name: string, line: number, sequence: number }>
+    ref_var: Array<{ name: string, line: number, sequence: number }>
   }
-}
-
-/**
- * Legacy format compatibility - maps short keys to full data
- */
-export interface LegacyFieldsFormat {
-  rv?: Record<string, { label: string, type: string, required?: boolean }>
-  rs?: Record<string, { label: string, type: string }>
-  rc?: Record<string, { label: string, type: string }>
-  rt?: Record<string, { label: string, type: string, columns?: string[] }>
-  var?: string[]
-  step?: string[]
-  check?: string[]
-  var_table?: Array<string | [string, string[]]>
 }

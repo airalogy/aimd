@@ -5,48 +5,9 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import type { VFile } from 'vfile'
+import { SAMPLE_AIMD } from '../composables/sampleContent'
 
-const defaultContent = `# 研究协议示例
-
-## 变量定义
-
-{{var|sample_name: str}}
-{{var|temperature: float = 25.0}}
-{{var|is_active: bool = true}}
-{{var|concentration: float = 1.0, title = "浓度 (M)", unit = "mol/L"}}
-
-## 变量表
-
-{{var_table|samples, subvars=[sample_id, concentration, volume]}}
-
-## 步骤
-
-{{step|sample_preparation}}
-准备样本，记录样本名称 {{ref_var|sample_name}}。
-
-{{step|data_analysis}}
-分析数据，检查温度 {{ref_var|temperature}}。
-
-## 检查点
-
-{{check|quality_control}}
-{{check|safety_verification}}
-
-## 引用
-
-参考步骤 {{ref_step|sample_preparation}}
-参考图表 {{ref_fig|figure_1}}
-
-## 数学公式
-
-行内公式 $E = mc^2$
-
-$$
-\\int_0^\\infty e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}
-$$
-`
-
-const input = ref(defaultContent)
+const input = ref(SAMPLE_AIMD)
 const astOutput = ref('')
 const fieldsOutput = ref('')
 const parseError = ref('')

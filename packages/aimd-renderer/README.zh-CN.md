@@ -59,6 +59,36 @@ const { nodes, fields } = await renderToVue(content, {
 })
 ```
 
+### Quiz 预览可见性
+
+在 `preview` 模式下，题目的敏感信息默认隐藏：
+
+- `choice` 题的标准答案隐藏
+- `blank` 题的标准答案隐藏
+- `open` 题的 `rubric` 隐藏
+
+在 `report` 模式下默认显示上述信息。也可以显式覆盖：
+
+```typescript
+import { renderToHtml, renderToVue } from '@airalogy/aimd-renderer'
+
+await renderToHtml(content, {
+  mode: 'preview',
+  quizPreview: {
+    showAnswers: true,
+    showRubric: true,
+  },
+})
+
+await renderToVue(content, {
+  mode: 'preview',
+  quizPreview: {
+    showAnswers: false,
+    showRubric: false,
+  },
+})
+```
+
 ### 高级处理器创建
 
 ```typescript
@@ -121,6 +151,7 @@ const mermaidRenderer = createMermaidRenderer({
 ### 主入口 (`@airalogy/aimd-renderer`)
 
 #### 处理函数
+
 - `createHtmlProcessor()` - 创建 HTML 渲染处理器
 - `createRenderer()` - 创建带有选项的自定义渲染器
 - `defaultRenderer` - 默认 renderer 实例（`createRenderer()` 的结果）
@@ -130,6 +161,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `parseAndExtract(content, options?)` - 解析并提取 AIMD 字段
 
 #### 渲染器创建
+
 - `createComponentRenderer(options)` - 创建 Vue 组件渲染器
 - `createAssetRenderer(options)` - 创建资源解析器
 - `createCodeBlockRenderer(options)` - 创建代码块渲染器
@@ -137,6 +169,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `createMermaidRenderer(options)` - 创建 Mermaid 图表渲染器
 
 #### 工具函数
+
 - `hastToVue(hastNode, options?)` - 将 HAST 转换为 Vue vNodes
 - `createUnifiedTokenRenderer(options)` - 创建基于令牌的渲染器
 - `renderToVNodes(hastNode, options?)` - 将 HAST 根节点渲染为 Vue vNodes
@@ -144,6 +177,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `parseFieldTag(template)` - 解析 AIMD 字段标签
 
 #### 事件键
+
 - `fieldEventKey` - 字段交互的事件键
 - `draftEventKey` - 草稿更改的事件键
 - `protocolKey` - 协议更新的事件键
@@ -153,6 +187,7 @@ const mermaidRenderer = createMermaidRenderer({
 ### HTML 入口 (`@airalogy/aimd-renderer/html`)
 
 HTML 特定渲染导出：
+
 - `createHtmlProcessor()`
 - `renderToHtml()`
 - `renderToHtmlSync()`
@@ -161,6 +196,7 @@ HTML 特定渲染导出：
 ### Vue 入口 (`@airalogy/aimd-renderer/vue`)
 
 Vue 特定渲染导出：
+
 - `renderToVue()`
 - `createRenderer()`
 - 所有组件渲染器和工具函数
@@ -168,6 +204,7 @@ Vue 特定渲染导出：
 ## 类型
 
 ### `RenderResult`
+
 ```typescript
 interface RenderResult {
   nodes: VNode[]
@@ -176,18 +213,23 @@ interface RenderResult {
 ```
 
 ### `VueRendererOptions`
+
 ```typescript
 interface VueRendererOptions {
-  renderers?: {
-    [key: string]: ElementRenderer
+  mode?: 'preview' | 'edit' | 'report'
+  quizPreview?: {
+    showAnswers?: boolean
+    showRubric?: boolean
   }
-  assetResolver?: AssetResolver
-  codeBlockRenderer?: ElementRenderer
-  mermaidRenderer?: ElementRenderer
+  context?: RenderContext
+  aimdRenderers?: Record<string, AimdComponentRenderer>
+  elementRenderers?: Record<string, ElementRenderer>
+  componentMap?: Record<string, Component>
 }
 ```
 
 ### `ElementRenderer`
+
 ```typescript
 type ElementRenderer = (node: AimdNode, context?: RenderContext) => VNode | string
 ```
@@ -198,6 +240,7 @@ type ElementRenderer = (node: AimdNode, context?: RenderContext) => VNode | stri
 
 - **变量**: `{{var|name: type}}`
 - **变量表**: `{{var_table|table_name, subvars=[col1, col2]}}`
+- **题目代码块**: ```` ```quiz ... ``` ````
 - **步骤**: `{{step|step_name}}`
 - **检查**: `{{check|check_name}}`
 - **引用**: `{{ref_var|name}}`、`{{ref_step|name}}`
@@ -207,10 +250,18 @@ type ElementRenderer = (node: AimdNode, context?: RenderContext) => VNode | stri
 ## 配置选项
 
 ### ProcessorOptions
-- `extractFields?: boolean` - 提取 AIMD 字段
-- `includeMeta?: boolean` - 在结果中包含元数据
-- `customRules?: TokenRenderRule[]` - 自定义渲染规则
-- `assets?: AssetResolverOptions` - 资源解析选项
+
+- `mode?: 'preview' | 'edit' | 'report'`
+- `quizPreview?: { showAnswers?: boolean; showRubric?: boolean }`
+- `gfm?: boolean`
+- `math?: boolean`
+- `sanitize?: boolean`
+- `breaks?: boolean`
+
+`quizPreview` 默认值：
+
+- `preview` 模式：`showAnswers = false`、`showRubric = false`
+- `report` 模式：`showAnswers = true`、`showRubric = true`
 
 ## 性能
 

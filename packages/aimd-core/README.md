@@ -92,7 +92,6 @@ import {
   findVarTable,
   isVarTableField,
   toTemplateEnv,
-  toLegacyFieldsFormat,
   normalizeSubvars,
   mergeVarTableInfo
 } from '@airalogy/aimd-core/utils'
@@ -129,6 +128,7 @@ AIMD extends standard Markdown with special field syntax for research protocols:
 ### Variables
 
 Simple variable declaration:
+
 ```aimd
 {{var|sample_name: str}}
 {{var|temperature: float = 25.0}}
@@ -136,6 +136,7 @@ Simple variable declaration:
 ```
 
 Variables with additional metadata:
+
 ```aimd
 {{var|concentration: float = 1.0, title = "Concentration (M)", unit = "mol/L"}}
 {{var|samples: list[str], title = "Sample IDs"}}
@@ -144,18 +145,40 @@ Variables with additional metadata:
 ### Variable Tables
 
 Define tabular data with subvariables:
+
 ```aimd
 {{var_table|samples, subvars=[sample_id, concentration, volume]}}
 ```
 
 With metadata:
+
 ```aimd
 {{var_table|measurements, subvars=[time, value, unit], title = "Measurement Data"}}
 ```
 
+### Quiz Blocks
+
+Define quiz items via fenced code blocks:
+
+````aimd
+```quiz
+id: quiz_choice_1
+type: choice
+mode: single
+stem: Which option is correct?
+options:
+  - key: A
+    text: Option A
+  - key: B
+    text: Option B
+answer: A
+```
+````
+
 ### Steps
 
 Procedure steps:
+
 ```aimd
 {{step|sample_preparation}}
 {{step|data_analysis}}
@@ -165,6 +188,7 @@ Procedure steps:
 ### Checks
 
 Quality checks and verification points:
+
 ```aimd
 {{check|quality_control}}
 {{check|safety_verification}}
@@ -173,6 +197,7 @@ Quality checks and verification points:
 ### References
 
 Reference other AIMD elements:
+
 ```aimd
 {{ref_var|sample_name}}
 {{ref_step|sample_preparation}}
@@ -182,6 +207,7 @@ Reference other AIMD elements:
 ### Citations
 
 Insert citations (comma-separated):
+
 ```aimd
 {{cite|ref_1}}
 {{cite|ref_1, ref_2}}
@@ -190,6 +216,7 @@ Insert citations (comma-separated):
 ### Figures
 
 Define figures via fenced code blocks:
+
 ````aimd
 ```fig
 id: fig_1
@@ -236,8 +263,10 @@ import { aimdLanguage, aimdSyntaxTheme } from '@airalogy/aimd-core/syntax'
 ### Types Export (`@airalogy/aimd-core/types`)
 
 Complete TypeScript types for AIMD:
+
 - `AimdVarNode` - Variable node
 - `AimdVarTableNode` - Variable table node
+- `AimdQuizNode` - Quiz node
 - `AimdStepNode` - Step node
 - `AimdCheckNode` - Check node
 - `AimdRefNode` - Reference node
@@ -256,6 +285,7 @@ import type {
 ### Utils Export (`@airalogy/aimd-core/utils`)
 
 Utility functions for working with AIMD:
+
 - `normalizeSubvars()` - Normalize subvar formats
 - `getSubvarNames()` - Extract subvar names from array
 - `getSubvarDef()` - Get a subvar definition by name
@@ -264,7 +294,6 @@ Utility functions for working with AIMD:
 - `isVarTableField()` - Whether a given name is a var_table
 - `mergeVarTableInfo()` - Merge var_table info into a field record
 - `toTemplateEnv()` - Convert fields to template environment
-- `toLegacyFieldsFormat()` - Convert to legacy fields format
 
 ```typescript
 import {
@@ -277,6 +306,7 @@ import {
 ### Grammar Export (`@airalogy/aimd-core/syntax`)
 
 TextMate grammar for syntax highlighting:
+
 - `aimdLanguage` - For Shiki and other TextMate-based highlighters
 - Available in multiple formats:
   - JSON for direct use
@@ -347,12 +377,14 @@ pnpm build:types
 ### Dependencies
 
 Core dependencies:
+
 - `unified` - Text processing ecosystem
 - `remark-parse` - Markdown parser
 - `remark-rehype` - remark to rehype bridge
 - `unist-util-visit` - AST visiting utilities
 
 Dev dependencies:
+
 - `shiki` - Syntax highlighting
 - `typescript` - Type checking
 - `vite` - Build tool
@@ -378,6 +410,7 @@ HTML output
 ### Node Structure
 
 AIMD nodes are compatible with Unified ecosystem:
+
 - Extend from standard AST nodes
 - Include metadata about AIMD elements
 - Support custom attributes and data

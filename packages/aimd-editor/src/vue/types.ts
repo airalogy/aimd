@@ -56,6 +56,7 @@ const _si = (d: string, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" 
 export const AIMD_FIELD_TYPES: AimdFieldType[] = [
   { type: 'var', label: 'Variable', icon: 'x', svgIcon: _si('<path d="M7 4l10 16M17 4L7 20"/>'), desc: 'Define a variable', color: '#2563eb' },
   { type: 'var_table', label: 'Var Table', icon: '\u229e', svgIcon: _si('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>'), desc: 'Define a variable table', color: '#059669' },
+  { type: 'quiz', label: 'Quiz', icon: '?', svgIcon: _si('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2 2-2 3.5"/><circle cx="12" cy="17" r="1" fill="currentColor" stroke="none"/>'), desc: 'Define a quiz item', color: '#7c3aed' },
   { type: 'step', label: 'Step', icon: '\u25b6', svgIcon: _si('<polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none"/>'), desc: 'Define a step', color: '#d97706' },
   { type: 'check', label: 'Checkpoint', icon: '\u2713', svgIcon: _si('<polyline points="4 12 9 17 20 6"/>'), desc: 'Define a checkpoint', color: '#dc2626' },
   { type: 'ref_step', label: 'Ref Step', icon: '\u2197', svgIcon: _si('<path d="M7 17L17 7M17 7H8M17 7v9"/>'), desc: 'Reference a defined step', color: '#0891b2' },
@@ -85,10 +86,94 @@ export const MD_TOOLBAR_ITEMS: MdToolbarItem[] = [
   { action: 'math', label: '\u2211', title: 'Math Formula', svgIcon: _si('<path d="M18 4H6l6 8-6 8h12" stroke-width="2"/>') },
 ]
 
+function toYamlScalar(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed)
+    return '""'
+
+  if (
+    /[:#\[\]\{\},&*!?|><=@`]/.test(trimmed)
+    || /^\s|\s$/.test(value)
+    || /["']/.test(trimmed)
+  ) {
+    return JSON.stringify(trimmed)
+  }
+
+  return trimmed
+}
+
+function toStemLines(value: string, fallback: string): string[] {
+  const stem = (value || fallback).replace(/\r\n?/g, '\n')
+  const lines = stem.split('\n')
+  if (lines.length === 0)
+    return [fallback]
+  return lines
+}
+
+function parseQuizOptions(input: string): Array<{ key: string, text: string }> {
+  const parts = input.split(',').map(s => s.trim()).filter(Boolean)
+  if (parts.length === 0) {
+    return [
+      { key: 'A', text: 'Option A' },
+      { key: 'B', text: 'Option B' },
+    ]
+  }
+
+  return parts.map((part, index) => {
+    const sepIndex = part.indexOf(':')
+    if (sepIndex > 0) {
+      const key = part.slice(0, sepIndex).trim() || String.fromCharCode(65 + index)
+      const text = part.slice(sepIndex + 1).trim() || `Option ${key}`
+      return { key, text }
+    }
+
+    const key = String.fromCharCode(65 + index)
+    return { key, text: part }
+  })
+}
+
+function parseBlankItems(input: string): Array<{ key: string, answer: string }> {
+  const parts = input.split(',').map(s => s.trim()).filter(Boolean)
+  if (parts.length === 0) {
+    return [{ key: 'b1', answer: '21%' }]
+  }
+
+  return parts.map((part, index) => {
+    const sepIndex = part.indexOf(':')
+    if (sepIndex > 0) {
+      const key = part.slice(0, sepIndex).trim() || `b${index + 1}`
+      const answer = part.slice(sepIndex + 1).trim() || ''
+      return { key, answer }
+    }
+    return { key: `b${index + 1}`, answer: part }
+  })
+}
+
+function parseOptionalScore(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed)
+    return null
+  const score = Number(trimmed)
+  if (Number.isNaN(score) || score < 0)
+    return null
+  return String(score)
+}
+
 export function getDefaultAimdFields(type: string): Record<string, string> {
   switch (type) {
     case 'var': return { name: '', type: 'str', default: '', title: '' }
     case 'var_table': return { name: '', subvars: '' }
+    case 'quiz': return {
+      id: 'quiz_choice_1',
+      quizType: 'choice',
+      mode: 'single',
+      stem: 'Which option is correct?',
+      options: 'A:Option A, B:Option B',
+      answer: 'A',
+      blanks: 'b1:21%',
+      rubric: '',
+      score: '',
+    }
     case 'step': return { name: '', level: '1' }
     case 'check': return { name: '' }
     case 'ref_step': return { name: '' }
@@ -118,31 +203,109 @@ export function buildAimdSyntax(type: string, fields: Record<string, string>): s
       const level = fields.level && fields.level !== '1' ? ', ' + fields.level : ''
       return `{{step|${name}${level}}}`
     }
+    case 'quiz': {
+      const quizType = (fields.quizType || 'choice').trim()
+      const id = (fields.id || `quiz_${quizType}_1`).trim()
+      const score = parseOptionalScore(fields.score || '')
+      const lines: string[] = [
+        '```quiz',
+        `id: ${toYamlScalar(id)}`,
+        `type: ${toYamlScalar(quizType)}`,
+      ]
+
+      if (score !== null) {
+        lines.push(`score: ${score}`)
+      }
+
+      lines.push('stem: |')
+      for (const stemLine of toStemLines(fields.stem, 'Please fill this question stem.')) {
+        lines.push(`  ${stemLine}`)
+      }
+
+      if (quizType === 'choice') {
+        const mode = fields.mode === 'multiple' ? 'multiple' : 'single'
+        const options = parseQuizOptions(fields.options || '')
+        lines.push(`mode: ${mode}`)
+        lines.push('options:')
+        for (const option of options) {
+          lines.push(`  - key: ${toYamlScalar(option.key)}`)
+          lines.push(`    text: ${toYamlScalar(option.text)}`)
+        }
+
+        const answerRaw = (fields.answer || '').trim()
+        if (answerRaw) {
+          if (mode === 'multiple') {
+            const answers = answerRaw.split(',').map(v => v.trim()).filter(Boolean)
+            if (answers.length > 0) {
+              lines.push('answer:')
+              for (const answer of answers) {
+                lines.push(`  - ${toYamlScalar(answer)}`)
+              }
+            }
+          }
+          else {
+            lines.push(`answer: ${toYamlScalar(answerRaw)}`)
+          }
+        }
+      }
+      else if (quizType === 'blank') {
+        const blanks = parseBlankItems(fields.blanks || '')
+        lines.push('blanks:')
+        for (const blank of blanks) {
+          lines.push(`  - key: ${toYamlScalar(blank.key)}`)
+          lines.push(`    answer: ${toYamlScalar(blank.answer)}`)
+        }
+      }
+      else {
+        const rubric = (fields.rubric || '').trim()
+        if (rubric) {
+          lines.push(`rubric: ${toYamlScalar(rubric)}`)
+        }
+      }
+
+      lines.push('```')
+      return lines.join('\n')
+    }
     case 'check':
       return `{{check|${fields.name || 'my_check'}}}`
     case 'ref_step':
-      return `{{ref_step|${fields.name || 'step_name'}}}`
+      return `{{ref_step|${fields.name || 'step_id'}}}`
     case 'ref_var':
-      return `{{ref_var|${fields.name || 'var_name'}}}`
+      return `{{ref_var|${fields.name || 'var_id'}}}`
     case 'ref_fig':
       return `{{ref_fig|${fields.name || 'fig_id'}}}`
     case 'cite':
       return `{{cite|${fields.refs || 'ref1'}}}`
     default:
-      return `{{${type}|${fields.name || 'name'}}}`
+      return `{{${type}|${fields.name || 'id'}}}`
   }
 }
 
 export function getQuickAimdSyntax(type: string): string {
   const defaults: Record<string, string> = {
-    var: '{{var|name: str}}',
-    var_table: '{{var_table|table_name, subvars=[col1, col2, col3]}}',
-    step: '{{step|step_name}}',
-    check: '{{check|check_name}}',
-    ref_step: '{{ref_step|step_name}}',
-    ref_var: '{{ref_var|var_name}}',
+    var: '{{var|var_id: str}}',
+    var_table: '{{var_table|table_id, subvars=[col1, col2, col3]}}',
+    quiz: [
+      '```quiz',
+      'id: quiz_choice_1',
+      'type: choice',
+      'mode: single',
+      'stem: |',
+      '  Which option is correct?',
+      'options:',
+      '  - key: A',
+      '    text: Option A',
+      '  - key: B',
+      '    text: Option B',
+      'answer: A',
+      '```',
+    ].join('\n'),
+    step: '{{step|step_id}}',
+    check: '{{check|check_id}}',
+    ref_step: '{{ref_step|step_id}}',
+    ref_var: '{{ref_var|var_id}}',
     ref_fig: '{{ref_fig|fig_id}}',
     cite: '{{cite|ref1}}',
   }
-  return defaults[type] || `{{${type}|name}}`
+  return defaults[type] || `{{${type}|id}}`
 }

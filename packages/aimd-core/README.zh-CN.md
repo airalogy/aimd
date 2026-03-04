@@ -92,7 +92,6 @@ import {
   findVarTable,
   isVarTableField,
   toTemplateEnv,
-  toLegacyFieldsFormat,
   normalizeSubvars,
   mergeVarTableInfo
  } from '@airalogy/aimd-core/utils'
@@ -129,6 +128,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 变量
 
 简单的变量声明：
+
 ```aimd
 {{var|sample_name: str}}
 {{var|temperature: float = 25.0}}
@@ -136,6 +136,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ```
 
 带有额外元数据的变量：
+
 ```aimd
 {{var|concentration: float = 1.0, title = "浓度 (M)", unit = "mol/L"}}
 {{var|samples: list[str], title = "样本 ID"}}
@@ -144,18 +145,40 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 变量表
 
 定义具有子变量的表格数据：
+
 ```aimd
 {{var_table|samples, subvars=[sample_id, concentration, volume]}}
 ```
 
 带有元数据：
+
 ```aimd
 {{var_table|measurements, subvars=[time, value, unit], title = "测量数据"}}
 ```
 
+### 题目（Quiz）代码块
+
+通过 fenced code block 定义题目：
+
+````aimd
+```quiz
+id: quiz_choice_1
+type: choice
+mode: single
+stem: 以下哪项正确？
+options:
+  - key: A
+    text: 选项 A
+  - key: B
+    text: 选项 B
+answer: A
+```
+````
+
 ### 步骤
 
 程序步骤：
+
 ```aimd
 {{step|sample_preparation}}
 {{step|data_analysis}}
@@ -165,6 +188,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 检查
 
 质量检查和验证点：
+
 ```aimd
 {{check|quality_control}}
 {{check|safety_verification}}
@@ -173,6 +197,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 引用
 
 引用其他 AIMD 元素：
+
 ```aimd
 {{ref_var|sample_name}}
 {{ref_step|sample_preparation}}
@@ -182,6 +207,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 引用文献
 
 插入引用（逗号分隔）：
+
 ```aimd
 {{cite|ref_1}}
 {{cite|ref_1, ref_2}}
@@ -190,6 +216,7 @@ AIMD 用特殊的字段语法扩展了标准 Markdown，适用于研究协议：
 ### 图片（Figure）
 
 通过 fenced code block 定义 figure：
+
 ````aimd
 ```fig
 id: fig_1
@@ -236,8 +263,10 @@ import { aimdLanguage, aimdSyntaxTheme } from '@airalogy/aimd-core/syntax'
 ### 类型导出 (`@airalogy/aimd-core/types`)
 
 AIMD 的完整 TypeScript 类型：
+
 - `AimdVarNode` - 变量节点
 - `AimdVarTableNode` - 变量表节点
+- `AimdQuizNode` - 题目节点
 - `AimdStepNode` - 步骤节点
 - `AimdCheckNode` - 检查节点
 - `AimdRefNode` - 引用节点
@@ -256,6 +285,7 @@ import type {
 ### 工具函数导出 (`@airalogy/aimd-core/utils`)
 
 用于处理 AIMD 的工具函数：
+
 - `normalizeSubvars()` - 规范化子变量格式
 - `getSubvarNames()` - 从数组提取子变量名称
 - `getSubvarDef()` - 按名称获取某个子变量定义
@@ -264,7 +294,6 @@ import type {
 - `isVarTableField()` - 判断某个字段名是否为 var_table
 - `mergeVarTableInfo()` - 将 var_table 信息合并到字段结构
 - `toTemplateEnv()` - 将字段转换为模板环境
-- `toLegacyFieldsFormat()` - 转换为旧版字段格式
 
 ```typescript
 import {
@@ -277,6 +306,7 @@ import {
 ### 语法导出 (`@airalogy/aimd-core/syntax`)
 
 用于语法高亮的 TextMate 语法：
+
 - `aimdLanguage` - 用于 Shiki 和其他基于 TextMate 的高亮器
 - 可用的多种格式：
   - JSON 格式，可直接使用
@@ -347,12 +377,14 @@ pnpm build:types
 ### 依赖
 
 核心依赖：
+
 - `unified` - 文本处理生态系统
 - `remark-parse` - Markdown 解析器
 - `remark-rehype` - remark 到 rehype 的桥接
 - `unist-util-visit` - AST 访问工具
 
 开发依赖：
+
 - `shiki` - 语法高亮
 - `typescript` - 类型检查
 - `vite` - 构建工具
@@ -378,6 +410,7 @@ HTML 输出
 ### 节点结构
 
 AIMD 节点与 Unified 生态系统兼容：
+
 - 扩展自标准 AST 节点
 - 包含关于 AIMD 元素的元数据
 - 支持自定义属性和数据

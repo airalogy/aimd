@@ -1,62 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, h, type VNode } from 'vue'
 import { renderToHtml, renderToVue, parseAndExtract } from '@airalogy/aimd-renderer'
+import { SAMPLE_AIMD } from '../composables/sampleContent'
 import '@airalogy/aimd-recorder/styles'
 
-const defaultContent = `# 研究协议 Demo
-
-## 变量定义
-
-请输入样本名称：{{var|sample_name: str}}
-
-温度设定：{{var|temperature: float = 25.0}}
-
-浓度参数：{{var|concentration: float = 1.0, title = "浓度 (M)", unit = "mol/L"}}
-
-## 变量表
-
-{{var_table|samples, subvars=[sample_id, concentration, volume]}}
-
-## 实验步骤
-
-{{step|sample_preparation}}
-准备样本，确认样本名称 {{ref_var|sample_name}}。
-
-{{step|data_analysis}}
-分析数据，检查温度 {{ref_var|temperature}}。
-
-## 质量检查
-
-{{check|quality_control}}
-{{check|safety_verification}}
-
-## 引用
-
-参考步骤：{{ref_step|sample_preparation}}
-
-## Markdown 特性
-
-**粗体** *斜体* ~~删除线~~
-
-- 列表项 1
-- 列表项 2
-  - 嵌套项
-
-| 列 A | 列 B | 列 C |
-|------|------|------|
-| 1    | 2    | 3    |
-| 4    | 5    | 6    |
-
-> 引用块内容
-
-行内公式 $E = mc^2$
-
-$$
-\\sum_{i=1}^{n} x_i = x_1 + x_2 + \\cdots + x_n
-$$
-`
-
-const input = ref(defaultContent)
+const input = ref(SAMPLE_AIMD)
 const htmlOutput = ref('')
 const fieldsOutput = ref('')
 const vueNodes = ref<VNode[]>([])

@@ -5,7 +5,7 @@
  * These ensure consistent handling of subvars and other AIMD fields.
  */
 
-import type { AimdSubvar, AimdTemplateEnv, AimdVarTableField, ExtractedAimdFields, LegacyFieldsFormat } from "../types/aimd"
+import type { AimdSubvar, AimdTemplateEnv, AimdVarTableField, ExtractedAimdFields } from "../types/aimd"
 
 /**
  * Normalize subvars to AimdSubvar[] format
@@ -69,42 +69,6 @@ export function hasSubvars(
 }
 
 /**
- * Convert ExtractedAimdFields to legacy format for backward compatibility
- */
-export function toLegacyFieldsFormat(fields: ExtractedAimdFields): LegacyFieldsFormat {
-  return {
-    rv: fields.var.reduce((acc, name) => {
-      acc[name] = { label: name, type: "text", required: false }
-      return acc
-    }, {} as Record<string, { label: string, type: string, required?: boolean }>),
-
-    rs: fields.step.reduce((acc, name) => {
-      acc[name] = { label: name, type: "step" }
-      return acc
-    }, {} as Record<string, { label: string, type: string }>),
-
-    rc: fields.check.reduce((acc, name) => {
-      acc[name] = { label: name, type: "checkbox" }
-      return acc
-    }, {} as Record<string, { label: string, type: string }>),
-
-    rt: fields.var_table.reduce((acc, table) => {
-      acc[table.name] = {
-        label: table.name,
-        type: "table",
-        columns: getSubvarNames(table.subvars),
-      }
-      return acc
-    }, {} as Record<string, { label: string, type: string, columns?: string[] }>),
-
-    var: fields.var,
-    step: fields.step,
-    check: fields.check,
-    var_table: fields.var_table.map(t => [t.name, getSubvarNames(t.subvars)] as [string, string[]]),
-  }
-}
-
-/**
  * Convert ExtractedAimdFields to AimdTemplateEnv
  * This is the canonical way to build env for field parsing
  */
@@ -117,7 +81,7 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
     for (const step of fields.stepHierarchy) {
       const node = {
         name: step.name,
-        scope: "research_step",
+        scope: "step",
         level: step.level ?? 0,
         step: step.step,
         parent: step.parentName ? byName[step.parentName] : null,
@@ -150,17 +114,18 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
       byName,
       byLevel,
       byScope: {
-        rv: {},
-        rs: byName,
-        rc: {},
-        rt: {},
+        var: {},
+        step: byName,
+        check: {},
+        var_table: {},
+        quiz: {},
       },
     },
     tables: fields.var_table.map((table): [string, AimdVarTableField] => [
       table.name,
       {
         name: table.name,
-        scope: "rt",
+        scope: "var_table",
         subvars: normalizeSubvars(table.subvars),
         link: table.link,
         type_annotation: table.type_annotation,
@@ -170,7 +135,7 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
     ]),
     refs: {
       ref_step: fields.ref_step.map((name, idx) => ({ name, line: 0, sequence: idx })),
-      rv_ref: fields.ref_var.map((name, idx) => ({ name, line: 0, sequence: idx })),
+      ref_var: fields.ref_var.map((name, idx) => ({ name, line: 0, sequence: idx })),
     },
   }
 }

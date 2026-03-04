@@ -59,6 +59,36 @@ const { nodes, fields } = await renderToVue(content, {
 })
 ```
 
+### Quiz Preview Visibility
+
+Sensitive quiz metadata is hidden by default in preview:
+
+- `choice` answers are hidden
+- `blank` standard answers are hidden
+- `open` `rubric` is hidden
+
+In `report` mode, these values are revealed by default. You can override explicitly:
+
+```typescript
+import { renderToHtml, renderToVue } from '@airalogy/aimd-renderer'
+
+await renderToHtml(content, {
+  mode: 'preview',
+  quizPreview: {
+    showAnswers: true,
+    showRubric: true,
+  },
+})
+
+await renderToVue(content, {
+  mode: 'preview',
+  quizPreview: {
+    showAnswers: false,
+    showRubric: false,
+  },
+})
+```
+
 ### Advanced Processor Creation
 
 ```typescript
@@ -121,6 +151,7 @@ const mermaidRenderer = createMermaidRenderer({
 ### Main Entry (`@airalogy/aimd-renderer`)
 
 #### Processing Functions
+
 - `createHtmlProcessor()` - Create HTML rendering processor
 - `createRenderer()` - Create custom renderer with options
 - `defaultRenderer` - Default renderer instance (`createRenderer()` result)
@@ -130,6 +161,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `parseAndExtract(content, options?)` - Parse and extract AIMD fields
 
 #### Renderer Creation
+
 - `createComponentRenderer(options)` - Create Vue component renderer
 - `createAssetRenderer(options)` - Create asset resolver
 - `createCodeBlockRenderer(options)` - Create code block renderer
@@ -137,6 +169,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `createMermaidRenderer(options)` - Create Mermaid diagram renderer
 
 #### Utilities
+
 - `hastToVue(hastNode, options?)` - Convert HAST to Vue vNodes
 - `createUnifiedTokenRenderer(options)` - Create token-based renderer
 - `renderToVNodes(hastNode, options?)` - Render HAST root to Vue vNodes
@@ -144,6 +177,7 @@ const mermaidRenderer = createMermaidRenderer({
 - `parseFieldTag(template)` - Parse AIMD field tags
 
 #### Event Keys
+
 - `fieldEventKey` - Event key for field interactions
 - `draftEventKey` - Event key for draft changes
 - `protocolKey` - Event key for protocol updates
@@ -153,6 +187,7 @@ const mermaidRenderer = createMermaidRenderer({
 ### HTML Entry (`@airalogy/aimd-renderer/html`)
 
 HTML-specific rendering exports:
+
 - `createHtmlProcessor()`
 - `renderToHtml()`
 - `renderToHtmlSync()`
@@ -161,6 +196,7 @@ HTML-specific rendering exports:
 ### Vue Entry (`@airalogy/aimd-renderer/vue`)
 
 Vue-specific rendering exports:
+
 - `renderToVue()`
 - `createRenderer()`
 - All component renderers and utilities
@@ -168,6 +204,7 @@ Vue-specific rendering exports:
 ## Types
 
 ### `RenderResult`
+
 ```typescript
 interface RenderResult {
   nodes: VNode[]
@@ -176,18 +213,23 @@ interface RenderResult {
 ```
 
 ### `VueRendererOptions`
+
 ```typescript
 interface VueRendererOptions {
-  renderers?: {
-    [key: string]: ElementRenderer
+  mode?: 'preview' | 'edit' | 'report'
+  quizPreview?: {
+    showAnswers?: boolean
+    showRubric?: boolean
   }
-  assetResolver?: AssetResolver
-  codeBlockRenderer?: ElementRenderer
-  mermaidRenderer?: ElementRenderer
+  context?: RenderContext
+  aimdRenderers?: Record<string, AimdComponentRenderer>
+  elementRenderers?: Record<string, ElementRenderer>
+  componentMap?: Record<string, Component>
 }
 ```
 
 ### `ElementRenderer`
+
 ```typescript
 type ElementRenderer = (node: AimdNode, context?: RenderContext) => VNode | string
 ```
@@ -198,6 +240,7 @@ The renderer handles all AIMD syntax elements:
 
 - **Variables**: `{{var|name: type}}`
 - **Variable Tables**: `{{var_table|table_name, subvars=[col1, col2]}}`
+- **Quiz Blocks**: ```` ```quiz ... ``` ````
 - **Steps**: `{{step|step_name}}`
 - **Checks**: `{{check|check_name}}`
 - **References**: `{{ref_var|name}}`, `{{ref_step|name}}`
@@ -207,10 +250,18 @@ The renderer handles all AIMD syntax elements:
 ## Configuration Options
 
 ### ProcessorOptions
-- `extractFields?: boolean` - Extract AIMD fields
-- `includeMeta?: boolean` - Include metadata in result
-- `customRules?: TokenRenderRule[]` - Custom rendering rules
-- `assets?: AssetResolverOptions` - Asset resolution options
+
+- `mode?: 'preview' | 'edit' | 'report'`
+- `quizPreview?: { showAnswers?: boolean; showRubric?: boolean }`
+- `gfm?: boolean`
+- `math?: boolean`
+- `sanitize?: boolean`
+- `breaks?: boolean`
+
+`quizPreview` defaults:
+
+- `preview` mode: `showAnswers = false`, `showRubric = false`
+- `report` mode: `showAnswers = true`, `showRubric = true`
 
 ## Performance
 

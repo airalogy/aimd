@@ -10,6 +10,5 @@ export {
   isVarTableField,
   mergeVarTableInfo,
   normalizeSubvars,
-  toLegacyFieldsFormat,
   toTemplateEnv,
 } from './aimd-utils'

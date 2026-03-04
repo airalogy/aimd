@@ -1,0 +1,481 @@
+import type { AimdStepNode, AimdVarDefinition } from "../types/nodes"
+
+/**
+ * Step context for building hierarchy.
+ */
+export interface StepContext {
+  /** Steps organized by level */
+  byLevel: Map<number, AimdStepNode[]>
+  /** Steps indexed by name */
+  byName: Map<string, AimdStepNode>
+  /** All steps in order */
+  allSteps: AimdStepNode[]
+}
+
+/**
+ * Create initial step context.
+ */
+export function createStepContext(): StepContext {
+  return {
+    byLevel: new Map(),
+    byName: new Map(),
+    allSteps: [],
+  }
+}
+
+/**
+ * Parse key-value parameters from content.
+ * Handles formats like: key=value, key="value", key='value'
+ */
+export function parseKeyValueParams(content: string): Record<string, string | boolean | number> {
+  const params: Record<string, string | boolean | number> = {}
+  // Match key=value, key="value", key='value', or key=r"value" (Python raw string)
+  const kvPattern = /(\w+)\s*=\s*(?:r?"([^"]*)"|r?'([^']*)'|(\S+?)(?=,|$|\s))/g
+  let match: RegExpExecArray | null = kvPattern.exec(content)
+
+  while (match !== null) {
+    const key = match[1]
+    let value = match[2] ?? match[3] ?? match[4]
+
+    // Remove Python raw string prefix if present.
+    if (value && typeof value === "string") {
+      if (match[4] && match[4].startsWith("r\"")) {
+        value = match[4].slice(2, -1)
+      }
+      else if (match[4] && match[4].startsWith("r'")) {
+        value = match[4].slice(2, -1)
+      }
+    }
+
+    if (value === "True" || value === "true") {
+      params[key] = true
+    }
+    else if (value === "False" || value === "false") {
+      params[key] = false
+    }
+    else if (/^-?\d+$/.test(value)) {
+      params[key] = Number.parseInt(value, 10)
+    }
+    else if (/^-?\d+\.\d+$/.test(value)) {
+      params[key] = Number.parseFloat(value)
+    }
+    else {
+      params[key] = value
+    }
+    match = kvPattern.exec(content)
+  }
+
+  return params
+}
+
+/**
+ * Parse step content according to AIMD spec.
+ * Supports formats:
+ * - "step_id"
+ * - "step_id, 2" (level as second param)
+ * - "step_id, 2, check=True"
+ * - "step_id, 2, check=True, checked_message='message'"
+ */
+export function parseStepContent(content: string): {
+  name: string
+  level: number
+  check: boolean
+  checkedMessage?: string
+  props: Record<string, string | boolean | number>
+} {
+  const trimmed = content.trim()
+  const parts = trimmed.split(/,\s*/)
+  const name = parts[0].trim()
+  let level = 1
+  let check = false
+  let checkedMessage: string | undefined
+
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i].trim()
+
+    if (/^\d+$/.test(part)) {
+      level = Number.parseInt(part, 10)
+      continue
+    }
+
+    const kvParams = parseKeyValueParams(part)
+    if ("check" in kvParams) {
+      check = Boolean(kvParams.check)
+    }
+    if ("checked_message" in kvParams) {
+      checkedMessage = String(kvParams.checked_message)
+    }
+    if ("level" in kvParams) {
+      level = Number(kvParams.level)
+    }
+  }
+
+  level = Math.max(1, Math.min(3, level))
+
+  const props = parseKeyValueParams(trimmed)
+
+  return { name, level, check, checkedMessage, props }
+}
+
+/**
+ * Parse checkpoint content according to AIMD spec.
+ * Supports formats:
+ * - "checkpoint_id"
+ * - "checkpoint_id, checked_message='message'"
+ */
+export function parseCheckContent(content: string): {
+  name: string
+  checkedMessage?: string
+  label: string
+} {
+  const trimmed = content.trim()
+  const parts = trimmed.split(/,\s*/)
+  const name = parts[0].trim()
+  let checkedMessage: string | undefined
+
+  for (let i = 1; i < parts.length; i++) {
+    const kvParams = parseKeyValueParams(parts[i])
+    if ("checked_message" in kvParams) {
+      checkedMessage = String(kvParams.checked_message)
+    }
+  }
+
+  return { name, checkedMessage, label: name }
+}
+
+/**
+ * Calculate the final step indent (e.g., "1.2.3").
+ */
+function calculateStepIndent(step: AimdStepNode, context: StepContext): string {
+  const { sequence, level, parentName } = step
+  let indent = String(sequence + 1)
+
+  if (level === 1) {
+    return indent
+  }
+
+  let currentParentName = parentName
+  while (currentParentName) {
+    const parent = context.byName.get(currentParentName)
+    if (parent) {
+      indent = `${parent.sequence + 1}.${indent}`
+      currentParentName = parent.parentName
+    }
+    else {
+      break
+    }
+  }
+
+  return indent
+}
+
+/**
+ * Register a step node in the context and set up hierarchy.
+ */
+export function registerStep(node: AimdStepNode, context: StepContext): void {
+  const { name, level } = node
+
+  const internalLevel = level - 1
+
+  context.byName.set(name, node)
+  context.allSteps.push(node)
+
+  if (!context.byLevel.has(internalLevel)) {
+    context.byLevel.set(internalLevel, [])
+  }
+  const levelSteps = context.byLevel.get(internalLevel)!
+
+  if (internalLevel > 0) {
+    const parentLevel = context.byLevel.get(internalLevel - 1)
+    if (parentLevel && parentLevel.length > 0) {
+      const parent = parentLevel[parentLevel.length - 1]
+      node.parentName = parent.name
+      parent.hasChildren = true
+    }
+  }
+
+  const siblings = levelSteps.filter(s => s.parentName === node.parentName)
+  if (siblings.length > 0) {
+    const prevSibling = siblings[siblings.length - 1]
+    node.prevName = prevSibling.name
+    node.sequence = prevSibling.sequence + 1
+    prevSibling.nextName = name
+  }
+  else {
+    node.sequence = 0
+  }
+
+  levelSteps.push(node)
+  node.step = calculateStepIndent(node, context)
+}
+
+/**
+ * Parse variable type definition syntax according to AIMD spec.
+ */
+export function parseVarDefinition(content: string): AimdVarDefinition {
+  const trimmed = content.trim()
+
+  const subvarsStart = trimmed.indexOf("subvars")
+  let subvarsContent: string | undefined
+  let subvarDefs: Record<string, AimdVarDefinition> | undefined
+
+  if (subvarsStart !== -1) {
+    const afterSubvars = trimmed.slice(subvarsStart)
+    const openBracketIndex = afterSubvars.indexOf("[")
+    if (openBracketIndex !== -1) {
+      let depth = 0
+      let closeBracketIndex = -1
+      for (let i = openBracketIndex; i < afterSubvars.length; i++) {
+        if (afterSubvars[i] === "[") {
+          depth++
+        }
+        else if (afterSubvars[i] === "]") {
+          depth--
+          if (depth === 0) {
+            closeBracketIndex = i
+            break
+          }
+        }
+      }
+      if (closeBracketIndex !== -1) {
+        subvarsContent = afterSubvars.slice(openBracketIndex + 1, closeBracketIndex)
+      }
+    }
+  }
+
+  if (subvarsContent) {
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
+    const subvarParts = subvarsContent.split(/,\s*(?![^(]*\))/).map(s => s.trim()).filter(Boolean)
+    subvarDefs = {}
+
+    for (const part of subvarParts) {
+      if (part.includes(":")) {
+        const subDef = parseSimpleVarDef(part)
+        subvarDefs[subDef.id] = subDef
+      }
+      else {
+        const name = part.replace(/^var\s*\(\s*|\s*\)$/g, "").trim()
+        subvarDefs[name] = { id: name }
+      }
+    }
+  }
+
+  let contentWithoutSubvars = trimmed
+  if (subvarsStart !== -1 && subvarsContent !== undefined) {
+    const subvarsEndIndex = trimmed.indexOf("]", subvarsStart + "subvars".length)
+    if (subvarsEndIndex !== -1) {
+      contentWithoutSubvars = trimmed.slice(0, subvarsStart) + trimmed.slice(subvarsEndIndex + 1)
+      contentWithoutSubvars = contentWithoutSubvars.replace(/,\s*,/, ",").replace(/,\s*$/, "").trim()
+    }
+  }
+
+  const def = parseSimpleVarDef(contentWithoutSubvars)
+
+  return subvarDefs
+    ? {
+        ...def,
+        subvars: subvarDefs,
+      }
+    : def
+}
+
+/**
+ * Parse simple var definition: name, name: type, name: type = default.
+ */
+function parseSimpleVarDef(content: string): AimdVarDefinition {
+  let trimmed = content.trim()
+
+  if (trimmed.startsWith("var(") && trimmed.endsWith(")")) {
+    trimmed = trimmed.slice(4, -1).trim()
+  }
+  else if (trimmed.startsWith("var (") && trimmed.endsWith(")")) {
+    trimmed = trimmed.slice(5, -1).trim()
+  }
+
+  const kvParams = parseKeyValueParams(trimmed)
+  const mainPart = trimmed.split(/,\s*(?=\w+\s*=)/)[0].trim()
+
+  if (!mainPart.includes(":")) {
+    const eqIndex = mainPart.indexOf("=")
+    if (eqIndex > 0) {
+      const result: AimdVarDefinition = {
+        id: mainPart.slice(0, eqIndex).trim(),
+        default: parseDefaultValue(mainPart.slice(eqIndex + 1).trim()),
+      }
+      if (Object.keys(kvParams).length > 0) {
+        result.kwargs = kvParams
+      }
+      return result
+    }
+    const result: AimdVarDefinition = { id: mainPart.split(/\s/)[0].trim() }
+    if (Object.keys(kvParams).length > 0) {
+      result.kwargs = kvParams
+    }
+    return result
+  }
+
+  const colonIndex = mainPart.indexOf(":")
+  const id = mainPart.slice(0, colonIndex).trim()
+  const rest = mainPart.slice(colonIndex + 1).trim()
+
+  const eqIndex = rest.indexOf("=")
+  let type: string
+  let defaultValue: string | number | boolean | null | undefined
+
+  if (eqIndex > 0) {
+    type = rest.slice(0, eqIndex).trim()
+    defaultValue = parseDefaultValue(rest.slice(eqIndex + 1).trim())
+  }
+  else {
+    type = rest.trim()
+  }
+
+  const result: AimdVarDefinition = { id, type }
+
+  if (defaultValue !== undefined) {
+    result.default = defaultValue
+  }
+
+  if (Object.keys(kvParams).length > 0) {
+    result.kwargs = kvParams
+  }
+
+  return result
+}
+
+/**
+ * Parse default value.
+ */
+function parseDefaultValue(value: string): string | number | boolean | null {
+  const trimmed = value.trim()
+
+  if (trimmed === "true" || trimmed === "True")
+    return true
+  if (trimmed === "false" || trimmed === "False")
+    return false
+
+  if (trimmed === "null" || trimmed === "None")
+    return null
+
+  if (/^-?\d+$/.test(trimmed)) {
+    return Number.parseInt(trimmed, 10)
+  }
+  if (/^-?\d+\.\d+$/.test(trimmed)) {
+    return Number.parseFloat(trimmed)
+  }
+
+  if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1)
+  }
+
+  return trimmed
+}
+
+/**
+ * Parse fig code block content (YAML format).
+ */
+export function parseFigContent(content: string): {
+  id: string
+  src: string
+  title?: string
+  legend?: string
+} {
+  const lines = content.split("\n")
+  const result: Record<string, string> = {}
+  let currentKey: string | null = null
+  let currentValue = ""
+  let isMultiline = false
+
+  for (const line of lines) {
+    const trimmedLine = line.trim()
+
+    if (!trimmedLine && !isMultiline) {
+      continue
+    }
+
+    const match = trimmedLine.match(/^(\w+):\s*(.*)$/)
+    if (match) {
+      if (currentKey) {
+        result[currentKey] = currentValue.trim()
+      }
+
+      currentKey = match[1]
+      const value = match[2]
+
+      if (value === "|") {
+        isMultiline = true
+        currentValue = ""
+      }
+      else {
+        isMultiline = false
+        currentValue = value
+      }
+    }
+    else if (currentKey && (isMultiline || trimmedLine)) {
+      if (currentValue) {
+        currentValue += `\n${line}`
+      }
+      else {
+        currentValue = line
+      }
+    }
+  }
+
+  if (currentKey) {
+    result[currentKey] = currentValue.trim()
+  }
+
+  if (!result.id || !result.src) {
+    throw new Error("fig block must have \"id\" and \"src\" fields")
+  }
+
+  return {
+    id: result.id,
+    src: result.src,
+    title: result.title,
+    legend: result.legend,
+  }
+}
+
+/**
+ * Parse table column definition (for var_table).
+ */
+export function parseTableColumns(content: string): {
+  name: string
+  columns: string[]
+  definition?: AimdVarDefinition
+} {
+  if (content.includes("subvars")) {
+    const def = parseVarDefinition(content)
+    const raw = def.subvars
+    const columns = Array.isArray(raw) ? raw : (raw && typeof raw === "object" ? Object.keys(raw) : [])
+    return {
+      name: def.id,
+      columns,
+      definition: def,
+    }
+  }
+
+  const parenMatch = content.match(/^(\w+)\s*\(([^)]+)\)/)
+  if (parenMatch) {
+    return {
+      name: parenMatch[1],
+      columns: parenMatch[2].split(",").map(s => s.trim()).filter(Boolean),
+    }
+  }
+
+  const def = parseVarDefinition(content)
+  return {
+    name: def.id,
+    columns: [],
+    definition: def,
+  }
+}
+
+/**
+ * Determine if content represents a var_table (has subvars).
+ */
+export function isVarTable(content: string): boolean {
+  return /subvars\s*=\s*\[/.test(content)
+}

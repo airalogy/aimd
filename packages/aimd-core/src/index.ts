@@ -20,6 +20,7 @@ export type {
   // AIMD unified types (canonical types for AIMD parsing)
   AimdCheckField,
   AimdFieldType,
+  AimdQuizField,
   AimdRefField,
   AimdScopeKey,
   AimdScopeName,
@@ -31,7 +32,6 @@ export type {
   AimdVarTableField,
   AimdVarType,
   ExtractedAimdFields,
-  LegacyFieldsFormat,
 } from './types/aimd'
 
 export type {
@@ -40,6 +40,7 @@ export type {
   AimdCiteNode,
   AimdFigNode,
   AimdNode,
+  AimdQuizNode,
   AimdRefNode,
   AimdScope,
   AimdStepNode,
@@ -83,6 +84,5 @@ export {
   isVarTableField,
   mergeVarTableInfo,
   normalizeSubvars,
-  toLegacyFieldsFormat,
   toTemplateEnv,
 } from './utils/aimd-utils'

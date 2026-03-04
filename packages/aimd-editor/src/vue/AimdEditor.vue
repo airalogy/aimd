@@ -190,7 +190,7 @@ function registerAimdLanguage(monaco: any) {
       ],
       aimdField: [
         [/\}\}/, { token: 'delimiter.bracket.aimd', next: '@pop' }],
-        [/\b(var_table|var|step|check|ref_step|ref_var)\b/, 'keyword.aimd'],
+        [/\b(var_table|var|step|check|ref_step|ref_var|ref_fig|cite)\b/, 'keyword.aimd'],
         [/\|/, 'delimiter.aimd'],
         [/:/, 'delimiter'],
         [/\b(str|int|float|bool|list|dict|any)\b/, 'type.aimd'],
@@ -215,14 +215,45 @@ function registerAimdLanguage(monaco: any) {
 
   monaco.languages.registerCompletionItemProvider('aimd', {
     provideCompletionItems: () => {
-      const keywords = ['var', 'var_table', 'step', 'check', 'ref_step', 'ref_var']
-      const suggestions = keywords.map(keyword => ({
+      const inlineKeywords = ['var', 'var_table', 'step', 'check', 'ref_step', 'ref_var', 'ref_fig', 'cite']
+      const placeholderByKeyword: Record<string, string> = {
+        var: 'var_id',
+        var_table: 'table_id',
+        step: 'step_id',
+        check: 'check_id',
+        ref_step: 'step_id',
+        ref_var: 'var_id',
+        ref_fig: 'fig_id',
+        cite: 'ref_id',
+      }
+      const suggestions = inlineKeywords.map(keyword => ({
         label: `{{${keyword}|}}`,
         kind: monaco.languages.CompletionItemKind.Snippet,
-        insertText: `{{${keyword}|\${1:name}}}`,
+        insertText: `{{${keyword}|\${1:${placeholderByKeyword[keyword] ?? 'id'}}}}`,
         insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
         documentation: `Insert AIMD ${keyword} field`,
       }))
+      suggestions.push({
+        label: 'quiz block',
+        kind: monaco.languages.CompletionItemKind.Snippet,
+        insertText: [
+          '```quiz',
+          'id: ${1:quiz_choice_1}',
+          'type: choice',
+          'mode: single',
+          'stem: |',
+          '  ${2:Which option is correct?}',
+          'options:',
+          '  - key: A',
+          '    text: Option A',
+          '  - key: B',
+          '    text: Option B',
+          'answer: A',
+          '```',
+        ].join('\n'),
+        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+        documentation: 'Insert AIMD quiz code block',
+      } as any)
       return { suggestions } as any
     },
   })
