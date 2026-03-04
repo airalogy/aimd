@@ -11,6 +11,7 @@ import type { Ctx, MilkdownPlugin } from '@milkdown/kit/ctx'
 import type { NodeSchema, MarkdownNode } from '@milkdown/kit/transformer'
 import type { Node as ProsemirrorNode } from '@milkdown/kit/prose/model'
 import type { EditorView, NodeView } from '@milkdown/kit/prose/view'
+import { hardbreakAttr, hardbreakSchema } from '@milkdown/kit/preset/commonmark'
 import { $node, $view, $remark, $inputRule } from '@milkdown/kit/utils'
 import { InputRule } from '@milkdown/kit/prose/inputrules'
 
@@ -334,7 +335,19 @@ export const aimdFieldView = $view(aimdFieldNode, () => {
   return (node, view, getPos) => new AimdFieldNodeView(node, view, getPos)
 })
 
-// ─── 5. $inputRule: typing `{{type|content}}` creates an AIMD field node ───
+// ─── 5. Schema override: render inline hardbreak (`\n`) as <br> in WYSIWYG ───
+// Use schema-level toDOM override for stable rendering across editor view init/order.
+export const inlineHardbreakSchema = hardbreakSchema.extendSchema((prev) => {
+  return (ctx) => {
+    const schema = prev(ctx)
+    return {
+      ...schema,
+      toDOM: (node: ProsemirrorNode) => ['br', ctx.get(hardbreakAttr.key)(node)],
+    } as NodeSchema
+  }
+})
+
+// ─── 6. $inputRule: typing `{{type|content}}` creates an AIMD field node ───
 
 export const aimdFieldInputRule = $inputRule((ctx) => {
   return new InputRule(
@@ -348,11 +361,12 @@ export const aimdFieldInputRule = $inputRule((ctx) => {
   )
 })
 
-// ─── 6. Combined plugin list for easy use ───
+// ─── 7. Combined plugin list for easy use ───
 
 export const aimdMilkdownPlugins: MilkdownPlugin[] = [
   aimdRemarkPlugin,
   aimdFieldNode,
   aimdFieldView,
+  inlineHardbreakSchema,
   aimdFieldInputRule,
 ].flat()

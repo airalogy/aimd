@@ -17,6 +17,14 @@ function getToMarkdownBlock(content) {
   return match[0]
 }
 
+function getPluginListBlock(content) {
+  const match = content.match(/export const aimdMilkdownPlugins:[\s\S]*?=\s*\[[\s\S]*?\]\.flat\(\)/)
+  if (!match) {
+    throw new Error('Unable to find aimdMilkdownPlugins block')
+  }
+  return match[0]
+}
+
 test('aimd_field markdown serializer uses html node to preserve raw AIMD content', () => {
   const toMarkdownBlock = getToMarkdownBlock(source)
   assert.match(
@@ -28,4 +36,14 @@ test('aimd_field markdown serializer uses html node to preserve raw AIMD content
 test('aimd_field markdown serializer does not use text node output', () => {
   const toMarkdownBlock = getToMarkdownBlock(source)
   assert.doesNotMatch(toMarkdownBlock, /state\.addNode\('text'/)
+})
+
+test('inline hardbreak schema override renders line break as <br> in WYSIWYG', () => {
+  assert.match(source, /export const inlineHardbreakSchema = hardbreakSchema\.extendSchema\(/)
+  assert.match(source, /toDOM:\s*\(node:\s*ProsemirrorNode\)\s*=>\s*\['br',\s*ctx\.get\(hardbreakAttr\.key\)\(node\)\]/)
+})
+
+test('inline hardbreak schema override is included in aimd plugin chain', () => {
+  const pluginList = getPluginListBlock(source)
+  assert.match(pluginList, /inlineHardbreakSchema/)
 })
