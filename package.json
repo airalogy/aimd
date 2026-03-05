@@ -6,7 +6,7 @@
     "dev": "pnpm -r --parallel dev",
     "dev:demo": "pnpm --filter @airalogy/aimd-demo dev",
     "docs:dev": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:dev",
-    "docs:build": "pnpm --dir docs install --ignore-workspace && DEMO_BASE=\"${BASE_PATH:-/}demo/\" pnpm --filter @airalogy/aimd-demo build && pnpm -C docs docs:build && rm -rf docs/.vitepress/dist/demo && mkdir -p docs/.vitepress/dist/demo && cp -R demo/dist/. docs/.vitepress/dist/demo/",
+    "docs:build": "pnpm --dir docs install --ignore-workspace && DEMO_BASE=\"${BASE_PATH:-/}demo/\" pnpm --filter @airalogy/aimd-demo build && pnpm -C docs docs:build && rm -rf docs/.vitepress/dist/demo && mkdir -p docs/.vitepress/dist/demo && cp -R demo/dist/. docs/.vitepress/dist/demo/ && node ./scripts/create-demo-route-shims.mjs",
     "docs:preview": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:preview",
     "test": "pnpm -r --if-present test",
     "type-check": "pnpm -r type-check"

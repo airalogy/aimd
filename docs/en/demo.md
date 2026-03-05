@@ -13,7 +13,7 @@ const demoPages = [
   { label: 'Recorder', path: '/recorder', desc: 'Structured data input UI' },
 ]
 
-const linkTo = path => `${demoRoot}${path}`
+const linkTo = path => `${demoRoot}/#${path}`
 </script>
 
 # Demo

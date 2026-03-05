@@ -1,9 +1,10 @@
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import App from './App.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  // Use hash history so GitHub Pages can serve deep links without rewrite rules.
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/full' },
     { path: '/full', component: () => import('./pages/FullDemo.vue') },

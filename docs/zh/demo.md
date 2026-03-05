@@ -13,7 +13,7 @@ const demoPages = [
   { label: 'Recorder 记录器', path: '/recorder', desc: '结构化录入控件示例' },
 ]
 
-const linkTo = path => `${demoRoot}${path}`
+const linkTo = path => `${demoRoot}/#${path}`
 </script>
 
 # Demo
