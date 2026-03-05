@@ -1,14 +1,20 @@
 # @airalogy/aimd-core
 
-AIMD（Airalogy Markdown）的核心解析器与规范化字段提取能力。
+`@airalogy/aimd-core` provides AIMD syntax parsing and canonical field extraction.
 
-## 安装
+## Install
 
 ```bash
 pnpm add @airalogy/aimd-core
 ```
 
-## 快速开始
+## Main Capabilities
+
+- Parse AIMD templates and fenced `quiz` / `fig` blocks.
+- Build MDAST-compatible AIMD nodes.
+- Extract normalized field metadata for downstream renderer/editor/recorder.
+
+## Example
 
 ```ts
 import { unified } from "unified"
@@ -23,9 +29,3 @@ processor.runSync(tree, file)
 
 console.log(file.data.aimdFields)
 ```
-
-## 文档
-
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-core>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-core>
-- 文档源码：`aimd/docs/en/packages/aimd-core.md`、`aimd/docs/zh/packages/aimd-core.md`

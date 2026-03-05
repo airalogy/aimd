@@ -43,6 +43,29 @@ pnpm dev:demo
 - **Renderer 渲染器**：AIMD 渲染为 HTML / Vue VNodes 的实时预览
 - **Recorder 组件**：AIMD CSS 样式和 UI 组件预览
 
+## 文档
+
+文档位于 `docs/`，采用中英文双语与按包组织结构：
+
+- 英文：`docs/en/`
+- 中文：`docs/zh/`
+- 按包划分：`docs/{en|zh}/packages/*`
+- 内嵌 Demo 页面：`docs/{en|zh}/demo.md`
+
+本地启动文档站：
+
+```bash
+pnpm docs:dev
+```
+
+构建文档站：
+
+```bash
+pnpm docs:build
+```
+
+`pnpm docs:build` 会同时打包文档站与 demo 静态资源（在文档站下挂载到 `/demo/`）。
+
 全量类型检查：
 
 ```bash

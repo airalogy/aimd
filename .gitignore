@@ -108,3 +108,8 @@ temp/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# VitePress
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+docs/.vitepress/.temp/

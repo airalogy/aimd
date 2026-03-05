@@ -1,14 +1,20 @@
 # @airalogy/aimd-recorder
 
-Reusable recording UI for AIMD, including quiz answer components and styles.
+`@airalogy/aimd-recorder` 提供记录场景所需的样式与可复用输入控件。
 
-## Install
+## 安装
 
 ```bash
 pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 ```
 
-## Quick Start
+## 核心能力
+
+- 通过 `@airalogy/aimd-recorder/styles` 提供记录 UI 样式。
+- 导出可复用题目控件 `AimdQuizRecorder`。
+- 支持 `choice`、`blank`、`open` 三类作答输入。
+
+## 示例
 
 ```vue
 <script setup lang="ts">
@@ -21,10 +27,10 @@ const quiz = {
   id: "quiz_single_1",
   type: "choice",
   mode: "single",
-  stem: "Pick one option",
+  stem: "请选择一个选项",
   options: [
-    { key: "A", text: "Option A" },
-    { key: "B", text: "Option B" },
+    { key: "A", text: "选项 A" },
+    { key: "B", text: "选项 B" },
   ],
 }
 </script>
@@ -33,9 +39,3 @@ const quiz = {
   <AimdQuizRecorder v-model="answer" :quiz="quiz" />
 </template>
 ```
-
-## Documentation
-
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-recorder>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-recorder>
-- Source docs: `aimd/docs/en/packages/aimd-recorder.md`, `aimd/docs/zh/packages/aimd-recorder.md`

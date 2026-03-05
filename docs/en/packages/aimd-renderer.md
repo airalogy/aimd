@@ -1,28 +1,30 @@
 # @airalogy/aimd-renderer
 
-AIMD 渲染引擎：支持 HTML 渲染、Vue 渲染与字段提取。
+`@airalogy/aimd-renderer` renders AIMD into HTML or Vue nodes and can also extract fields.
 
-## 安装
+## Install
 
 ```bash
 pnpm add @airalogy/aimd-renderer @airalogy/aimd-core
 ```
 
-## 快速开始
+## Main Capabilities
+
+- `renderToHtml(content)` for HTML output.
+- `renderToVue(content)` for Vue vnode output.
+- `parseAndExtract(content)` for field metadata extraction.
+- Quiz preview controls (answer/rubric visibility by mode).
+
+## Example
 
 ```ts
 import { renderToHtml, parseAndExtract } from "@airalogy/aimd-renderer"
 
 const content = "{{step|sample_preparation}}"
+
 const { html } = await renderToHtml(content)
 const fields = parseAndExtract(content)
 
 console.log(html)
 console.log(fields)
 ```
-
-## 文档
-
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-renderer>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-renderer>
-- 文档源码：`aimd/docs/en/packages/aimd-renderer.md`、`aimd/docs/zh/packages/aimd-renderer.md`

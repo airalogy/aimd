@@ -1,6 +1,6 @@
 # @airalogy/aimd-renderer
 
-AIMD 渲染引擎：支持 HTML 渲染、Vue 渲染与字段提取。
+`@airalogy/aimd-renderer` 用于将 AIMD 渲染为 HTML / Vue，同时支持字段提取。
 
 ## 安装
 
@@ -8,21 +8,23 @@ AIMD 渲染引擎：支持 HTML 渲染、Vue 渲染与字段提取。
 pnpm add @airalogy/aimd-renderer @airalogy/aimd-core
 ```
 
-## 快速开始
+## 核心能力
+
+- `renderToHtml(content)`：输出 HTML。
+- `renderToVue(content)`：输出 Vue vnode。
+- `parseAndExtract(content)`：提取结构化字段。
+- 支持题目预览参数（是否展示答案、是否展示 rubric）。
+
+## 示例
 
 ```ts
 import { renderToHtml, parseAndExtract } from "@airalogy/aimd-renderer"
 
 const content = "{{step|sample_preparation}}"
+
 const { html } = await renderToHtml(content)
 const fields = parseAndExtract(content)
 
 console.log(html)
 console.log(fields)
 ```
-
-## 文档
-
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-renderer>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-renderer>
-- 文档源码：`aimd/docs/en/packages/aimd-renderer.md`、`aimd/docs/zh/packages/aimd-renderer.md`

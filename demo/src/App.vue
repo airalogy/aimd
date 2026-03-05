@@ -99,9 +99,30 @@ body {
 
 .app-main {
   flex: 1;
-  padding: 24px 32px;
-  max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
+  padding: 24px clamp(16px, 2.8vw, 40px);
+}
+
+@media (max-width: 960px) {
+  .app-header {
+    padding: 12px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .app-title {
+    font-size: 18px;
+  }
+
+  .app-nav {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .app-main {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
 }
 </style>

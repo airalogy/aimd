@@ -1,6 +1,6 @@
 # @airalogy/aimd-recorder
 
-Reusable recording UI for AIMD, including quiz answer components and styles.
+`@airalogy/aimd-recorder` provides AIMD recorder styles and reusable data-input components.
 
 ## Install
 
@@ -8,7 +8,13 @@ Reusable recording UI for AIMD, including quiz answer components and styles.
 pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 ```
 
-## Quick Start
+## Main Capabilities
+
+- Recorder UI styles via `@airalogy/aimd-recorder/styles`.
+- Reusable quiz answer component: `AimdQuizRecorder`.
+- Input handling for `choice`, `blank`, and `open` quiz types.
+
+## Example
 
 ```vue
 <script setup lang="ts">
@@ -33,9 +39,3 @@ const quiz = {
   <AimdQuizRecorder v-model="answer" :quiz="quiz" />
 </template>
 ```
-
-## Documentation
-
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-recorder>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-recorder>
-- Source docs: `aimd/docs/en/packages/aimd-recorder.md`, `aimd/docs/zh/packages/aimd-recorder.md`

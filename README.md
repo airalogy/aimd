@@ -43,6 +43,29 @@ Visit http://localhost:5188 to see the demo, which includes:
 - **Renderer**: Live HTML / Vue VNode rendering preview
 - **Recorder**: AIMD CSS styles and UI component preview
 
+## Documentation
+
+Docs are hosted under `docs/` with bilingual structure:
+
+- English: `docs/en/`
+- Chinese: `docs/zh/`
+- Organized by package: `docs/{en|zh}/packages/*`
+- Embedded demo page: `docs/{en|zh}/demo.md`
+
+Run docs locally:
+
+```bash
+pnpm docs:dev
+```
+
+Build docs:
+
+```bash
+pnpm docs:build
+```
+
+`pnpm docs:build` packages both docs and demo assets (mounted under `/demo/` in the docs site).
+
 Type-check all packages:
 
 ```bash
