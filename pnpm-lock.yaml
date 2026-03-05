@@ -230,6 +230,9 @@ importers:
       hast-util-to-html:
         specifier: ^9.0.5
         version: 9.0.5
+      katex:
+        specifier: 'catalog:'
+        version: 0.16.28
       rehype-katex:
         specifier: ^7.0.1
         version: 7.0.1

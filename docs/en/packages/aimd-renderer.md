@@ -28,3 +28,6 @@ const fields = parseAndExtract(content)
 console.log(html)
 console.log(fields)
 ```
+
+Math styles are loaded automatically when calling async render APIs (`renderToHtml` / `renderToVue`) in browser environments.
+If you need full control of style loading, import `@airalogy/aimd-renderer/styles` manually.

@@ -28,3 +28,6 @@ const fields = parseAndExtract(content)
 console.log(html)
 console.log(fields)
 ```
+
+在浏览器环境中调用异步渲染 API（`renderToHtml` / `renderToVue`）时，会自动加载公式样式。
+如果你需要完全控制样式加载，也可以手动引入 `@airalogy/aimd-renderer/styles`。

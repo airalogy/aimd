@@ -30,6 +30,21 @@ import { unified } from "unified"
 import { remarkAimd } from "@airalogy/aimd-core/parser"
 import { renderToVNodes, type VueRendererOptions } from "../vue/vue-renderer"
 
+let mathStylesLoadPromise: Promise<unknown> | null = null
+
+async function ensureMathStylesLoaded(mathEnabled: boolean | undefined): Promise<void> {
+  if (mathEnabled === false) {
+    return
+  }
+  if (typeof document === "undefined") {
+    return
+  }
+  if (!mathStylesLoadPromise) {
+    mathStylesLoadPromise = import("../styles/katex.css").catch(() => undefined)
+  }
+  await mathStylesLoadPromise
+}
+
 /**
  * Map field type to CSS class modifier (BEM format)
  */
@@ -687,6 +702,7 @@ export async function renderToHtml(
   content: string,
   options: ProcessorOptions = {},
 ): Promise<{ html: string, fields: ExtractedAimdFields }> {
+  await ensureMathStylesLoaded(options.math)
   const processor = createHtmlProcessor(options)
 
   const tree = processor.parse(content)
@@ -717,6 +733,7 @@ export async function renderToVue(
   content: string,
   options: ProcessorOptions & VueRendererOptions = {},
 ): Promise<RenderResult> {
+  await ensureMathStylesLoaded(options.math)
   const processor = createHtmlProcessor(options)
 
   const tree = processor.parse(content)

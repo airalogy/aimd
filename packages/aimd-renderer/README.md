@@ -21,6 +21,9 @@ console.log(html)
 console.log(fields)
 ```
 
+Math styles are loaded automatically when calling async render APIs (`renderToHtml` / `renderToVue`) in browser environments.  
+Use `@airalogy/aimd-renderer/styles` only if you want to preload styles manually.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-renderer>
