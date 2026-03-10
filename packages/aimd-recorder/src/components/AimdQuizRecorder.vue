@@ -18,6 +18,7 @@ const props = defineProps<{
   quiz: AimdQuizField
   modelValue: unknown
   readonly?: boolean
+  focusKeyPrefix?: string
 }>()
 
 const emit = defineEmits<{
@@ -144,6 +145,7 @@ const openValue = computed<string>({
           <input
             class="aimd-quiz-recorder__blank-input"
             type="text"
+            :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:blank:${segment.key}`"
             :placeholder="segment.key"
             :readonly="readonly"
             :value="getBlankValue(segment.key)"
@@ -159,6 +161,7 @@ const openValue = computed<string>({
           v-model="singleChoiceValue"
           type="radio"
           class="aimd-quiz-recorder__choice-input"
+          :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:single:${option.key}`"
           :name="`${quiz.id}-single`"
           :value="option.key"
           :disabled="readonly"
@@ -172,6 +175,7 @@ const openValue = computed<string>({
         <input
           type="checkbox"
           class="aimd-quiz-recorder__choice-input"
+          :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:multiple:${option.key}`"
           :disabled="readonly"
           :checked="isMultipleChecked(option.key)"
           @change="toggleMultipleChoice(option.key, ($event.target as HTMLInputElement).checked)"
@@ -184,6 +188,7 @@ const openValue = computed<string>({
       v-if="quiz.type === 'open'"
       v-model="openValue"
       class="aimd-quiz-recorder__open-input"
+      :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:open`"
       placeholder="Input your answer..."
       rows="4"
       :readonly="readonly"

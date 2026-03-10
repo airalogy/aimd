@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, reactive, ref, watch, type VNode } from "vue"
+import { h, nextTick, reactive, ref, watch, type VNode } from "vue"
 import type {
   AimdCheckNode,
   AimdQuizField,
@@ -36,11 +36,13 @@ const emit = defineEmits<{
 
 const inlineNodes = ref<VNode[]>([])
 const renderError = ref("")
+const contentRoot = ref<HTMLElement | null>(null)
 const localRecord = reactive<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 let buildRequestId = 0
 let syncingFromExternal = false
 let renderScheduled = false
 let recordInitializedDuringRender = false
+let pendingFocusSnapshot: FocusSnapshot | null = null
 
 const EMPTY_FIELDS: ExtractedAimdFields = {
   var: [],
@@ -53,6 +55,13 @@ const EMPTY_FIELDS: ExtractedAimdFields = {
   ref_fig: [],
   cite: [],
   fig: [],
+}
+
+interface FocusSnapshot {
+  key: string
+  selectionStart?: number | null
+  selectionEnd?: number | null
+  selectionDirection?: HTMLInputElement["selectionDirection"]
 }
 
 function cloneRecordData(value: AimdProtocolRecordData): AimdProtocolRecordData {
@@ -104,12 +113,84 @@ function replaceSection(target: Record<string, unknown>, source: Record<string, 
   Object.assign(target, source)
 }
 
-function applyIncomingRecord(value: Partial<AimdProtocolRecordData> | undefined) {
-  const normalized = normalizeIncomingRecord(value)
+function applyNormalizedRecord(normalized: AimdProtocolRecordData) {
   replaceSection(localRecord.var as Record<string, unknown>, normalized.var)
   replaceSection(localRecord.step as Record<string, unknown>, normalized.step as Record<string, unknown>)
   replaceSection(localRecord.check as Record<string, unknown>, normalized.check as Record<string, unknown>)
   replaceSection(localRecord.quiz as Record<string, unknown>, normalized.quiz)
+}
+
+function applyIncomingRecord(value: Partial<AimdProtocolRecordData> | undefined) {
+  applyNormalizedRecord(normalizeIncomingRecord(value))
+}
+
+function captureFocusSnapshot(): FocusSnapshot | null {
+  if (typeof document === "undefined" || !contentRoot.value) {
+    return null
+  }
+
+  const activeElement = document.activeElement
+  if (!(activeElement instanceof HTMLElement) || !contentRoot.value.contains(activeElement)) {
+    return null
+  }
+
+  const key = activeElement.dataset.recFocusKey
+  if (!key) {
+    return null
+  }
+
+  const snapshot: FocusSnapshot = { key }
+  if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+    snapshot.selectionStart = activeElement.selectionStart
+    snapshot.selectionEnd = activeElement.selectionEnd
+    snapshot.selectionDirection = activeElement.selectionDirection
+  }
+
+  return snapshot
+}
+
+function restoreFocusSnapshot(snapshot: FocusSnapshot | null) {
+  if (!snapshot || !contentRoot.value) {
+    return
+  }
+
+  const candidates = contentRoot.value.querySelectorAll<HTMLElement>("[data-rec-focus-key]")
+  let target: HTMLElement | null = null
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]
+    if (candidate?.dataset.recFocusKey === snapshot.key) {
+      target = candidate
+      break
+    }
+  }
+
+  if (!target) {
+    return
+  }
+
+  try {
+    target.focus({ preventScroll: true })
+  }
+  catch {
+    target.focus()
+  }
+
+  if (
+    (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
+    && snapshot.selectionStart !== undefined
+    && snapshot.selectionEnd !== undefined
+  ) {
+    try {
+      target.setSelectionRange(
+        snapshot.selectionStart ?? 0,
+        snapshot.selectionEnd ?? 0,
+        snapshot.selectionDirection ?? undefined,
+      )
+    }
+    catch {
+      // Ignore controls that do not support restoring a selection range.
+    }
+  }
 }
 
 function emitRecordUpdate() {
@@ -120,13 +201,16 @@ function emitRecordUpdate() {
 }
 
 function scheduleInlineRebuild() {
+  pendingFocusSnapshot = captureFocusSnapshot() ?? pendingFocusSnapshot
   if (renderScheduled) {
     return
   }
   renderScheduled = true
   Promise.resolve().then(() => {
     renderScheduled = false
-    void rebuildInlineNodes()
+    const focusSnapshot = pendingFocusSnapshot
+    pendingFocusSnapshot = null
+    void rebuildInlineNodes(undefined, focusSnapshot)
   })
 }
 
@@ -823,6 +907,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
     return renderStackedVar(
       h("span", { class: "aimd-rec-inline__checkbox-row" }, [
         h("input", {
+          "data-rec-focus-key": `var:${id}`,
           type: "checkbox",
           disabled: props.readonly,
           checked: toBooleanValue(localRecord.var[id]),
@@ -842,6 +927,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
   if (inputKind === "textarea") {
     return renderStackedVar(
       h("textarea", {
+        "data-rec-focus-key": `var:${id}`,
         class: "aimd-rec-inline__textarea aimd-rec-inline__textarea--stacked",
         disabled: props.readonly,
         placeholder,
@@ -861,6 +947,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
   if (inputKind === "text") {
     return renderStackedVar(
       h("textarea", {
+        "data-rec-focus-key": `var:${id}`,
         class: "aimd-rec-inline__textarea aimd-rec-inline__textarea--stacked aimd-rec-inline__textarea--stacked-text",
         rows: 1,
         disabled: props.readonly,
@@ -889,6 +976,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
 
   return renderStackedVar(
     h("input", {
+      "data-rec-focus-key": `var:${id}`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--stacked",
       type: htmlInputType,
       disabled: props.readonly,
@@ -928,6 +1016,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
       h("tbody", rows.map((row, rowIndex) => h("tr", { key: `${tableName}-row-${rowIndex}` }, [
         ...columns.map(column => h("td", { key: `${tableName}-${rowIndex}-${column}` }, [
           h("input", {
+            "data-rec-focus-key": `var_table:${tableName}:${rowIndex}:${column}`,
             class: "aimd-rec-table-cell-input",
             disabled: props.readonly,
             placeholder: column,
@@ -971,6 +1060,7 @@ function renderInlineStep(node: AimdStepNode): VNode {
   return h("span", { class: "aimd-rec-inline aimd-rec-inline--step aimd-field aimd-field--step" }, [
     h("label", { class: "aimd-rec-inline__check-wrap" }, [
       h("input", {
+        "data-rec-focus-key": `step:${name}:checked`,
         type: "checkbox",
         disabled: props.readonly,
         checked: Boolean(state.checked),
@@ -984,6 +1074,7 @@ function renderInlineStep(node: AimdStepNode): VNode {
       h("span", { class: "aimd-field__name" }, name),
     ]),
     h("input", {
+      "data-rec-focus-key": `step:${name}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
       placeholder: "备注",
@@ -1007,6 +1098,7 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
   return h("span", { class: "aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check" }, [
     h("label", { class: "aimd-rec-inline__check-wrap" }, [
       h("input", {
+        "data-rec-focus-key": `check:${name}:checked`,
         type: "checkbox",
         class: "aimd-checkbox",
         disabled: props.readonly,
@@ -1020,6 +1112,7 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
       h("span", { class: "aimd-field__name" }, node.label || name),
     ]),
     h("input", {
+      "data-rec-focus-key": `check:${name}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
       placeholder: "检查备注",
@@ -1056,6 +1149,7 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     quiz: quizField,
     modelValue: localRecord.quiz[quizId],
     readonly: props.readonly,
+    focusKeyPrefix: `quiz:${quizId}`,
     "onUpdate:modelValue": (value: unknown) => {
       localRecord.quiz[quizId] = value
       markRecordChanged()
@@ -1063,7 +1157,7 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
   })
 }
 
-async function rebuildInlineNodes(expectedRequestId?: number) {
+async function rebuildInlineNodes(expectedRequestId?: number, focusSnapshot?: FocusSnapshot | null) {
   recordInitializedDuringRender = false
   const rendered = await renderToVue(props.content || "", {
     mode: "edit",
@@ -1081,6 +1175,8 @@ async function rebuildInlineNodes(expectedRequestId?: number) {
   }
 
   inlineNodes.value = rendered.nodes
+  await nextTick()
+  restoreFocusSnapshot(focusSnapshot ?? null)
 
   if (recordInitializedDuringRender) {
     emitRecordUpdate()
@@ -1141,7 +1237,7 @@ watch(
   <div class="aimd-protocol-recorder">
     <div v-if="renderError" class="aimd-protocol-recorder__error">{{ renderError }}</div>
 
-    <div v-else-if="inlineNodes.length" class="aimd-protocol-recorder__content">
+    <div v-else-if="inlineNodes.length" ref="contentRoot" class="aimd-protocol-recorder__content">
       <component :is="() => inlineNodes" />
     </div>
 
