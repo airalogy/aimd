@@ -43,6 +43,15 @@ let syncingFromExternal = false
 let renderScheduled = false
 let recordInitializedDuringRender = false
 let pendingFocusSnapshot: FocusSnapshot | null = null
+let draggingVarTableRow: VarTableDragState | null = null
+let dragOverVarTableRowElement: HTMLTableRowElement | null = null
+let draggingVarTableHandleElement: HTMLElement | null = null
+let draggingVarTableRowElement: HTMLTableRowElement | null = null
+let draggingVarTableTableElement: HTMLTableElement | null = null
+let settlingVarTableRowKey: string | null = null
+let varTableDropAnimationTimer: ReturnType<typeof setTimeout> | null = null
+const varTableRowKeyMap = new WeakMap<object, string>()
+let nextVarTableRowKeyId = 0
 
 const EMPTY_FIELDS: ExtractedAimdFields = {
   var: [],
@@ -62,6 +71,11 @@ interface FocusSnapshot {
   selectionStart?: number | null
   selectionEnd?: number | null
   selectionDirection?: HTMLInputElement["selectionDirection"]
+}
+
+interface VarTableDragState {
+  tableName: string
+  rowIndex: number
 }
 
 function cloneRecordData(value: AimdProtocolRecordData): AimdProtocolRecordData {
@@ -819,6 +833,32 @@ function addVarTableRow(tableName: string, columns: string[]) {
   markRecordChanged({ rebuild: true })
 }
 
+function moveVarTableRow(tableName: string, fromIndex: number, toIndex: number, columns: string[]) {
+  const rows = ensureVarTableRows(tableName, columns)
+  if (
+    fromIndex === toIndex
+    || fromIndex < 0
+    || toIndex < 0
+    || fromIndex >= rows.length
+    || toIndex >= rows.length
+  ) {
+    return
+  }
+
+  const moved = rows.splice(fromIndex, 1)[0]
+  rows.splice(toIndex, 0, moved)
+  settlingVarTableRowKey = getVarTableRowKey(moved)
+  if (varTableDropAnimationTimer) {
+    clearTimeout(varTableDropAnimationTimer)
+  }
+  varTableDropAnimationTimer = setTimeout(() => {
+    settlingVarTableRowKey = null
+    varTableDropAnimationTimer = null
+    scheduleInlineRebuild()
+  }, 520)
+  markRecordChanged({ rebuild: true })
+}
+
 function removeVarTableRow(tableName: string, rowIndex: number, columns: string[]) {
   const rows = ensureVarTableRows(tableName, columns)
   if (rows.length <= 1) {
@@ -826,6 +866,110 @@ function removeVarTableRow(tableName: string, rowIndex: number, columns: string[
   }
   rows.splice(rowIndex, 1)
   markRecordChanged({ rebuild: true })
+}
+
+function getVarTableRowKey(row: Record<string, string>): string {
+  const existing = varTableRowKeyMap.get(row)
+  if (existing) {
+    return existing
+  }
+
+  const key = `vt-row-${nextVarTableRowKeyId}`
+  nextVarTableRowKeyId += 1
+  varTableRowKeyMap.set(row, key)
+  return key
+}
+
+function clearVarTableDragPreview() {
+  if (dragOverVarTableRowElement) {
+    dragOverVarTableRowElement.classList.remove("aimd-rec-inline-table__row--drag-over")
+    dragOverVarTableRowElement = null
+  }
+
+  if (draggingVarTableHandleElement) {
+    draggingVarTableHandleElement.classList.remove("aimd-rec-inline-table__drag-handle--dragging")
+    draggingVarTableHandleElement = null
+  }
+
+  if (draggingVarTableRowElement) {
+    draggingVarTableRowElement.classList.remove("aimd-rec-inline-table__row--dragging-source")
+    draggingVarTableRowElement = null
+  }
+
+  if (draggingVarTableTableElement) {
+    draggingVarTableTableElement.classList.remove("aimd-rec-inline-table__table--dragging")
+    draggingVarTableTableElement = null
+  }
+}
+
+function startVarTableRowDrag(tableName: string, rowIndex: number, event: DragEvent) {
+  if (props.readonly) {
+    return
+  }
+
+  draggingVarTableRow = { tableName, rowIndex }
+  draggingVarTableHandleElement = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+  draggingVarTableRowElement = draggingVarTableHandleElement?.closest("tr") as HTMLTableRowElement | null
+  draggingVarTableTableElement = draggingVarTableHandleElement?.closest("table") as HTMLTableElement | null
+  draggingVarTableHandleElement?.classList.add("aimd-rec-inline-table__drag-handle--dragging")
+  draggingVarTableRowElement?.classList.add("aimd-rec-inline-table__row--dragging-source")
+  draggingVarTableTableElement?.classList.add("aimd-rec-inline-table__table--dragging")
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.setData("text/plain", `${tableName}:${rowIndex}`)
+  }
+}
+
+function updateVarTableDragPreview(target: EventTarget | null) {
+  const nextElement = target instanceof HTMLTableRowElement ? target : null
+  if (dragOverVarTableRowElement === nextElement) {
+    return
+  }
+
+  if (dragOverVarTableRowElement) {
+    dragOverVarTableRowElement.classList.remove("aimd-rec-inline-table__row--drag-over")
+  }
+
+  dragOverVarTableRowElement = nextElement
+  dragOverVarTableRowElement?.classList.add("aimd-rec-inline-table__row--drag-over")
+}
+
+function handleVarTableRowDragOver(tableName: string, rowIndex: number, event: DragEvent) {
+  if (!draggingVarTableRow || draggingVarTableRow.tableName !== tableName) {
+    return
+  }
+
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move"
+  }
+
+  if (draggingVarTableRow.rowIndex === rowIndex) {
+    updateVarTableDragPreview(null)
+    return
+  }
+
+  updateVarTableDragPreview(event.currentTarget)
+}
+
+function handleVarTableRowDrop(tableName: string, rowIndex: number, columns: string[], event: DragEvent) {
+  if (!draggingVarTableRow || draggingVarTableRow.tableName !== tableName) {
+    clearVarTableDragPreview()
+    draggingVarTableRow = null
+    return
+  }
+
+  event.preventDefault()
+  const { rowIndex: fromIndex } = draggingVarTableRow
+  clearVarTableDragPreview()
+  draggingVarTableRow = null
+  moveVarTableRow(tableName, fromIndex, rowIndex, columns)
+}
+
+function endVarTableRowDrag() {
+  clearVarTableDragPreview()
+  draggingVarTableRow = null
 }
 
 function ensureDefaultsFromFields(fields: ExtractedAimdFields): boolean {
@@ -1009,33 +1153,57 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
     h("table", { class: "aimd-field__table-preview aimd-rec-inline-table__table" }, [
       h("thead", [
         h("tr", [
+          h("th", { class: "aimd-rec-inline-table__drag-head" }, ""),
           ...columns.map(column => h("th", column)),
           h("th", { class: "aimd-rec-inline-table__action-head" }, "操作"),
         ]),
       ]),
-      h("tbody", rows.map((row, rowIndex) => h("tr", { key: `${tableName}-row-${rowIndex}` }, [
-        ...columns.map(column => h("td", { key: `${tableName}-${rowIndex}-${column}` }, [
-          h("input", {
-            "data-rec-focus-key": `var_table:${tableName}:${rowIndex}:${column}`,
-            class: "aimd-rec-table-cell-input",
-            disabled: props.readonly,
-            placeholder: column,
-            value: row[column] ?? "",
-            onInput: (event: Event) => {
-              row[column] = (event.target as HTMLInputElement).value
-              markRecordChanged()
-            },
-          }),
-        ])),
-        h("td", { class: "aimd-rec-inline-table__action-cell" }, [
-          h("button", {
-            type: "button",
-            class: "aimd-rec-inline-table__row-btn",
-            disabled: props.readonly || rows.length <= 1,
-            onClick: () => removeVarTableRow(tableName, rowIndex, columns),
-          }, "删除"),
-        ]),
-      ]))),
+      h("tbody", rows.map((row, rowIndex) => {
+        const rowKey = getVarTableRowKey(row)
+        return h("tr", {
+          key: `${tableName}-${rowKey}`,
+          class: settlingVarTableRowKey === rowKey ? "aimd-rec-inline-table__row--settling" : "",
+          onDragover: (event: DragEvent) => handleVarTableRowDragOver(tableName, rowIndex, event),
+          onDrop: (event: DragEvent) => handleVarTableRowDrop(tableName, rowIndex, columns, event),
+        }, [
+          h("td", { class: "aimd-rec-inline-table__drag-cell" }, [
+            h("span", {
+              class: [
+                "aimd-rec-inline-table__drag-handle",
+                props.readonly ? "aimd-rec-inline-table__drag-handle--disabled" : "",
+              ],
+              title: props.readonly ? "只读模式下无法拖拽" : "拖拽调整行顺序",
+              draggable: !props.readonly,
+              onDragstart: (event: DragEvent) => startVarTableRowDrag(tableName, rowIndex, event),
+              onDragend: endVarTableRowDrag,
+            }, Array.from({ length: 6 }, (_, dotIndex) => h("span", {
+              key: `${rowKey}-drag-dot-${dotIndex}`,
+              class: "aimd-rec-inline-table__drag-dot",
+            }))),
+          ]),
+          ...columns.map(column => h("td", { key: `${tableName}-${rowIndex}-${column}` }, [
+            h("input", {
+              "data-rec-focus-key": `var_table:${tableName}:${rowIndex}:${column}`,
+              class: "aimd-rec-table-cell-input",
+              disabled: props.readonly,
+              placeholder: column,
+              value: row[column] ?? "",
+              onInput: (event: Event) => {
+                row[column] = (event.target as HTMLInputElement).value
+                markRecordChanged()
+              },
+            }),
+          ])),
+          h("td", { class: "aimd-rec-inline-table__action-cell" }, [
+            h("button", {
+              type: "button",
+              class: "aimd-rec-inline-table__row-btn",
+              disabled: props.readonly || rows.length <= 1,
+              onClick: () => removeVarTableRow(tableName, rowIndex, columns),
+            }, "删除"),
+          ]),
+        ])
+      })),
     ]),
     h("div", { class: "aimd-rec-inline-table__actions" }, [
       h("button", {
@@ -1671,10 +1839,51 @@ watch(
   border-radius: 8px;
 }
 
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table td) {
+  vertical-align: middle;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table th) {
+  vertical-align: middle;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-head),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-cell) {
+  width: 38px;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-head),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-cell) {
   width: 84px;
   text-align: center;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table--dragging) {
+  cursor: grabbing;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row--dragging-source td) {
+  opacity: 0.5;
+  transform: scale(0.985);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row--drag-over td) {
+  background: linear-gradient(180deg, #f5f9ff 0%, #edf4ff 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(47, 111, 237, 0.18),
+    0 10px 24px rgba(47, 111, 237, 0.08);
+  transform: translateY(-2px);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row--settling td) {
+  animation: aimd-rec-inline-table-row-settle 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__actions) {
@@ -1706,6 +1915,65 @@ watch(
   cursor: not-allowed;
 }
 
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle) {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 3px);
+  grid-auto-rows: 3px;
+  gap: 3px 3px;
+  padding: 5px 7px;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  border-radius: 999px;
+  color: #b6c2d1;
+  cursor: grab;
+  user-select: none;
+  transition: background-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-dot) {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.82;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:hover) {
+  background: rgba(47, 111, 237, 0.08);
+  color: #6f86a4;
+  transform: translateY(-1px);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:hover .aimd-rec-inline-table__drag-dot) {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle--disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle--disabled:hover) {
+  background: transparent;
+  color: #b6c2d1;
+  transform: none;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle--dragging),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:active) {
+  cursor: grabbing;
+  color: #5d7699;
+  transform: scale(0.96);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle--dragging .aimd-rec-inline-table__drag-dot),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:active .aimd-rec-inline-table__drag-dot) {
+  transform: scale(0.92);
+}
+
 .aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input) {
   width: 100%;
   height: 32px;
@@ -1721,5 +1989,29 @@ watch(
 .aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input:focus) {
   border-color: var(--rec-focus);
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.1);
+}
+
+@keyframes aimd-rec-inline-table-row-settle {
+  0% {
+    background-color: #deebff;
+    box-shadow:
+      inset 0 0 0 1px rgba(47, 111, 237, 0.22),
+      0 14px 28px rgba(47, 111, 237, 0.14);
+    transform: translateY(8px) scale(0.985);
+  }
+
+  60% {
+    background-color: #edf4ff;
+    box-shadow:
+      inset 0 0 0 1px rgba(47, 111, 237, 0.12),
+      0 8px 18px rgba(47, 111, 237, 0.08);
+    transform: translateY(-1px) scale(1);
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
 }
 </style>
