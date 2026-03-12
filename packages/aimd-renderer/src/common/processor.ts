@@ -536,7 +536,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   else if (fieldType === "quiz") {
     const quizNode = node as AimdQuizNode
     const quizType = quizNode.quizType
-    const typeLabel = getAimdRendererQuizTypeLabel(quizType, messages)
+    const typeLabel = getAimdRendererQuizTypeLabel(quizType, quizNode.mode, messages)
 
     children.push(
       {

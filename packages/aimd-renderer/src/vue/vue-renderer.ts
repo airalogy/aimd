@@ -181,7 +181,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   quiz: (node, ctx) => {
     const quizNode = node as AimdQuizNode
     const { id, scope, quizType, stem, score } = quizNode
-    const typeLabel = getAimdRendererQuizTypeLabel(quizType, ctx.messages)
+    const typeLabel = getAimdRendererQuizTypeLabel(quizType, quizNode.mode, ctx.messages)
 
     if (ctx.mode === "preview") {
       const previewChildren: VNodeChild[] = [

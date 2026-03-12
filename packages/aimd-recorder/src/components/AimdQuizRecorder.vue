@@ -140,7 +140,7 @@ const openValue = computed<string>({
 })
 
 const resolvedMessages = computed(() => createAimdRecorderMessages(props.locale, props.messages))
-const quizTypeLabel = computed(() => getAimdRecorderQuizTypeLabel(props.quiz.type, resolvedMessages.value))
+const quizTypeLabel = computed(() => getAimdRecorderQuizTypeLabel(props.quiz.type, resolvedMessages.value, props.quiz.mode))
 </script>
 
 <template>

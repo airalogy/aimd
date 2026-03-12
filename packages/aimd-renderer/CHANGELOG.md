@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.0.2] - 2026-03-12
+
+### Changed
+
+- Distinguish single-choice and multiple-choice quiz labels in renderer output. Choice quizzes now render as `Single choice` / `Multiple choice` in English and `单选` / `多选` in Chinese when `mode` is available.
+- Exported the renderer-side quiz type label helper so downstream packages such as `@airalogy/aimd-recorder` can share the same single-choice vs multiple-choice label logic.
+
 ## [2.0.1] - 2026-03-12
 
 ### Changed

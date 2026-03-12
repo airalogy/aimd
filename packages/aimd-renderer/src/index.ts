@@ -18,6 +18,7 @@ export {
 export {
   createAimdRendererMessages,
   DEFAULT_AIMD_RENDERER_LOCALE,
+  getAimdRendererQuizTypeLabel,
   resolveAimdRendererLocale,
 } from './locales'
 

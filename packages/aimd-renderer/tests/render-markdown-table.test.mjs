@@ -32,6 +32,36 @@ Recorded value: {{ref_var|temperature}}
 Missing value: {{ref_var|operator}}
 `
 
+const CHOICE_MODE_SAMPLE = [
+  '```quiz',
+  'id: quiz_single_1',
+  'type: choice',
+  'mode: single',
+  'stem: Pick one option.',
+  'options:',
+  '  - key: A',
+  '    text: First',
+  '  - key: B',
+  '    text: Second',
+  'answer: A',
+  '```',
+  '',
+  '```quiz',
+  'id: quiz_multiple_1',
+  'type: choice',
+  'mode: multiple',
+  'stem: Pick more than one option.',
+  'options:',
+  '  - key: A',
+  '    text: First',
+  '  - key: B',
+  '    text: Second',
+  '  - key: C',
+  '    text: Third',
+  'answer: [A, C]',
+  '```',
+].join('\n')
+
 function isVNodeLike(value) {
   return typeof value === 'object' && value !== null && 'type' in value
 }
@@ -150,4 +180,17 @@ test('renderToVue renders ref_var using readonly record values in edit mode when
   assert.equal(refVars[1]?.props?.['data-aimd-ref'], 'operator')
   assert.equal(refVars[1]?.props?.title, 'operator')
   assert.match(flattenText(refVars[1]), /varoperator/)
+})
+
+test('renderToHtml distinguishes single and multiple choice labels by locale', async () => {
+  const { html: enHtml } = await renderToHtml(CHOICE_MODE_SAMPLE)
+  const { html: zhHtml } = await renderToHtml(CHOICE_MODE_SAMPLE, { locale: 'zh-CN' })
+
+  assert.match(enHtml, /\(Single choice\)/)
+  assert.match(enHtml, /\(Multiple choice\)/)
+  assert.doesNotMatch(enHtml, /\(choice\)/)
+
+  assert.match(zhHtml, /\(单选\)/)
+  assert.match(zhHtml, /\(多选\)/)
+  assert.doesNotMatch(zhHtml, /\(选择\)/)
 })

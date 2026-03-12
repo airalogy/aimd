@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-recorder",
   "type": "module",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "AIMD editor Vue components and UI",
   "keywords": [
     "aimd",

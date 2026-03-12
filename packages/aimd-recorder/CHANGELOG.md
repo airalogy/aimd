@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
+## [1.4.4] - 2026-03-12
+
+### Changed
+
+- Aligned recorder quiz type labels with renderer output so `choice` quizzes distinguish `single` / `multiple` mode as `Single choice` / `Multiple choice` in English and `单选` / `多选` in Chinese.
+- Reused the renderer-side quiz label helper in recorder locales to avoid maintaining the single-vs-multiple choice labeling logic twice.
+
 ## [1.4.3] - 2026-03-12
 
 ### Fixed

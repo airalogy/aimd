@@ -24,6 +24,8 @@ export interface AimdRendererMessages {
   quiz: {
     types: {
       choice: string
+      singleChoice: string
+      multipleChoice: string
       blank: string
       open: string
     }
@@ -77,6 +79,8 @@ const EN_US_MESSAGES: AimdRendererMessages = {
   quiz: {
     types: {
       choice: "choice",
+      singleChoice: "Single choice",
+      multipleChoice: "Multiple choice",
       blank: "blank",
       open: "open",
     },
@@ -106,6 +110,8 @@ const ZH_CN_MESSAGES: AimdRendererMessages = {
   quiz: {
     types: {
       choice: "选择",
+      singleChoice: "单选",
+      multipleChoice: "多选",
       blank: "填空",
       open: "开放",
     },
@@ -170,7 +176,21 @@ export function createAimdRendererMessages(
   overrides?: AimdRendererMessagesInput,
 ): AimdRendererMessages {
   const resolvedLocale = resolveAimdRendererLocale(locale)
-  return deepMerge(BASE_MESSAGES[resolvedLocale], overrides)
+  const merged = deepMerge(BASE_MESSAGES[resolvedLocale], overrides)
+  const choiceOverride = overrides?.quiz?.types?.choice
+  const hasSingleChoiceOverride = overrides?.quiz?.types?.singleChoice !== undefined
+  const hasMultipleChoiceOverride = overrides?.quiz?.types?.multipleChoice !== undefined
+
+  if (typeof choiceOverride === "string") {
+    if (!hasSingleChoiceOverride) {
+      merged.quiz.types.singleChoice = choiceOverride
+    }
+    if (!hasMultipleChoiceOverride) {
+      merged.quiz.types.multipleChoice = choiceOverride
+    }
+  }
+
+  return merged
 }
 
 export function getAimdRendererScopeLabel(
@@ -197,10 +217,17 @@ export function getAimdRendererScopeLabel(
 
 export function getAimdRendererQuizTypeLabel(
   quizType: string | undefined,
+  quizMode: string | undefined,
   messages: Pick<AimdRendererMessages, "quiz">,
 ): string {
   switch (quizType) {
     case "choice":
+      if (quizMode === "single") {
+        return messages.quiz.types.singleChoice
+      }
+      if (quizMode === "multiple") {
+        return messages.quiz.types.multipleChoice
+      }
       return messages.quiz.types.choice
     case "blank":
       return messages.quiz.types.blank

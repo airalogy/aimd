@@ -311,7 +311,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
     quiz: async (node, ctx, children) => {
       const quizNode = node as AimdQuizNode
       const { id, scope, quizType, stem, score } = quizNode
-      const typeLabel = getAimdRendererQuizTypeLabel(quizType, messages)
+      const typeLabel = getAimdRendererQuizTypeLabel(quizType, quizNode.mode, messages)
 
       if (isPreview()) {
         if (PreviewRenderer) {

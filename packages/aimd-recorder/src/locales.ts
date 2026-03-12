@@ -1,3 +1,5 @@
+import { getAimdRendererQuizTypeLabel as getSharedRendererQuizTypeLabel } from "@airalogy/aimd-renderer"
+
 export type AimdRecorderLocale = "en-US" | "zh-CN"
 
 export const DEFAULT_AIMD_RECORDER_LOCALE: AimdRecorderLocale = "en-US"
@@ -23,6 +25,8 @@ export interface AimdRecorderMessages {
   quiz: {
     types: {
       choice: string
+      singleChoice: string
+      multipleChoice: string
       blank: string
       open: string
     }
@@ -85,6 +89,8 @@ const EN_US_MESSAGES: AimdRecorderMessages = {
   quiz: {
     types: {
       choice: "choice",
+      singleChoice: "Single choice",
+      multipleChoice: "Multiple choice",
       blank: "blank",
       open: "open",
     },
@@ -120,6 +126,8 @@ const ZH_CN_MESSAGES: AimdRecorderMessages = {
   quiz: {
     types: {
       choice: "选择",
+      singleChoice: "单选",
+      multipleChoice: "多选",
       blank: "填空",
       open: "开放",
     },
@@ -193,7 +201,21 @@ export function createAimdRecorderMessages(
   overrides?: AimdRecorderMessagesInput,
 ): AimdRecorderMessages {
   const resolvedLocale = resolveAimdRecorderLocale(locale)
-  return deepMerge(BASE_MESSAGES[resolvedLocale], overrides)
+  const merged = deepMerge(BASE_MESSAGES[resolvedLocale], overrides)
+  const choiceOverride = overrides?.quiz?.types?.choice
+  const hasSingleChoiceOverride = overrides?.quiz?.types?.singleChoice !== undefined
+  const hasMultipleChoiceOverride = overrides?.quiz?.types?.multipleChoice !== undefined
+
+  if (typeof choiceOverride === "string") {
+    if (!hasSingleChoiceOverride) {
+      merged.quiz.types.singleChoice = choiceOverride
+    }
+    if (!hasMultipleChoiceOverride) {
+      merged.quiz.types.multipleChoice = choiceOverride
+    }
+  }
+
+  return merged
 }
 
 export function getAimdRecorderScopeLabel(
@@ -219,15 +241,7 @@ export function getAimdRecorderScopeLabel(
 export function getAimdRecorderQuizTypeLabel(
   quizType: string | undefined,
   messages: Pick<AimdRecorderMessages, "quiz">,
+  quizMode?: string,
 ): string {
-  switch (quizType) {
-    case "choice":
-      return messages.quiz.types.choice
-    case "blank":
-      return messages.quiz.types.blank
-    case "open":
-      return messages.quiz.types.open
-    default:
-      return quizType || messages.quiz.types.open
-  }
+  return getSharedRendererQuizTypeLabel(quizType, quizMode, messages)
 }
