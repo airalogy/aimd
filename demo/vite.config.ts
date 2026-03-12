@@ -3,7 +3,17 @@ import vue from '@vitejs/plugin-vue'
 import VueDevTools from 'vite-plugin-vue-devtools'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-const base = process.env.DEMO_BASE || '/'
+const normalizeBase = (value?: string) => {
+  if (!value || value === '/') return '/'
+
+  let normalized = value
+  if (!normalized.startsWith('/')) normalized = `/${normalized}`
+  if (!normalized.endsWith('/')) normalized = `${normalized}/`
+
+  return normalized.replace(/\/{2,}/g, '/')
+}
+
+const base = normalizeBase(process.env.DEMO_BASE)
 
 export default defineConfig(({ command }) => ({
   base,
