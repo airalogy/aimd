@@ -440,13 +440,13 @@
 
 /* Edit mode label scope colors - var_table type (green) */
 .aimd-field--no-style.aimd-field__label:has(.aimd-field__scope[class*="--var_table"]),
-.aimd-field--no-style.aimd-field__label:has(.aimd-field__scope[class*="--rv-table"]) {
+.aimd-field--no-style.aimd-field__label:has(.aimd-field__scope[class*="--var-table"]) {
   background-color: #e8f5e9;
   border-color: #a5d6a7;
 }
 
 .aimd-field--no-style.aimd-field__label .aimd-field__scope[class*="--var_table"],
-.aimd-field--no-style.aimd-field__label .aimd-field__scope[class*="--rv-table"] {
+.aimd-field--no-style.aimd-field__label .aimd-field__scope[class*="--var-table"] {
   background-color: #c8e6c9;
   color: #2e7d32;
 }
@@ -455,7 +455,7 @@
   .aimd-field__scope[class*="--var_table"]
   + .aimd-field__name,
 .aimd-field--no-style.aimd-field__label
-  .aimd-field__scope[class*="--rv-table"]
+  .aimd-field__scope[class*="--var-table"]
   + .aimd-field__name {
   color: #2e7d32;
 }
@@ -677,16 +677,16 @@
 }
 
 .aimd-field__scope--var_table,
-.aimd-field__scope--rv-table-header,
-.aimd-field__scope--rv-table-wrapper {
+.aimd-field__scope--var-table-header,
+.aimd-field__scope--var-table-wrapper {
   background-color: rgba(24, 160, 88, 0.8);
   color: white;
 }
 
 /* Matching name colors for var_table type */
 .aimd-field__scope--var_table + .aimd-field__name,
-.aimd-field__scope--rv-table-header + .aimd-field__name,
-.aimd-field__scope--rv-table-wrapper + .aimd-field__name {
+.aimd-field__scope--var-table-header + .aimd-field__name,
+.aimd-field__scope--var-table-wrapper + .aimd-field__name {
   color: #18a058;
   background: rgba(24, 160, 88, 0.12);
 }
