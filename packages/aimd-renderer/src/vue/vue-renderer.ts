@@ -102,43 +102,43 @@ function buildQuizStemChildren(
  */
 const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   var: (node, ctx) => {
-    const { name, scope } = node
+    const { id, scope } = node
     const definition = "definition" in node ? node.definition : undefined
 
     if (ctx.mode === "preview") {
       return h("span", {
         "class": "aimd-field aimd-field--var",
         "data-aimd-type": "var",
-        "data-aimd-name": name,
+        "data-aimd-id": id,
         "data-aimd-scope": scope,
       }, [
         h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
-        h("span", { class: "aimd-field__name" }, name),
+        h("span", { class: "aimd-field__name" }, id),
         definition?.type ? h("span", { class: "aimd-field__type" }, `: ${definition.type}`) : null,
       ])
     }
 
     // Edit mode - render as editable field with value display
-    const fieldData = ctx.value?.[scope]?.[name]
+    const fieldData = ctx.value?.[scope]?.[id]
     const value = typeof fieldData === "object" && fieldData !== null && "value" in fieldData
       ? (fieldData as { value: unknown }).value
       : fieldData
-    const displayValue = value !== undefined && value !== null && value !== "" ? String(value) : name
+    const displayValue = value !== undefined && value !== null && value !== "" ? String(value) : id
 
     return h("span", {
       "class": "aimd-field aimd-field--var aimd-field--editable",
       "data-aimd-type": "var",
-      "data-aimd-name": name,
+      "data-aimd-id": id,
       "data-aimd-scope": scope,
       "data-has-variable": "true",
-      "id": `${scope}-${name}`,
+      "id": `${scope}-${id}`,
     }, [
       h("span", { class: "aimd-field__value" }, displayValue),
     ])
   },
 
   var_table: (node, ctx) => {
-    const { name } = node
+    const { id } = node
     const columns = "columns" in node ? node.columns : []
 
     if (ctx.mode === "preview") {
@@ -146,7 +146,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       const children: VNodeChild[] = [
         h("div", { class: "aimd-field__header" }, [
           h("span", { class: "aimd-field__scope" }, ctx.messages.scope.table),
-          h("span", { class: "aimd-field__name" }, name),
+          h("span", { class: "aimd-field__name" }, id),
         ]),
       ]
       // Add table preview inside the container
@@ -165,7 +165,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       return h("div", {
         "class": "aimd-field aimd-field--var-table",
         "data-aimd-type": "var_table",
-        "data-aimd-name": name,
+        "data-aimd-id": id,
       }, children)
     }
 
@@ -173,25 +173,25 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     return h("div", {
       "class": "aimd-field aimd-field--var-table aimd-field--editable",
       "data-aimd-type": "var_table",
-      "data-aimd-name": name,
-      "id": `var_table-${name}`,
+      "data-aimd-id": id,
+      "id": `var_table-${id}`,
     })
   },
 
   quiz: (node, ctx) => {
     const quizNode = node as AimdQuizNode
-    const { name, scope, quizType, stem, score } = quizNode
+    const { id, scope, quizType, stem, score } = quizNode
     const typeLabel = getAimdRendererQuizTypeLabel(quizType, ctx.messages)
 
     if (ctx.mode === "preview") {
       const previewChildren: VNodeChild[] = [
         h("div", { class: "aimd-quiz__meta" }, [
           h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
-          h("span", { class: "aimd-field__name" }, name),
+          h("span", { class: "aimd-field__name" }, id),
           h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
           score !== undefined ? h("span", { class: "aimd-quiz__score" }, ctx.messages.quiz.score(score)) : null,
         ]),
-        h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
+        h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
       ]
 
       if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
@@ -232,13 +232,13 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       return h("div", {
         "class": "aimd-field aimd-field--quiz",
         "data-aimd-type": "quiz",
-        "data-aimd-name": name,
+        "data-aimd-id": id,
         "data-aimd-scope": scope,
-        "id": `quiz-${name}`,
+        "id": `quiz-${id}`,
       }, previewChildren)
     }
 
-    const fieldData = ctx.value?.[scope]?.[name]
+    const fieldData = ctx.value?.[scope]?.[id]
     let displayValue: string
     if (Array.isArray(fieldData)) {
       displayValue = fieldData.join(", ")
@@ -247,7 +247,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       displayValue = JSON.stringify(fieldData)
     }
     else if (fieldData === undefined || fieldData === null || fieldData === "") {
-      displayValue = name
+      displayValue = id
     }
     else {
       displayValue = String(fieldData)
@@ -256,31 +256,31 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     return h("div", {
       "class": "aimd-field aimd-field--quiz aimd-field--editable",
       "data-aimd-type": "quiz",
-      "data-aimd-name": name,
+      "data-aimd-id": id,
       "data-aimd-scope": scope,
-      "id": `quiz-${name}`,
+      "id": `quiz-${id}`,
     }, [
       h("span", { class: "aimd-field__value" }, displayValue),
     ])
   },
 
   step: (node, ctx, children) => {
-    const { name, scope } = node
+    const { id, scope } = node
     const stepNode = node as AimdStepNode
     const stepNum = stepNode.step || "1"
 
     if (ctx.mode === "preview") {
-      // Preview mode: render as "step N name" format
+      // Preview mode: render as localized step label + sequence + id
       return h("span", {
         "class": "aimd-field aimd-field--step",
         "data-aimd-type": "step",
-        "data-aimd-name": name,
+        "data-aimd-id": id,
         "data-aimd-step": stepNum,
-        "id": `step-${name}`,
+        "id": `step-${id}`,
       }, [
         h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
         h("span", { class: "aimd-field__step-num" }, stepNum),
-        h("span", { class: "aimd-field__name" }, name),
+        h("span", { class: "aimd-field__name" }, id),
       ])
     }
 
@@ -288,10 +288,10 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     return h("div", {
       "class": "aimd-field aimd-field--step aimd-field--editable research-step__item",
       "data-aimd-type": "step",
-      "data-aimd-name": name,
+      "data-aimd-id": id,
       "data-aimd-step": stepNum,
       "data-aimd-level": stepNode.level,
-      "id": `step-${name}`,
+      "id": `step-${id}`,
     }, [
       h("div", { class: "research-step__header" }, [
         h("span", { class: "research-step__sequence" }, ctx.messages.step.sequence(stepNum)),
@@ -303,16 +303,16 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   },
 
   check: (node, ctx, children) => {
-    const { name, scope } = node
-    const label = "label" in node ? node.label : name
+    const { id, scope } = node
+    const label = "label" in node ? node.label : id
 
     if (ctx.mode === "preview") {
       // Preview mode: render with checkbox (disabled)
       return h("label", {
         "class": "aimd-field aimd-field--check",
         "data-aimd-type": "check",
-        "data-aimd-name": name,
-        "id": `check-${name}`,
+        "data-aimd-id": id,
+        "id": `check-${id}`,
       }, [
         h("input", {
           type: "checkbox",
@@ -323,7 +323,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       ])
     }
 
-    const scopeValue = ctx.value?.[scope]?.[name]
+    const scopeValue = ctx.value?.[scope]?.[id]
     const checked = typeof scopeValue === "object" && scopeValue !== null && "checked" in scopeValue
       ? Boolean((scopeValue as Record<string, unknown>).checked)
       : false
@@ -331,8 +331,8 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     return h("label", {
       "class": "aimd-field aimd-field--check aimd-field--editable",
       "data-aimd-type": "check",
-      "data-aimd-name": name,
-      "id": `check-${name}`,
+      "data-aimd-id": id,
+      "id": `check-${id}`,
     }, [
       h("input", {
         type: "checkbox",
@@ -345,13 +345,13 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
 
           const scopeValues = (ctx.value[scope] ??= {})
           const nextChecked = (e.target as HTMLInputElement).checked
-          const currentValue = scopeValues[name]
+          const currentValue = scopeValues[id]
 
           if (typeof currentValue === "object" && currentValue !== null) {
             (currentValue as Record<string, unknown>).checked = nextChecked
           }
           else {
-            scopeValues[name] = { checked: nextChecked }
+            scopeValues[id] = { checked: nextChecked }
           }
         },
       }),
@@ -361,8 +361,8 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   },
 
   ref_step: (node, ctx) => {
-    const { name } = node
-    const refTarget = "refTarget" in node ? node.refTarget : name
+    const { id } = node
+    const refTarget = "refTarget" in node ? node.refTarget : id
 
     // Render as blockquote-style reference with step sequence format
     // Format: "Step N >" just like the original step rendering
@@ -378,8 +378,8 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   },
 
   ref_var: (node, ctx) => {
-    const { name } = node
-    const refTarget = "refTarget" in node ? node.refTarget : name
+    const { id } = node
+    const refTarget = "refTarget" in node ? node.refTarget : id
 
     // Render as blockquote-style reference with the variable field content
     return h("span", {
@@ -397,8 +397,8 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   },
 
   ref_fig: (node, ctx) => {
-    const { name } = node
-    const refTarget = "refTarget" in node ? node.refTarget : name
+    const { id } = node
+    const refTarget = "refTarget" in node ? node.refTarget : id
     const figureNumber = "figureNumber" in node ? (node as any).figureNumber : undefined
 
     // Display figure number if available, otherwise show ID
@@ -416,7 +416,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   },
 
   cite: (node, ctx) => {
-    const refs = "refs" in node ? (node as any).refs : [node.name]
+    const refs = "refs" in node ? (node as any).refs : [node.id]
 
     return h("span", {
       "class": "aimd-cite",
@@ -429,7 +429,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
 
   fig: (node, ctx) => {
     const figNode = node as any
-    const figId = figNode.id || node.name
+    const figId = figNode.id || node.id
     const figSrc = figNode.src || ""
     const figTitle = figNode.title
     const figLegend = figNode.legend
@@ -628,20 +628,20 @@ function parseAimdFromProps(props: Record<string, unknown>): AimdNode | undefine
 
   // Reconstruct from individual properties
   const fieldType = (props["data-aimd-type"] || props.dataAimdType) as string
-  const name = (props["data-aimd-name"] || props.dataAimdName) as string
+  const id = (props["data-aimd-id"] || props.dataAimdId) as string
   const scope = (props["data-aimd-scope"] || props.dataAimdScope) as string
   const raw = (props["data-aimd-raw"] || props.dataAimdRaw) as string
 
-  if (!fieldType || !name) {
+  if (!fieldType || !id) {
     return undefined
   }
 
   const baseNode = {
     type: "aimd" as const,
     fieldType: fieldType as AimdNode["fieldType"],
-    name,
+    id,
     scope: (scope || "var") as AimdNode["scope"],
-    raw: raw || `{{${fieldType}|${name}}}`,
+    raw: raw || `{{${fieldType}|${id}}}`,
   }
 
   // Add step-specific properties
@@ -664,7 +664,7 @@ function parseAimdFromProps(props: Record<string, unknown>): AimdNode | undefine
     return {
       ...baseNode,
       fieldType: "fig",
-      id: figId || name,
+      id: figId || id,
       src: figSrc || "",
       title: undefined,
       legend: undefined,
@@ -797,7 +797,7 @@ export function hastToVue(
       if (aimdData) {
         // Add figure sequence number if this is a fig node
         if (aimdData.fieldType === "fig" && figCtx) {
-          const figId = (aimdData as any).id || aimdData.name
+          const figId = aimdData.id
           const sequence = figCtx.figureNumbers.get(figId)
           if (sequence !== undefined) {
             (aimdData as any).sequence = sequence

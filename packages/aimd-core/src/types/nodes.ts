@@ -80,7 +80,8 @@ export interface AimdVarDefinition {
 export interface BaseNode {
   type: "aimd"
   fieldType: AimdFieldType
-  name: string
+  /** Canonical stable identifier used in AIMD source and references. */
+  id: string
   scope: AimdScope
   raw: string
 }
@@ -139,12 +140,12 @@ export interface AimdStepNode extends BaseNode {
   sequence: number
   /** Final display indent (e.g., "1.2.3") */
   step: string
-  /** Parent step name (if any) */
-  parentName?: string
-  /** Previous sibling step name (if any) */
-  prevName?: string
-  /** Next sibling step name (if any) */
-  nextName?: string
+  /** Parent step id (if any) */
+  parentId?: string
+  /** Previous sibling step id (if any) */
+  prevId?: string
+  /** Next sibling step id (if any) */
+  nextId?: string
   /** Whether this step has children */
   hasChildren?: boolean
   /** Whether this step has a checkbox (check=True in AIMD) */

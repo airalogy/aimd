@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-renderer",
   "type": "module",
-  "version": "1.4.1",
+  "version": "2.0.0",
   "description": "AIMD rendering engines for HTML and Vue",
   "keywords": [
     "aimd",

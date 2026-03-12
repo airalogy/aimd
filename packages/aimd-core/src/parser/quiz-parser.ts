@@ -193,7 +193,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
   const node: AimdQuizNode = {
     type: "aimd",
     fieldType: "quiz",
-    name: id,
+    id,
     scope: "quiz",
     raw: content,
     quizType,

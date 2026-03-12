@@ -19,9 +19,15 @@ export function normalizeSubvars(
 
   return subvars.map((item) => {
     if (typeof item === "string") {
-      return { name: item }
+      return { id: item }
     }
-    return item
+    if (!(typeof item.id === "string" && item.id.trim())) {
+      return item as AimdSubvar
+    }
+    return {
+      ...item,
+      id: item.id,
+    }
   })
 }
 
@@ -36,27 +42,36 @@ export function getSubvarNames(
     return []
 
   return subvars.map(item =>
-    typeof item === "string" ? item : item.name,
+    typeof item === "string" ? item : (typeof item.id === "string" ? item.id : ""),
   )
+    .filter(Boolean)
 }
 
 /**
- * Get a specific subvar definition by name
+ * Get a specific subvar definition by id
  */
 export function getSubvarDef(
   subvars: Array<string | AimdSubvar> | undefined | null,
-  name: string,
+  id: string,
 ): AimdSubvar | undefined {
   if (!subvars || !Array.isArray(subvars))
     return undefined
 
   const item = subvars.find(s =>
-    typeof s === "string" ? s === name : s.name === name,
+    typeof s === "string"
+      ? s === id
+      : s.id === id,
   )
 
   if (!item)
     return undefined
-  return typeof item === "string" ? { name: item } : item
+  if (typeof item === "string") {
+    return { id: item }
+  }
+  return {
+    ...item,
+    id: item.id,
+  }
 }
 
 /**
@@ -74,25 +89,28 @@ export function hasSubvars(
  */
 export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
   // Build step hierarchy record
-  const byName: Record<string, unknown> = {}
+  const byId: Record<string, unknown> = {}
   const byLevel: Record<number, unknown[]> = {}
 
   if (fields.stepHierarchy) {
     for (const step of fields.stepHierarchy) {
+      const stepId = step.id
+      const parentId = step.parentId
+      const prevId = step.prevId
       const node = {
-        name: step.name,
+        id: stepId,
         scope: "step",
         level: step.level ?? 0,
         step: step.step,
-        parent: step.parentName ? byName[step.parentName] : null,
-        prev: step.prevName ? byName[step.prevName] : null,
+        parent: parentId ? byId[parentId] : null,
+        prev: prevId ? byId[prevId] : null,
         hasChildren: false,
         hasContent: true,
         siblings: [],
         next: null,
       }
 
-      byName[step.name] = node
+      byId[stepId] = node
 
       const level = step.level ?? 0
       if (!byLevel[level]) {
@@ -101,8 +119,8 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
       byLevel[level].push(node)
 
       // Link prev/next siblings
-      if (step.prevName && byName[step.prevName]) {
-        (byName[step.prevName] as Record<string, unknown>).next = node
+      if (prevId && byId[prevId]) {
+        (byId[prevId] as Record<string, unknown>).next = node
       }
     }
   }
@@ -111,20 +129,20 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
     fields,
     typed: {},
     record: {
-      byName,
+      byId,
       byLevel,
       byScope: {
         var: {},
-        step: byName,
+        step: byId,
         check: {},
         var_table: {},
         quiz: {},
       },
     },
     tables: fields.var_table.map((table): [string, AimdVarTableField] => [
-      table.name,
+      table.id,
       {
-        name: table.name,
+        id: table.id,
         scope: "var_table",
         subvars: normalizeSubvars(table.subvars),
         link: table.link,
@@ -134,8 +152,8 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
       },
     ]),
     refs: {
-      ref_step: fields.ref_step.map((name, idx) => ({ name, line: 0, sequence: idx })),
-      ref_var: fields.ref_var.map((name, idx) => ({ name, line: 0, sequence: idx })),
+      ref_step: fields.ref_step.map((id, idx) => ({ id, line: 0, sequence: idx })),
+      ref_var: fields.ref_var.map((id, idx) => ({ id, line: 0, sequence: idx })),
     },
   }
 }
@@ -160,13 +178,13 @@ export function mergeVarTableInfo(
 }
 
 /**
- * Find a var_table field by name
+ * Find a var_table field by id
  */
 export function findVarTable(
   fields: ExtractedAimdFields,
-  name: string,
+  id: string,
 ): AimdVarTableField | undefined {
-  return fields.var_table.find(t => t.name === name)
+  return fields.var_table.find(t => t.id === id)
 }
 
 /**
@@ -174,7 +192,7 @@ export function findVarTable(
  */
 export function isVarTableField(
   fields: ExtractedAimdFields,
-  name: string,
+  id: string,
 ): boolean {
-  return fields.var_table.some(t => t.name === name)
+  return fields.var_table.some(t => t.id === id)
 }

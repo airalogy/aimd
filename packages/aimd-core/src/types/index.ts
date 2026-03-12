@@ -21,7 +21,6 @@ export type {
   AimdVarTableField,
   AimdVarType,
   ExtractedAimdFields,
-  // Re-export compatibility types from aimd.ts
   ScopeFieldKey,
   FieldKey,
   FieldRecord,

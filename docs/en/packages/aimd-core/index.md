@@ -1,6 +1,6 @@
 # @airalogy/aimd-core
 
-Core parser and canonical field extraction for AIMD (Airalogy Markdown).
+`@airalogy/aimd-core` provides AIMD syntax parsing and canonical field extraction.
 
 ## Install
 
@@ -8,7 +8,13 @@ Core parser and canonical field extraction for AIMD (Airalogy Markdown).
 pnpm add @airalogy/aimd-core
 ```
 
-## Quick Start
+## Main Capabilities
+
+- Parse AIMD templates and fenced `quiz` / `fig` blocks.
+- Build MDAST-compatible AIMD nodes.
+- Extract normalized field metadata for downstream renderer/editor/recorder.
+
+## Example
 
 ```ts
 import { unified } from "unified"
@@ -24,6 +30,8 @@ processor.runSync(tree, file)
 console.log(file.data.aimdFields)
 ```
 
+## Markdown Tables
+
 If AIMD inline templates appear inside Markdown tables, protect them before `parse()` so GFM does not split on the template pipe:
 
 ```ts
@@ -35,9 +43,9 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
-## Documentation
+## Further Reading
 
-- EN: <https://airalogy.github.io/aimd/en/packages/aimd-core>
-- 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-core>
-- Parsed output and the `name` -> `id` migration notes are documented in the package docs.
-- Source docs: `aimd/docs/en/packages/aimd-core/`, `aimd/docs/zh/packages/aimd-core/`
+- Parsed nodes and extracted fields now use `id` only. If you are upgrading older integrations, read [Migration](/en/packages/aimd-core/compatibility) first.
+- [Parsed Nodes](/en/packages/aimd-core/parsed-nodes)
+- [Extracted Fields](/en/packages/aimd-core/extracted-fields)
+- [Migration](/en/packages/aimd-core/compatibility)

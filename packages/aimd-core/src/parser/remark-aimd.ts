@@ -42,11 +42,11 @@ function createAimdNode(
   switch (fieldType) {
     case "var": {
       if (isVarTable(content)) {
-        const { name, columns, definition } = parseTableColumns(content)
+        const { id, columns, definition } = parseTableColumns(content)
         return {
           type: "aimd",
           fieldType: "var_table",
-          name,
+          id,
           scope: "var_table",
           raw,
           columns,
@@ -58,7 +58,7 @@ function createAimdNode(
       return {
         type: "aimd",
         fieldType: "var",
-        name: definition.id,
+        id: definition.id,
         scope: "var",
         raw,
         definition,
@@ -66,11 +66,11 @@ function createAimdNode(
     }
 
     case "var_table": {
-      const { name, columns, definition } = parseTableColumns(content)
+      const { id, columns, definition } = parseTableColumns(content)
       return {
         type: "aimd",
         fieldType: "var_table",
-        name,
+        id,
         scope: "var_table",
         raw,
         columns,
@@ -79,11 +79,11 @@ function createAimdNode(
     }
 
     case "step": {
-      const { name, level, check, checkedMessage } = parseStepContent(content)
+      const { id, level, check, checkedMessage } = parseStepContent(content)
       const stepNode: AimdStepNode = {
         type: "aimd",
         fieldType: "step",
-        name,
+        id,
         scope: "step",
         raw,
         level,
@@ -105,11 +105,11 @@ function createAimdNode(
     }
 
     case "check": {
-      const { name, checkedMessage, label } = parseCheckContent(content)
+      const { id, checkedMessage, label } = parseCheckContent(content)
       const checkNode: AimdCheckNode = {
         type: "aimd",
         fieldType: "check",
-        name,
+        id,
         scope: "check",
         raw,
         label,
@@ -128,7 +128,7 @@ function createAimdNode(
       return {
         type: "aimd",
         fieldType,
-        name: content.trim(),
+        id: content.trim(),
         scope: fieldType as AimdScope,
         raw,
         refTarget: content.trim(),
@@ -139,7 +139,7 @@ function createAimdNode(
       return {
         type: "aimd",
         fieldType: "cite",
-        name: refs[0] || content.trim(),
+        id: refs[0] || content.trim(),
         scope: "cite",
         raw,
         refs,
@@ -227,16 +227,16 @@ export interface RemarkAimdOptions {
  * Processes AIMD custom syntax {{type|content}}
  *
  * Supported syntax:
- * - {{var|name}} - Simple variable
- * - {{var|name: type}} - Typed variable
- * - {{var|name: type = default}} - Variable with default
- * - {{var|name, subvars=[a, b]}} - Variable table
- * - {{step|name}} - Step (level 1)
- * - {{step|name, 2}} - Step with level
- * - {{step|name, 2, check=True}} - Step with check
- * - {{check|name}} - Checkpoint
- * - {{ref_step|name}} - Step reference
- * - {{ref_var|name}} - Variable reference
+ * - {{var|id}} - Simple variable
+ * - {{var|id: type}} - Typed variable
+ * - {{var|id: type = default}} - Variable with default
+ * - {{var|id, subvars=[a, b]}} - Variable table
+ * - {{step|id}} - Step (level 1)
+ * - {{step|id, 2}} - Step with level
+ * - {{step|id, 2, check=True}} - Step with check
+ * - {{check|id}} - Checkpoint
+ * - {{ref_step|id}} - Step reference
+ * - {{ref_var|id}} - Variable reference
  * - ```quiz blocks - Quiz definitions (choice / blank / open)
  * - ```fig blocks - Figure definitions
  */
@@ -283,10 +283,9 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
           const figNode: AimdFigNode = {
             type: "aimd",
             fieldType: "fig",
-            name: figData.id,
+            id: figData.id,
             scope: "fig",
             raw: node.value,
-            id: figData.id,
             src: figData.src,
             title: figData.title,
             legend: figData.legend,
@@ -347,12 +346,12 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
             const aimdNode = child as AimdNode
             switch (aimdNode.fieldType) {
               case "var":
-                if (!fields.var.includes(aimdNode.name)) {
-                  fields.var.push(aimdNode.name)
+                if (!fields.var.includes(aimdNode.id)) {
+                  fields.var.push(aimdNode.id)
                 }
                 break
               case "var_table": {
-                if (!fields.var_table.find(t => t.name === aimdNode.name)) {
+                if (!fields.var_table.find(t => t.id === aimdNode.id)) {
                   const tableNode = aimdNode as AimdVarTableNode
                   const def = tableNode.definition
                   const subvarDefs = def?.subvars
@@ -363,17 +362,17 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
                     const description = typeof subDef?.kwargs?.description === "string" ? subDef.kwargs.description : undefined
                     return subDef
                       ? {
-                          name,
+                          id: name,
                           type: subDef.type,
                           default: subDef.default,
                           title: title || name,
                           description,
                           kwargs: subDef.kwargs,
                         }
-                      : { name }
+                      : { id: name }
                   })
                   fields.var_table.push({
-                    name: aimdNode.name,
+                    id: aimdNode.id,
                     scope: "var_table",
                     subvars,
                     type_annotation: def?.type,
@@ -385,29 +384,29 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
                 // quiz is collected from fenced code blocks in the first pass
                 break
               case "step":
-                if (!fields.step.includes(aimdNode.name)) {
-                  fields.step.push(aimdNode.name)
+                if (!fields.step.includes(aimdNode.id)) {
+                  fields.step.push(aimdNode.id)
                 }
                 break
               case "check":
-                if (!fields.check.includes(aimdNode.name)) {
-                  fields.check.push(aimdNode.name)
+                if (!fields.check.includes(aimdNode.id)) {
+                  fields.check.push(aimdNode.id)
                 }
                 break
               case "ref_step":
-                if (!fields.ref_step.includes(aimdNode.name)) {
-                  fields.ref_step.push(aimdNode.name)
+                if (!fields.ref_step.includes(aimdNode.id)) {
+                  fields.ref_step.push(aimdNode.id)
                 }
                 break
               case "ref_var":
-                if (!fields.ref_var.includes(aimdNode.name)) {
-                  fields.ref_var.push(aimdNode.name)
+                if (!fields.ref_var.includes(aimdNode.id)) {
+                  fields.ref_var.push(aimdNode.id)
                 }
                 break
               case "ref_fig":
                 if (!fields.ref_fig) fields.ref_fig = []
-                if (!fields.ref_fig.includes(aimdNode.name)) {
-                  fields.ref_fig.push(aimdNode.name)
+                if (!fields.ref_fig.includes(aimdNode.id)) {
+                  fields.ref_fig.push(aimdNode.id)
                 }
                 break
               case "cite":
@@ -430,13 +429,14 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
 
     if (extractFields && stepContext.allSteps.length > 0) {
       fields.stepHierarchy = stepContext.allSteps.map(step => ({
-        name: step.name,
+        id: step.id,
         level: step.level,
         sequence: step.sequence,
         step: Number.parseInt(step.step) || 0,
-        parentName: step.parentName,
-        prevName: step.prevName,
-        nextName: step.nextName,
+        hasCheck: step.check,
+        parentId: step.parentId,
+        prevId: step.prevId,
+        nextId: step.nextId,
         hasChildren: step.hasChildren,
       }))
     }
@@ -446,7 +446,7 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
     }
 
     file.data.stepContext = {
-      byName: Object.fromEntries(stepContext.byName),
+      byId: Object.fromEntries(stepContext.byId),
       allSteps: stepContext.allSteps,
     }
   }

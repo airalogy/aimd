@@ -247,45 +247,56 @@ function markRecordChanged(options?: { rebuild?: boolean }) {
   }
 }
 
-function normalizeStepFields(raw: unknown): Array<{ name: string }> {
+function getAimdId(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim()
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null
+  }
+
+  const obj = value as Record<string, unknown>
+  if (typeof obj.id === "string" && obj.id.trim()) {
+    return obj.id
+  }
+  return null
+}
+
+function normalizeStepFields(raw: unknown): Array<{ id: string }> {
   if (!Array.isArray(raw)) {
     return []
   }
   return raw
     .map((item) => {
-      if (typeof item === "string" && item.trim()) {
-        return { name: item.trim() }
-      }
-      if (item && typeof item === "object" && typeof (item as any).name === "string") {
-        return { name: (item as any).name as string }
+      const id = getAimdId(item)
+      if (id) {
+        return { id }
       }
       return null
     })
-    .filter((item): item is { name: string } => item !== null)
+    .filter((item): item is { id: string } => item !== null)
 }
 
-function normalizeCheckFields(raw: unknown): Array<{ name: string, label?: string }> {
+function normalizeCheckFields(raw: unknown): Array<{ id: string, label?: string }> {
   if (!Array.isArray(raw)) {
     return []
   }
 
-  const normalized: Array<{ name: string, label?: string }> = []
+  const normalized: Array<{ id: string, label?: string }> = []
   for (const item of raw) {
-    if (typeof item === "string" && item.trim()) {
-      const label = item.trim()
-      normalized.push({ name: label, label })
+    const id = getAimdId(item)
+    if (!id) {
       continue
     }
 
-    if (item && typeof item === "object") {
-      const obj = item as Record<string, unknown>
-      if (typeof obj.name === "string") {
-        normalized.push({
-          name: obj.name,
-          label: typeof obj.label === "string" ? obj.label : undefined,
-        })
-      }
-    }
+    const obj = item && typeof item === "object" && !Array.isArray(item)
+      ? item as Record<string, unknown>
+      : null
+    normalized.push({
+      id,
+      label: typeof obj?.label === "string" ? obj.label : id,
+    })
   }
 
   return normalized
@@ -310,12 +321,38 @@ function normalizeVarTableFields(raw: unknown): AimdVarTableField[] {
     return []
   }
 
-  return raw.filter((item): item is AimdVarTableField => (
-    !!item
-    && typeof item === "object"
-    && typeof (item as any).name === "string"
-    && Array.isArray((item as any).subvars)
-  ))
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return []
+    }
+
+    const obj = item as Record<string, unknown>
+    const id = getAimdId(obj)
+    if (!id || !Array.isArray(obj.subvars)) {
+      return []
+    }
+
+    const subvars = obj.subvars.flatMap((subvar) => {
+      const subvarId = getAimdId(subvar)
+      if (!subvarId) {
+        return []
+      }
+
+      const subvarObj = subvar && typeof subvar === "object" && !Array.isArray(subvar)
+        ? subvar as Record<string, unknown>
+        : {}
+      return [{
+        ...subvarObj,
+        id: subvarId,
+      }]
+    })
+
+    return [{
+      ...(obj as Omit<AimdVarTableField, "id" | "subvars">),
+      id,
+      subvars,
+    }]
+  })
 }
 
 function getQuizDefaultValue(quiz: AimdQuizField): unknown {
@@ -988,25 +1025,26 @@ function ensureDefaultsFromFields(fields: ExtractedAimdFields): boolean {
   let changed = false
 
   for (const vt of normalizeVarTableFields(fields.var_table)) {
-    const columns = vt.subvars.map(subvar => subvar.name)
-    const rows = localRecord.var[vt.name]
+    const tableId = vt.id
+    const columns = vt.subvars.map(subvar => subvar.id)
+    const rows = localRecord.var[tableId]
     const normalizedRows = normalizeVarTableRows(rows, columns)
     if (JSON.stringify(normalizedRows) !== JSON.stringify(rows)) {
-      localRecord.var[vt.name] = normalizedRows
+      localRecord.var[tableId] = normalizedRows
       changed = true
     }
   }
 
   for (const step of normalizeStepFields(fields.step)) {
-    if (!(step.name in localRecord.step)) {
-      localRecord.step[step.name] = { checked: false, annotation: "" }
+    if (!(step.id in localRecord.step)) {
+      localRecord.step[step.id] = { checked: false, annotation: "" }
       changed = true
     }
   }
 
   for (const check of normalizeCheckFields(fields.check)) {
-    if (!(check.name in localRecord.check)) {
-      localRecord.check[check.name] = { checked: false, annotation: "" }
+    if (!(check.id in localRecord.check)) {
+      localRecord.check[check.id] = { checked: false, annotation: "" }
       changed = true
     }
   }
@@ -1022,7 +1060,7 @@ function ensureDefaultsFromFields(fields: ExtractedAimdFields): boolean {
 }
 
 function renderInlineVar(node: AimdVarNode): VNode {
-  const id = node.name
+  const id = node.id
   const type = node.definition?.type || "str"
   const normalizedType = normalizeVarTypeName(type)
   const inputKind = getVarInputKind(type)
@@ -1153,7 +1191,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
 }
 
 function renderInlineVarTable(node: AimdVarTableNode): VNode {
-  const tableName = node.name
+  const tableName = node.id
   const columns = getVarTableColumns(node)
   const rows = ensureVarTableRows(tableName, columns)
 
@@ -1229,18 +1267,18 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
 }
 
 function renderInlineStep(node: AimdStepNode): VNode {
-  const name = node.name
-  if (!(name in localRecord.step)) {
-    localRecord.step[name] = { checked: false, annotation: "" }
+  const id = node.id
+  if (!(id in localRecord.step)) {
+    localRecord.step[id] = { checked: false, annotation: "" }
   }
 
-  const state = localRecord.step[name]
+  const state = localRecord.step[id]
   const stepNumber = node.step || "?"
 
   return h("span", { class: "aimd-rec-inline aimd-rec-inline--step aimd-field aimd-field--step" }, [
     h("label", { class: "aimd-rec-inline__check-wrap" }, [
       h("input", {
-        "data-rec-focus-key": `step:${name}:checked`,
+        "data-rec-focus-key": `step:${id}:checked`,
         type: "checkbox",
         disabled: props.readonly,
         checked: Boolean(state.checked),
@@ -1251,10 +1289,10 @@ function renderInlineStep(node: AimdStepNode): VNode {
       }),
       h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", resolvedMessages.value)),
       h("span", { class: "aimd-rec-inline__step-num" }, stepNumber),
-      h("span", { class: "aimd-field__name" }, name),
+      h("span", { class: "aimd-field__name" }, id),
     ]),
     h("input", {
-      "data-rec-focus-key": `step:${name}:annotation`,
+      "data-rec-focus-key": `step:${id}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
       placeholder: resolvedMessages.value.step.annotationPlaceholder,
@@ -1268,17 +1306,17 @@ function renderInlineStep(node: AimdStepNode): VNode {
 }
 
 function renderInlineCheck(node: AimdCheckNode): VNode {
-  const name = node.name
-  if (!(name in localRecord.check)) {
-    localRecord.check[name] = { checked: false, annotation: "" }
+  const id = node.id
+  if (!(id in localRecord.check)) {
+    localRecord.check[id] = { checked: false, annotation: "" }
   }
 
-  const state = localRecord.check[name]
+  const state = localRecord.check[id]
 
   return h("span", { class: "aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check" }, [
     h("label", { class: "aimd-rec-inline__check-wrap" }, [
       h("input", {
-        "data-rec-focus-key": `check:${name}:checked`,
+        "data-rec-focus-key": `check:${id}:checked`,
         type: "checkbox",
         class: "aimd-checkbox",
         disabled: props.readonly,
@@ -1289,10 +1327,10 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
         },
       }),
       h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", resolvedMessages.value)),
-      h("span", { class: "aimd-field__name" }, node.label || name),
+      h("span", { class: "aimd-field__name" }, node.label || id),
     ]),
     h("input", {
-      "data-rec-focus-key": `check:${name}:annotation`,
+      "data-rec-focus-key": `check:${id}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
       placeholder: resolvedMessages.value.check.annotationPlaceholder,
@@ -1306,7 +1344,7 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
 }
 
 function renderInlineQuiz(node: AimdQuizNode): VNode {
-  const quizId = node.name
+  const quizId = node.id
   const quizField = {
     id: quizId,
     type: node.quizType,

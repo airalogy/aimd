@@ -60,8 +60,9 @@ test('typed inline var inside markdown table is parsed as AIMD node', () => {
   const aimdNode = findAimdNode(tree)
 
   assert.equal(aimdNode?.fieldType, 'var')
-  assert.equal(aimdNode?.name, 'water_volume_ml')
+  assert.equal(aimdNode?.id, 'water_volume_ml')
   assert.equal(aimdNode?.definition?.type, 'float')
+  assert.equal(aimdNode?.definition?.id, 'water_volume_ml')
   assert.deepEqual(fields.var, ['water_volume_ml'])
 })
 
@@ -70,7 +71,8 @@ test('template protection does not break normal inline vars', () => {
   const aimdNode = findAimdNode(tree)
 
   assert.equal(aimdNode?.fieldType, 'var')
-  assert.equal(aimdNode?.name, 'water_volume_ml')
+  assert.equal(aimdNode?.id, 'water_volume_ml')
+  assert.equal(aimdNode?.definition?.id, 'water_volume_ml')
   assert.deepEqual(fields.var, ['water_volume_ml'])
 })
 
@@ -80,4 +82,21 @@ test('protected AIMD tokens can be restored without external template map', () =
 
   assert.notEqual(protectedContent, raw)
   assert.equal(restoreAimdInlineTemplates(protectedContent), raw)
+})
+
+test('extracted fields expose canonical id properties only', () => {
+  const { fields } = parseAimd(`
+{{var_table|samples, subvars=[sample_id, concentration, volume]}}
+
+{{step|sample_preparation}}
+{{step|data_analysis}}
+`)
+
+  assert.equal(fields.var_table[0]?.id, 'samples')
+  assert.equal(fields.var_table[0]?.subvars?.[0]?.id, 'sample_id')
+
+  assert.equal(fields.stepHierarchy?.[0]?.id, 'sample_preparation')
+  assert.equal(fields.stepHierarchy?.[0]?.nextId, 'data_analysis')
+  assert.equal(fields.stepHierarchy?.[1]?.id, 'data_analysis')
+  assert.equal(fields.stepHierarchy?.[1]?.prevId, 'sample_preparation')
 })

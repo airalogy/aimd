@@ -151,8 +151,8 @@ export type AimdVarType = "str" | "int" | "float" | "bool" | "list" | "date" | "
  * This is the canonical format - all subvars should be normalized to this
  */
 export interface AimdSubvar {
-  /** Column/field name */
-  name: string
+  /** Canonical column/field id */
+  id: string
   /** Type annotation (str, int, float, bool, etc.) */
   type?: AimdVarType
   /** Default value */
@@ -189,8 +189,8 @@ export interface AimdTableLink {
  * Var table field definition
  */
 export interface AimdVarTableField {
-  /** Table name */
-  name: string
+  /** Canonical table id */
+  id: string
   /** Scope key */
   scope: "var_table"
   /** Column definitions - always use AimdSubvar[] format */
@@ -214,8 +214,8 @@ export interface AimdVarTableField {
  * Simple var field definition
  */
 export interface AimdVarField {
-  /** Variable name */
-  name: string
+  /** Variable id */
+  id: string
   /** Type annotation */
   type?: AimdVarType
   /** Default value */
@@ -284,34 +284,40 @@ export interface AimdQuizField {
  * Step field definition
  */
 export interface AimdStepField {
-  /** Step name/id */
-  name: string
+  /** Step id */
+  id: string
   /** Step number */
   step?: number
   /** Indentation level */
   level?: number
+  /** Sequence within the same level */
+  sequence?: number
   /** Has check checkbox */
   hasCheck?: boolean
-  /** Parent step name */
-  parentName?: string
-  /** Previous step name */
-  prevName?: string
+  /** Whether this step has children */
+  hasChildren?: boolean
+  /** Parent step id */
+  parentId?: string
+  /** Previous step id */
+  prevId?: string
+  /** Next step id */
+  nextId?: string
 }
 
 /**
  * Check field definition
  */
 export interface AimdCheckField {
-  /** Checkpoint name */
-  name: string
+  /** Checkpoint id */
+  id: string
 }
 
 /**
  * Reference field definition
  */
 export interface AimdRefField {
-  /** Reference name */
-  name: string
+  /** Reference target id */
+  id: string
   /** Reference type */
   type: "ref_step" | "ref_var" | "ref_fig"
 }
@@ -372,7 +378,7 @@ export interface AimdTemplateEnv {
   typed?: Record<string, Record<string, Record<string, unknown>>>
   /** Record data for steps and refs */
   record?: {
-    byName: Record<string, unknown>
+    byId: Record<string, unknown>
     byLevel: Record<number, unknown[]>
     byScope: Record<string, Record<string, unknown>>
   }
@@ -380,7 +386,15 @@ export interface AimdTemplateEnv {
   tables?: Array<[string, AimdVarTableField]>
   /** Reference definitions */
   refs?: {
-    ref_step: Array<{ name: string, line: number, sequence: number }>
-    ref_var: Array<{ name: string, line: number, sequence: number }>
+    ref_step: Array<{
+      id: string
+      line: number
+      sequence: number
+    }>
+    ref_var: Array<{
+      id: string
+      line: number
+      sequence: number
+    }>
   }
 }

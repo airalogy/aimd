@@ -6,8 +6,8 @@ import type { AimdStepNode, AimdVarDefinition } from "../types/nodes"
 export interface StepContext {
   /** Steps organized by level */
   byLevel: Map<number, AimdStepNode[]>
-  /** Steps indexed by name */
-  byName: Map<string, AimdStepNode>
+  /** Steps indexed by id */
+  byId: Map<string, AimdStepNode>
   /** All steps in order */
   allSteps: AimdStepNode[]
 }
@@ -18,7 +18,7 @@ export interface StepContext {
 export function createStepContext(): StepContext {
   return {
     byLevel: new Map(),
-    byName: new Map(),
+    byId: new Map(),
     allSteps: [],
   }
 }
@@ -77,7 +77,7 @@ export function parseKeyValueParams(content: string): Record<string, string | bo
  * - "step_id, 2, check=True, checked_message='message'"
  */
 export function parseStepContent(content: string): {
-  name: string
+  id: string
   level: number
   check: boolean
   checkedMessage?: string
@@ -85,7 +85,7 @@ export function parseStepContent(content: string): {
 } {
   const trimmed = content.trim()
   const parts = trimmed.split(/,\s*/)
-  const name = parts[0].trim()
+  const id = parts[0].trim()
   let level = 1
   let check = false
   let checkedMessage: string | undefined
@@ -114,7 +114,7 @@ export function parseStepContent(content: string): {
 
   const props = parseKeyValueParams(trimmed)
 
-  return { name, level, check, checkedMessage, props }
+  return { id, level, check, checkedMessage, props }
 }
 
 /**
@@ -124,13 +124,13 @@ export function parseStepContent(content: string): {
  * - "checkpoint_id, checked_message='message'"
  */
 export function parseCheckContent(content: string): {
-  name: string
+  id: string
   checkedMessage?: string
   label: string
 } {
   const trimmed = content.trim()
   const parts = trimmed.split(/,\s*/)
-  const name = parts[0].trim()
+  const id = parts[0].trim()
   let checkedMessage: string | undefined
 
   for (let i = 1; i < parts.length; i++) {
@@ -140,26 +140,26 @@ export function parseCheckContent(content: string): {
     }
   }
 
-  return { name, checkedMessage, label: name }
+  return { id, checkedMessage, label: id }
 }
 
 /**
  * Calculate the final step indent (e.g., "1.2.3").
  */
 function calculateStepIndent(step: AimdStepNode, context: StepContext): string {
-  const { sequence, level, parentName } = step
+  const { sequence, level, parentId } = step
   let indent = String(sequence + 1)
 
   if (level === 1) {
     return indent
   }
 
-  let currentParentName = parentName
-  while (currentParentName) {
-    const parent = context.byName.get(currentParentName)
+  let currentParentId = parentId
+  while (currentParentId) {
+    const parent = context.byId.get(currentParentId)
     if (parent) {
       indent = `${parent.sequence + 1}.${indent}`
-      currentParentName = parent.parentName
+      currentParentId = parent.parentId
     }
     else {
       break
@@ -173,11 +173,11 @@ function calculateStepIndent(step: AimdStepNode, context: StepContext): string {
  * Register a step node in the context and set up hierarchy.
  */
 export function registerStep(node: AimdStepNode, context: StepContext): void {
-  const { name, level } = node
+  const { id, level } = node
 
   const internalLevel = level - 1
 
-  context.byName.set(name, node)
+  context.byId.set(id, node)
   context.allSteps.push(node)
 
   if (!context.byLevel.has(internalLevel)) {
@@ -189,17 +189,17 @@ export function registerStep(node: AimdStepNode, context: StepContext): void {
     const parentLevel = context.byLevel.get(internalLevel - 1)
     if (parentLevel && parentLevel.length > 0) {
       const parent = parentLevel[parentLevel.length - 1]
-      node.parentName = parent.name
+      node.parentId = parent.id
       parent.hasChildren = true
     }
   }
 
-  const siblings = levelSteps.filter(s => s.parentName === node.parentName)
+  const siblings = levelSteps.filter(s => s.parentId === node.parentId)
   if (siblings.length > 0) {
     const prevSibling = siblings[siblings.length - 1]
-    node.prevName = prevSibling.name
+    node.prevId = prevSibling.id
     node.sequence = prevSibling.sequence + 1
-    prevSibling.nextName = name
+    prevSibling.nextId = id
   }
   else {
     node.sequence = 0
@@ -442,7 +442,7 @@ export function parseFigContent(content: string): {
  * Parse table column definition (for var_table).
  */
 export function parseTableColumns(content: string): {
-  name: string
+  id: string
   columns: string[]
   definition?: AimdVarDefinition
 } {
@@ -451,7 +451,7 @@ export function parseTableColumns(content: string): {
     const raw = def.subvars
     const columns = Array.isArray(raw) ? raw : (raw && typeof raw === "object" ? Object.keys(raw) : [])
     return {
-      name: def.id,
+      id: def.id,
       columns,
       definition: def,
     }
@@ -460,14 +460,14 @@ export function parseTableColumns(content: string): {
   const parenMatch = content.match(/^(\w+)\s*\(([^)]+)\)/)
   if (parenMatch) {
     return {
-      name: parenMatch[1],
+      id: parenMatch[1],
       columns: parenMatch[2].split(",").map(s => s.trim()).filter(Boolean),
     }
   }
 
   const def = parseVarDefinition(content)
   return {
-    name: def.id,
+    id: def.id,
     columns: [],
     definition: def,
   }

@@ -46,7 +46,7 @@ export interface TokenProps {
 export interface TokenLike {
   meta?: {
     node?: {
-      name: string
+      id: string
       scope: string
       type?: string
     }
@@ -187,7 +187,7 @@ function buildQuizStemChildren(
  */
 function renderPreviewTag(
   scope: string,
-  name: string,
+  id: string,
   messages: AimdRendererMessages,
   columns?: string[],
 ): VNode {
@@ -199,7 +199,7 @@ function renderPreviewTag(
     const children: VNode[] = [
       h("div", { class: "aimd-field__header" }, [
         h("span", { class: "aimd-field__scope" }, messages.scope.table),
-        h("span", { class: "aimd-field__name" }, name),
+        h("span", { class: "aimd-field__name" }, id),
       ]),
     ]
     // Add table preview inside the container
@@ -218,7 +218,7 @@ function renderPreviewTag(
     return h("div", {
       "class": "aimd-field aimd-field--var-table",
       "data-aimd-type": "var_table",
-      "data-aimd-name": name,
+      "data-aimd-id": id,
     }, children)
   }
 
@@ -227,10 +227,10 @@ function renderPreviewTag(
   return h("span", {
     "class": `aimd-field aimd-field--${classSuffix}`,
     "data-aimd-type": scopeKey,
-    "data-aimd-name": name,
+    "data-aimd-id": id,
   }, [
     h("span", { class: "aimd-field__scope" }, scopeLabel),
-    h("span", { class: "aimd-field__name" }, name),
+    h("span", { class: "aimd-field__name" }, id),
   ])
 }
 
@@ -257,77 +257,77 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
   return {
     var: async (node, ctx, children) => {
       const varNode = node as AimdVarNode
-      const { name, scope } = varNode
+      const { id, scope } = varNode
 
       if (isPreview()) {
         if (PreviewRenderer) {
           return h(PreviewRenderer, { type: "var" }, {
             default: () => children,
-            name: () => name,
+            name: () => id,
           })
         }
-        return renderPreviewTag(scope, name, messages)
+        return renderPreviewTag(scope, id, messages)
       }
 
       // Edit mode
       if (getTokenProps && AIMDItem) {
-        const item = await getTokenProps({ meta: { node: { name, scope } } })
+        const item = await getTokenProps({ meta: { node: { id, scope } } })
         if (item) {
           return h("span", {
             "class": "aimd-field-wrapper aimd-field-wrapper--inline",
-            "id": `${scope}-${name}`,
+            "id": `${scope}-${id}`,
             "data-has-variable": "true",
           }, [h(AIMDItem, item)])
         }
       }
 
-      return renderPreviewTag(scope, name, messages)
+      return renderPreviewTag(scope, id, messages)
     },
 
     var_table: async (node, ctx, children) => {
       const tableNode = node as AimdVarTableNode
-      const { name, scope, columns } = tableNode
+      const { id, scope, columns } = tableNode
 
       if (isPreview()) {
         if (PreviewRenderer) {
           return h(PreviewRenderer, { type: "var_table" }, {
             default: () => children,
-            name: () => name,
+            name: () => id,
           })
         }
         // Preview mode: render inline tag with columns info
-        return renderPreviewTag(scope, name, messages, columns)
+        return renderPreviewTag(scope, id, messages, columns)
       }
 
       // Edit mode
       if (getTokenProps && AIMDTag) {
-        const item = await getTokenProps({ meta: { node: { name, scope } } })
+        const item = await getTokenProps({ meta: { node: { id, scope } } })
         return h(AIMDTag, { ...item, props: columns })
       }
 
-      return renderPreviewTag(scope, name, messages, columns)
+      return renderPreviewTag(scope, id, messages, columns)
     },
 
     quiz: async (node, ctx, children) => {
       const quizNode = node as AimdQuizNode
-      const { name, scope, quizType, stem, score } = quizNode
+      const { id, scope, quizType, stem, score } = quizNode
       const typeLabel = getAimdRendererQuizTypeLabel(quizType, messages)
 
       if (isPreview()) {
         if (PreviewRenderer) {
           return h(PreviewRenderer, { type: "quiz" }, {
             default: () => children,
-            name: () => name,
+            name: () => id,
           })
         }
         const previewChildren: VNode[] = [
           h("div", { class: "aimd-quiz__meta" }, [
             h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, messages)),
-            h("span", { class: "aimd-field__name" }, name),
+            h("span", { class: "aimd-field__name" }, id),
             h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
             score !== undefined ? h("span", { class: "aimd-quiz__score" }, messages.quiz.score(score)) : null,
           ]),
-          h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
+          h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
         ]
 
         if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
@@ -368,17 +368,17 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         return h("div", {
           "class": "aimd-field aimd-field--quiz",
           "data-aimd-type": "quiz",
-          "data-aimd-name": name,
+          "data-aimd-id": id,
         }, previewChildren)
       }
 
       // Edit mode
       if (getTokenProps && AIMDItem) {
-        const item = await getTokenProps({ meta: { node: { name, scope } } })
+        const item = await getTokenProps({ meta: { node: { id, scope } } })
         if (item) {
           return h("span", {
             "class": "aimd-field-wrapper aimd-field-wrapper--inline",
-            "id": `${scope}-${name}`,
+            "id": `${scope}-${id}`,
             "data-has-variable": "true",
           }, [h(AIMDItem, item)])
         }
@@ -387,26 +387,26 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
       return h("div", {
         "class": "aimd-field aimd-field--quiz",
         "data-aimd-type": "quiz",
-        "data-aimd-name": name,
+        "data-aimd-id": id,
       }, [
         h("div", { class: "aimd-quiz__meta" }, [
           h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, messages)),
-          h("span", { class: "aimd-field__name" }, name),
+          h("span", { class: "aimd-field__name" }, id),
           h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
         ]),
-        h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
+        h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
       ])
     },
 
     step: async (node, ctx, children) => {
       const stepNode = node as AimdStepNode
-      const { name, scope, step, check } = stepNode
+      const { id, scope, step, check } = stepNode
 
       if (isPreview()) {
         if (PreviewRenderer) {
           return h(PreviewRenderer, { type: "step" }, {
             default: () => children,
-            name: () => name,
+            name: () => id,
           })
         }
         return h("span", { class: "research-step__sequence" }, messages.step.sequence(step))
@@ -414,13 +414,13 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
 
       // Edit mode
       if (getTokenProps && StepRenderer) {
-        const item = await getTokenProps({ meta: { node: { name, scope } } })
-        const annotationItem = await getTokenProps({ meta: { node: { name, scope, type: "step-annotation" } } })
+        const item = await getTokenProps({ meta: { node: { id, scope } } })
+        const annotationItem = await getTokenProps({ meta: { node: { id, scope, type: "step-annotation" } } })
 
         return h(StepRenderer, {
           item,
           annotationItem,
-          name,
+          name: id,
           step: String(step),
           check,
         }, {
@@ -433,38 +433,38 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
 
     check: async (node, ctx, children) => {
       const checkNode = node as AimdCheckNode
-      const { name, scope, label } = checkNode
+      const { id, scope, label } = checkNode
 
       if (isPreview()) {
         if (PreviewRenderer) {
           return h(PreviewRenderer, { type: "check" }, {
             default: () => children,
-            name: () => name,
+            name: () => id,
           })
         }
-        return renderPreviewTag(scope, name, messages)
+        return renderPreviewTag(scope, id, messages)
       }
 
       // Edit mode
       if (getTokenProps && CheckRenderer) {
-        const item = await getTokenProps({ meta: { node: { name, scope } } })
-        const annotationItem = await getTokenProps({ meta: { node: { name, scope, type: "check-annotation" } } })
+        const item = await getTokenProps({ meta: { node: { id, scope } } })
+        const annotationItem = await getTokenProps({ meta: { node: { id, scope, type: "check-annotation" } } })
 
         return h(CheckRenderer, {
           item,
           annotationItem,
-          name,
+          name: id,
         }, {
           default: () => children,
         })
       }
 
-      return renderPreviewTag(scope, name, messages)
+      return renderPreviewTag(scope, id, messages)
     },
 
     ref_step: (node, ctx) => {
-      const { name } = node
-      const refTarget = "refTarget" in node ? node.refTarget : name
+      const { id } = node
+      const refTarget = "refTarget" in node ? node.refTarget : id
 
       if (AIMDStepRef) {
         return h(AIMDStepRef, { name: refTarget, type: "step" })
@@ -480,8 +480,8 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
     },
 
     ref_var: (node, ctx) => {
-      const { name } = node
-      const refTarget = "refTarget" in node ? node.refTarget : name
+      const { id } = node
+      const refTarget = "refTarget" in node ? node.refTarget : id
 
       if (AIMDStepRef) {
         return h(AIMDStepRef, {

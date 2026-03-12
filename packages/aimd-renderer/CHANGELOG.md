@@ -2,6 +2,14 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.0.0] - 2026-03-12
+
+### Changed
+
+- Unified the renderer-side AIMD identifier cleanup into a single breaking release: parsed/extracted metadata now uses `id` as the only identifier field.
+- Removed deprecated AIMD `name` compatibility fields from renderer-facing node metadata and extracted field objects.
+- Removed deprecated `data-aimd-name` output. Consumers should use `data-aimd-id`.
+
 ## [1.4.1] - 2026-03-12
 
 ### Changed

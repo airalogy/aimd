@@ -28,7 +28,7 @@ const rehypeAimd: Plugin<[], HastRoot> = () => {
           properties: {
             className: [`aimd-${aimdNode.fieldType}`],
             dataAimdType: aimdNode.fieldType,
-            dataAimdName: aimdNode.name,
+            dataAimdId: aimdNode.id,
             dataAimdScope: aimdNode.scope,
           },
           children: [],

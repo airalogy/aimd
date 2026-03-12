@@ -160,7 +160,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   const nodeData: Record<string, unknown> = {
     type: node.type,
     fieldType: node.fieldType,
-    name: node.name,
+    id: node.id,
     scope: node.scope,
     raw: node.raw,
   }
@@ -208,9 +208,9 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     nodeData.level = stepNode.level
     nodeData.sequence = stepNode.sequence
     nodeData.step = stepNode.step
-    nodeData.parentName = stepNode.parentName
-    nodeData.prevName = stepNode.prevName
-    nodeData.nextName = stepNode.nextName
+    nodeData.parentId = stepNode.parentId
+    nodeData.prevId = stepNode.prevId
+    nodeData.nextId = stepNode.nextId
     nodeData.hasChildren = stepNode.hasChildren
     nodeData.check = stepNode.check
   }
@@ -219,7 +219,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   const aimdJson = JSON.stringify(nodeData)
 
   const fieldType = node.fieldType
-  const name = node.name
+  const id = node.id
   const typeClass = getFieldTypeClass(fieldType)
 
   // Determine if this is a reference type
@@ -240,7 +240,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   if (isRef) {
     // Reference: blockquote-style with appropriate content
     if (fieldType === "ref_step") {
-      // Step reference: just show the step name with research-step__sequence class
+      // Step reference: show the referenced step id with research-step__sequence class
       children.push({
         type: "element",
         tagName: "span",
@@ -250,13 +250,13 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["research-step__sequence"] },
-            children: [{ type: "text", value: name }],
+            children: [{ type: "text", value: id }],
           } as Element,
         ],
       } as Element)
     }
     else {
-      // Variable or figure reference: show as field with scope + name
+      // Variable or figure reference: show as field with scope + id
       const scopeLabel = fieldType === "ref_var" ? messages.scope.var : messages.scope.figure
       children.push({
         type: "element",
@@ -278,7 +278,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
                 type: "element",
                 tagName: "span",
                 properties: { className: ["aimd-field__name"] },
-                children: [{ type: "text", value: name }],
+                children: [{ type: "text", value: id }],
               } as Element,
             ],
           } as Element,
@@ -288,7 +288,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   }
   else if (isCite) {
     // Citation: [refs]
-    const refs = "refs" in node ? (node as any).refs : [name]
+    const refs = "refs" in node ? (node as any).refs : [id]
     children.push({
       type: "element",
       tagName: "span",
@@ -297,7 +297,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     } as Element)
   }
   else if (fieldType === "var") {
-    // Variable: type label + name + optional type annotation
+    // Variable: type label + id + optional type annotation
     const definition = "definition" in node ? node.definition : undefined
     children.push(
       {
@@ -310,7 +310,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__name"] },
-        children: [{ type: "text", value: name }],
+        children: [{ type: "text", value: id }],
       } as Element,
     )
     if (definition?.type) {
@@ -341,7 +341,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__name"] },
-            children: [{ type: "text", value: name }],
+            children: [{ type: "text", value: id }],
           } as Element,
         ],
       } as Element,
@@ -393,7 +393,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     }
   }
   else if (fieldType === "step") {
-    // Step: scope label + sequence + name
+    // Step: scope label + sequence + id
     const stepNode = node as AimdStepNode
     const stepNum = stepNode.step || "1"
 
@@ -414,13 +414,13 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__name"] },
-        children: [{ type: "text", value: name }],
+        children: [{ type: "text", value: id }],
       } as Element,
     )
   }
   else if (fieldType === "check") {
     // Check: checkbox + label
-    const label = "label" in node ? node.label : name
+    const label = "label" in node ? node.label : id
     children.push(
       {
         type: "element",
@@ -432,7 +432,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__label"] },
-        children: [{ type: "text", value: label || name }],
+        children: [{ type: "text", value: label || id }],
       } as Element,
     )
   }
@@ -457,7 +457,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__name"] },
-            children: [{ type: "text", value: name }],
+            children: [{ type: "text", value: id }],
           } as Element,
           {
             type: "element",
@@ -537,7 +537,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   else if (fieldType === "fig") {
     // Figure: image + title + legend
     const figNode = node as any
-    const figId = figNode.id || name
+    const figId = figNode.id || id
     const figSrc = figNode.src || ""
     const figTitle = figNode.title
     const figLegend = figNode.legend
@@ -589,7 +589,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   const properties: Properties = {
     "className": [baseClass, modifierClass],
     "data-aimd-type": node.fieldType,
-    "data-aimd-name": node.name,
+    "data-aimd-id": node.id,
     "data-aimd-scope": node.scope,
     "data-aimd-raw": node.raw,
     "data-aimd-json": aimdJson,
@@ -598,13 +598,13 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
   // Add reference href
   if (isRef) {
     if (fieldType === "ref_step") {
-      properties.href = `#step-${name}`
+      properties.href = `#step-${id}`
     }
     else if (fieldType === "ref_var") {
-      properties.href = `#var-${name}`
+      properties.href = `#var-${id}`
     }
     else if (fieldType === "ref_fig") {
-      properties.href = `#fig-${name}`
+      properties.href = `#fig-${id}`
     }
   }
 
@@ -613,33 +613,33 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     const stepNode = node as AimdStepNode
     properties["data-aimd-step"] = stepNode.step
     properties["data-aimd-level"] = stepNode.level
-    properties.id = `step-${name}`
+    properties.id = `step-${id}`
   }
 
   // Add check id
   if (node.fieldType === "check") {
-    properties.id = `check-${name}`
+    properties.id = `check-${id}`
   }
 
   // Add var id
   if (node.fieldType === "var") {
-    properties.id = `var-${name}`
+    properties.id = `var-${id}`
   }
 
   // Add var_table id
   if (node.fieldType === "var_table") {
-    properties.id = `var_table-${name}`
+    properties.id = `var_table-${id}`
   }
 
   // Add quiz id
   if (node.fieldType === "quiz") {
-    properties.id = `quiz-${name}`
+    properties.id = `quiz-${id}`
   }
 
   // Add fig id
   if (node.fieldType === "fig") {
     const figNode = node as any
-    properties.id = `fig-${figNode.id || name}`
+    properties.id = `fig-${figNode.id || id}`
     properties["data-aimd-fig-id"] = figNode.id
     properties["data-aimd-fig-src"] = figNode.src
   }
