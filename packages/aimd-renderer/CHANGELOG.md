@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [1.4.0] - 2026-03-12
+
+### Added
+
+- Added built-in runtime locale support for renderer output via `locale` (`en-US` / `zh-CN`) across HTML, Vue, and unified renderer APIs.
+- Added `messages` overrides plus exported locale helpers (`createAimdRendererMessages`, `resolveAimdRendererLocale`) for custom copy control.
+
 ## [1.3.0] - 2026-03-05
 
 ### Changed

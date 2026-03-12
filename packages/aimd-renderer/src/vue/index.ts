@@ -4,6 +4,7 @@
 
 export {
   type AimdComponentRenderer,
+  type AimdRendererContext,
   type AssetResolver,
   createAssetRenderer,
   createCodeBlockRenderer,
@@ -23,10 +24,22 @@ export {
   defaultRenderer,
 } from '../common/processor'
 
+export {
+  createAimdRendererMessages,
+  DEFAULT_AIMD_RENDERER_LOCALE,
+  resolveAimdRendererLocale,
+} from '../locales'
+
 export type {
   RenderContext,
   RenderMode,
   ProcessorOptions,
 } from '@airalogy/aimd-core/types'
 
-export type { RenderResult } from '../common/processor'
+export type { AimdRendererOptions, RenderResult } from '../common/processor'
+export type {
+  AimdRendererI18nOptions,
+  AimdRendererLocale,
+  AimdRendererMessages,
+  AimdRendererMessagesInput,
+} from '../locales'

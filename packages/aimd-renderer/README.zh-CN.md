@@ -21,6 +21,18 @@ console.log(html)
 console.log(fields)
 ```
 
+## 本地化
+
+```ts
+import { renderToHtml } from "@airalogy/aimd-renderer"
+
+const content = "{{quiz|q1}}"
+
+const { html } = await renderToHtml(content, {
+  locale: "zh-CN",
+})
+```
+
 在浏览器环境中调用异步渲染 API（`renderToHtml` / `renderToVue`）时，会自动加载公式样式。  
 只有在你希望手动预加载样式时，才需要引入 `@airalogy/aimd-renderer/styles`。
 

@@ -16,6 +16,12 @@ export {
 } from './common/processor'
 
 export {
+  createAimdRendererMessages,
+  DEFAULT_AIMD_RENDERER_LOCALE,
+  resolveAimdRendererLocale,
+} from './locales'
+
+export {
   bubbleMenuEventKey,
   draftEventKey,
   fieldEventKey,
@@ -35,6 +41,7 @@ export {
 // Vue renderer exports
 export {
   type AimdComponentRenderer,
+  type AimdRendererContext,
   type AssetResolver,
   createAssetRenderer,
   createCodeBlockRenderer,
@@ -58,7 +65,13 @@ export type {
 } from '@airalogy/aimd-core/types'
 
 // Re-export RenderResult from processor
-export type { RenderResult } from './common/processor'
+export type { AimdRendererOptions, RenderResult } from './common/processor'
+export type {
+  AimdRendererI18nOptions,
+  AimdRendererLocale,
+  AimdRendererMessages,
+  AimdRendererMessagesInput,
+} from './locales'
 
 // Helper function
 export function getFinalIndent(item: { parent?: any, sequence: number, level: number }): string {

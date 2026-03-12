@@ -2,6 +2,14 @@ import type { Element, Root as HastRoot, Text as HastText, RootContent } from "h
 import type { Component, VNode, VNodeChild } from "vue"
 import type { AimdNode, AimdQuizNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
 import { Fragment, h } from "vue"
+import type { AimdRendererI18nOptions, AimdRendererLocale, AimdRendererMessages } from "../locales"
+import {
+  createAimdRendererMessages,
+  DEFAULT_AIMD_RENDERER_LOCALE,
+  getAimdRendererQuizTypeLabel,
+  getAimdRendererScopeLabel,
+  resolveAimdRendererLocale,
+} from "../locales"
 
 /**
  * Extended Element data type
@@ -16,7 +24,7 @@ interface AimdElementData {
  */
 export type AimdComponentRenderer = (
   node: AimdNode,
-  ctx: RenderContext,
+  ctx: AimdRendererContext,
   children?: VNodeChild[]
 ) => VNode | Promise<VNode> | null
 
@@ -26,25 +34,12 @@ export type AimdComponentRenderer = (
 export type ElementRenderer = (
   node: Element,
   children: VNodeChild[],
-  ctx: RenderContext
+  ctx: AimdRendererContext
 ) => VNode | null
 
-/**
- * Scope display name mapping
- */
-const SCOPE_DISPLAY_MAP: Record<string, string> = {
-  var: "var",
-  quiz: "quiz",
-  step: "step",
-  check: "check",
-  var_table: "table",
-}
-
-/**
- * Get display name for scope
- */
-function getScopeDisplay(scope: string): string {
-  return SCOPE_DISPLAY_MAP[scope] || scope
+export interface AimdRendererContext extends RenderContext {
+  locale: AimdRendererLocale
+  messages: AimdRendererMessages
 }
 
 interface ResolvedQuizPreviewOptions {
@@ -117,7 +112,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
         "data-aimd-name": name,
         "data-aimd-scope": scope,
       }, [
-        h("span", { class: "aimd-field__scope" }, getScopeDisplay(scope)),
+        h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
         h("span", { class: "aimd-field__name" }, name),
         definition?.type ? h("span", { class: "aimd-field__type" }, `: ${definition.type}`) : null,
       ])
@@ -150,7 +145,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       // Preview mode: render tag with table preview inside
       const children: VNodeChild[] = [
         h("div", { class: "aimd-field__header" }, [
-          h("span", { class: "aimd-field__scope" }, "table"),
+          h("span", { class: "aimd-field__scope" }, ctx.messages.scope.table),
           h("span", { class: "aimd-field__name" }, name),
         ]),
       ]
@@ -186,15 +181,15 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
   quiz: (node, ctx) => {
     const quizNode = node as AimdQuizNode
     const { name, scope, quizType, stem, score } = quizNode
-    const typeLabel = quizType || "quiz"
+    const typeLabel = getAimdRendererQuizTypeLabel(quizType, ctx.messages)
 
     if (ctx.mode === "preview") {
       const previewChildren: VNodeChild[] = [
         h("div", { class: "aimd-quiz__meta" }, [
-          h("span", { class: "aimd-field__scope" }, getScopeDisplay(scope)),
+          h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
           h("span", { class: "aimd-field__name" }, name),
           h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
-          score !== undefined ? h("span", { class: "aimd-quiz__score" }, `${score} pt`) : null,
+          score !== undefined ? h("span", { class: "aimd-quiz__score" }, ctx.messages.quiz.score(score)) : null,
         ]),
         h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
       ]
@@ -215,7 +210,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
           : String(quizNode.answer)
         if (answerText.trim()) {
           previewChildren.push(
-            h("div", { class: "aimd-quiz__answer" }, `Answer: ${answerText}`),
+            h("div", { class: "aimd-quiz__answer" }, ctx.messages.quiz.answer(answerText)),
           )
         }
       }
@@ -230,7 +225,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
 
       if (quizPreview.showRubric && quizType === "open" && typeof quizNode.rubric === "string" && quizNode.rubric.trim()) {
         previewChildren.push(
-          h("div", { class: "aimd-quiz__rubric" }, `Rubric: ${quizNode.rubric}`),
+          h("div", { class: "aimd-quiz__rubric" }, ctx.messages.quiz.rubric(quizNode.rubric)),
         )
       }
 
@@ -283,7 +278,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
         "data-aimd-step": stepNum,
         "id": `step-${name}`,
       }, [
-        h("span", { class: "aimd-field__scope" }, getScopeDisplay(scope)),
+        h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
         h("span", { class: "aimd-field__step-num" }, stepNum),
         h("span", { class: "aimd-field__name" }, name),
       ])
@@ -299,7 +294,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       "id": `step-${name}`,
     }, [
       h("div", { class: "research-step__header" }, [
-        h("span", { class: "research-step__sequence" }, `Step ${stepNum} :`),
+        h("span", { class: "research-step__sequence" }, ctx.messages.step.sequence(stepNum)),
       ]),
       children && children.length > 0
         ? h("div", { class: "research-step__content" }, children)
@@ -394,7 +389,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     }, [
       h("span", { class: "aimd-ref__content" }, [
         h("span", { class: "aimd-field aimd-field--var" }, [
-          h("span", { class: "aimd-field__scope" }, "var"),
+          h("span", { class: "aimd-field__scope" }, ctx.messages.scope.var),
           h("span", { class: "aimd-field__name" }, refTarget),
         ]),
       ]),
@@ -407,7 +402,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     const figureNumber = "figureNumber" in node ? (node as any).figureNumber : undefined
 
     // Display figure number if available, otherwise show ID
-    const displayText = figureNumber !== undefined ? `figure ${figureNumber}` : `figure ${refTarget}`
+    const displayText = ctx.messages.figure.reference(figureNumber !== undefined ? figureNumber : refTarget)
 
     // Render as link reference to the figure
     return h("a", {
@@ -459,7 +454,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
       // Figure number and title
       if (figSequence !== undefined || figTitle) {
         const titleText = figSequence !== undefined
-          ? `figure ${figSequence + 1}${figTitle ? `: ${figTitle}` : ""}`
+          ? ctx.messages.figure.captionTitle(figSequence + 1, figTitle)
           : figTitle
         captionChildren.push(
           h("div", { class: "aimd-figure__title" }, titleText),
@@ -493,6 +488,14 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
  */
 export interface VueRendererOptions {
   /**
+   * Built-in renderer locale
+   */
+  locale?: AimdRendererI18nOptions["locale"]
+  /**
+   * Optional overrides for built-in renderer copy
+   */
+  messages?: AimdRendererI18nOptions["messages"]
+  /**
    * Render mode shorthand (used when context is not provided)
    */
   mode?: RenderContext["mode"]
@@ -503,7 +506,7 @@ export interface VueRendererOptions {
   /**
    * Render context
    */
-  context?: RenderContext
+  context?: RenderContext & Partial<Pick<AimdRendererContext, "locale" | "messages">>
   /**
    * Custom AIMD component renderers
    * Override default renderers or add new ones
@@ -524,21 +527,27 @@ export interface VueRendererOptions {
 /**
  * Default render context
  */
-const defaultContext: RenderContext = {
+const defaultContext: AimdRendererContext = {
   mode: "preview",
   readonly: false,
+  locale: DEFAULT_AIMD_RENDERER_LOCALE,
+  messages: createAimdRendererMessages(DEFAULT_AIMD_RENDERER_LOCALE),
 }
 
-function resolveRenderContext(options: VueRendererOptions): RenderContext {
+function resolveRenderContext(options: VueRendererOptions): AimdRendererContext {
   const topLevelMode = options.mode
   const topLevelQuizPreview = options.quizPreview
   const context = options.context
+  const locale = context?.locale ?? resolveAimdRendererLocale(options.locale)
+  const messages = context?.messages ?? createAimdRendererMessages(locale, options.messages)
 
   return {
     ...defaultContext,
     ...(context ?? {}),
     mode: context?.mode ?? topLevelMode ?? defaultContext.mode,
     quizPreview: context?.quizPreview ?? topLevelQuizPreview ?? undefined,
+    locale,
+    messages,
   }
 }
 
@@ -907,7 +916,7 @@ export function renderToVNodes(
  */
 export function createComponentRenderer(
   component: Component,
-  propsMapper?: (node: AimdNode, ctx: RenderContext) => Record<string, unknown>,
+  propsMapper?: (node: AimdNode, ctx: AimdRendererContext) => Record<string, unknown>,
 ): AimdComponentRenderer {
   return (node, ctx, children) => {
     const props = propsMapper ? propsMapper(node, ctx) : { node, ctx }

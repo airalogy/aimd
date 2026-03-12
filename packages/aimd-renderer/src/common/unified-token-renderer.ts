@@ -11,11 +11,18 @@ import type {
   AimdVarNode,
   AimdVarTableNode,
 } from "@airalogy/aimd-core/types"
-import type { AimdNode, QuizPreviewOptions, RenderContext } from "@airalogy/aimd-core/types"
+import type { AimdNode, QuizPreviewOptions } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
+import type { AimdRendererI18nOptions, AimdRendererMessages } from "../locales"
 import type { AimdComponentRenderer, ElementRenderer, ShikiHighlighter, VueRendererOptions } from "../vue/vue-renderer"
 import type { RenderResult } from "./processor"
 import { h } from "vue"
+import {
+  createAimdRendererMessages,
+  getAimdRendererQuizTypeLabel,
+  getAimdRendererScopeLabel,
+  resolveAimdRendererLocale,
+} from "../locales"
 import { parseAndExtract, renderToVue } from "./processor"
 
 /**
@@ -98,6 +105,14 @@ export interface UnifiedTokenRendererOptions {
    * Quiz preview visibility policy
    */
   quizPreview?: QuizPreviewOptions
+  /**
+   * Built-in renderer locale
+   */
+  locale?: AimdRendererI18nOptions["locale"]
+  /**
+   * Optional overrides for built-in renderer copy
+   */
+  messages?: AimdRendererI18nOptions["messages"]
 }
 
 /**
@@ -173,15 +188,17 @@ function buildQuizStemChildren(
 function renderPreviewTag(
   scope: string,
   name: string,
+  messages: AimdRendererMessages,
   columns?: string[],
 ): VNode {
   const scopeKey = getScopeKey(scope)
+  const scopeLabel = getAimdRendererScopeLabel(scope, messages)
 
   // var_table: render tag with table preview inside
   if (scope === "var_table") {
     const children: VNode[] = [
       h("div", { class: "aimd-field__header" }, [
-        h("span", { class: "aimd-field__scope" }, "table"),
+        h("span", { class: "aimd-field__scope" }, messages.scope.table),
         h("span", { class: "aimd-field__name" }, name),
       ]),
     ]
@@ -212,7 +229,7 @@ function renderPreviewTag(
     "data-aimd-type": scopeKey,
     "data-aimd-name": name,
   }, [
-    h("span", { class: "aimd-field__scope" }, scopeKey),
+    h("span", { class: "aimd-field__scope" }, scopeLabel),
     h("span", { class: "aimd-field__name" }, name),
   ])
 }
@@ -222,6 +239,7 @@ function renderPreviewTag(
  */
 function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<string, AimdComponentRenderer> {
   const { getTokenProps, mode, components = {} } = options
+  const messages = createAimdRendererMessages(options.locale, options.messages)
   const {
     AIMDItem,
     AIMDTag,
@@ -248,7 +266,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
             name: () => name,
           })
         }
-        return renderPreviewTag(scope, name)
+        return renderPreviewTag(scope, name, messages)
       }
 
       // Edit mode
@@ -263,7 +281,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         }
       }
 
-      return renderPreviewTag(scope, name)
+      return renderPreviewTag(scope, name, messages)
     },
 
     var_table: async (node, ctx, children) => {
@@ -278,7 +296,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
           })
         }
         // Preview mode: render inline tag with columns info
-        return renderPreviewTag(scope, name, columns)
+        return renderPreviewTag(scope, name, messages, columns)
       }
 
       // Edit mode
@@ -287,12 +305,13 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         return h(AIMDTag, { ...item, props: columns })
       }
 
-      return renderPreviewTag(scope, name, columns)
+      return renderPreviewTag(scope, name, messages, columns)
     },
 
     quiz: async (node, ctx, children) => {
       const quizNode = node as AimdQuizNode
       const { name, scope, quizType, stem, score } = quizNode
+      const typeLabel = getAimdRendererQuizTypeLabel(quizType, messages)
 
       if (isPreview()) {
         if (PreviewRenderer) {
@@ -303,10 +322,10 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         }
         const previewChildren: VNode[] = [
           h("div", { class: "aimd-quiz__meta" }, [
-            h("span", { class: "aimd-field__scope" }, "quiz"),
+            h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, messages)),
             h("span", { class: "aimd-field__name" }, name),
-            h("span", { class: "aimd-field__type" }, `(${quizType})`),
-            score !== undefined ? h("span", { class: "aimd-quiz__score" }, `${score} pt`) : null,
+            h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
+            score !== undefined ? h("span", { class: "aimd-quiz__score" }, messages.quiz.score(score)) : null,
           ]),
           h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
         ]
@@ -327,7 +346,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
             : String(quizNode.answer)
           if (answerText.trim()) {
             previewChildren.push(
-              h("div", { class: "aimd-quiz__answer" }, `Answer: ${answerText}`),
+              h("div", { class: "aimd-quiz__answer" }, messages.quiz.answer(answerText)),
             )
           }
         }
@@ -342,7 +361,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
 
         if (quizPreview.showRubric && quizType === "open" && typeof quizNode.rubric === "string" && quizNode.rubric.trim()) {
           previewChildren.push(
-            h("div", { class: "aimd-quiz__rubric" }, `Rubric: ${quizNode.rubric}`),
+            h("div", { class: "aimd-quiz__rubric" }, messages.quiz.rubric(quizNode.rubric)),
           )
         }
 
@@ -371,9 +390,9 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         "data-aimd-name": name,
       }, [
         h("div", { class: "aimd-quiz__meta" }, [
-          h("span", { class: "aimd-field__scope" }, "quiz"),
+          h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, messages)),
           h("span", { class: "aimd-field__name" }, name),
-          h("span", { class: "aimd-field__type" }, `(${quizType})`),
+          h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
         ]),
         h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || name)),
       ])
@@ -390,7 +409,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
             name: () => name,
           })
         }
-        return h("span", { class: "research-step__sequence" }, `Step ${step} :`)
+        return h("span", { class: "research-step__sequence" }, messages.step.sequence(step))
       }
 
       // Edit mode
@@ -409,7 +428,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         })
       }
 
-      return h("span", { class: "research-step__sequence" }, `Step ${step} :`)
+      return h("span", { class: "research-step__sequence" }, messages.step.sequence(step))
     },
 
     check: async (node, ctx, children) => {
@@ -423,7 +442,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
             name: () => name,
           })
         }
-        return renderPreviewTag(scope, name)
+        return renderPreviewTag(scope, name, messages)
       }
 
       // Edit mode
@@ -440,7 +459,7 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
         })
       }
 
-      return renderPreviewTag(scope, name)
+      return renderPreviewTag(scope, name, messages)
     },
 
     ref_step: (node, ctx) => {
@@ -617,15 +636,21 @@ export function createUnifiedTokenRenderer(options: UnifiedTokenRendererOptions)
   const getMode = (): RenderMode => typeof options.mode === "function" ? options.mode() : options.mode
   const getQuizPreview = (): ResolvedQuizPreviewOptions =>
     resolveQuizPreviewOptions(getMode(), options.quizPreview)
+  const locale = resolveAimdRendererLocale(options.locale)
+  const messages = createAimdRendererMessages(locale, options.messages)
 
   const aimdRenderers = createAimdRenderers(options)
   const elementRenderers = createElementRenderers(options)
 
   const vueOptions: VueRendererOptions = {
+    locale,
+    messages,
     context: {
       mode: getMode() === "timeline" ? "preview" : getMode() as "preview" | "edit" | "report",
       readonly: getMode() === "preview",
       quizPreview: getQuizPreview(),
+      locale,
+      messages,
     },
     aimdRenderers,
     elementRenderers,

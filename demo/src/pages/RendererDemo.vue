@@ -10,15 +10,16 @@ const fieldsOutput = ref('')
 const vueNodes = ref<VNode[]>([])
 const renderError = ref('')
 const activeTab = ref<'html' | 'vue' | 'fields'>('html')
+const locale = ref<'zh-CN' | 'en-US'>('zh-CN')
 
 async function render() {
   try {
     renderError.value = ''
 
-    const htmlResult = await renderToHtml(input.value)
+    const htmlResult = await renderToHtml(input.value, { locale: locale.value })
     htmlOutput.value = htmlResult.html
 
-    const vueResult = await renderToVue(input.value)
+    const vueResult = await renderToVue(input.value, { locale: locale.value })
     vueNodes.value = vueResult.nodes
 
     const fields = parseAndExtract(input.value)
@@ -28,13 +29,23 @@ async function render() {
   }
 }
 
-watch(input, render, { immediate: true })
+watch([input, locale], render, { immediate: true })
 </script>
 
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-renderer</h2>
     <p class="page-desc">AIMD 渲染引擎 — 将 AIMD Markdown 渲染为 HTML 和 Vue VNodes</p>
+    <div class="control-bar">
+      <label class="locale-control">
+        <span class="locale-label">渲染语言</span>
+        <select v-model="locale" class="locale-select">
+          <option value="zh-CN">中文</option>
+          <option value="en-US">English</option>
+        </select>
+      </label>
+      <span class="control-hint">只影响 renderer 输出标签，不改变 demo 站点自身文案</span>
+    </div>
 
     <div class="demo-layout">
       <div class="panel">
@@ -104,6 +115,46 @@ watch(input, render, { immediate: true })
   color: #666;
   font-size: 14px;
   margin-top: -12px;
+}
+
+.control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+}
+
+.locale-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.locale-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+
+.locale-select {
+  min-width: 120px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+}
+
+.control-hint {
+  font-size: 12px;
+  color: #666;
 }
 
 .demo-layout {
@@ -240,5 +291,11 @@ watch(input, render, { immediate: true })
   padding: 16px;
   color: #d03050;
   font-size: 13px;
+}
+
+@media (max-width: 960px) {
+  .demo-layout {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

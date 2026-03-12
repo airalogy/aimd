@@ -21,6 +21,18 @@ console.log(html)
 console.log(fields)
 ```
 
+## Localization
+
+```ts
+import { renderToHtml } from "@airalogy/aimd-renderer"
+
+const content = "{{quiz|q1}}"
+
+const { html } = await renderToHtml(content, {
+  locale: "zh-CN",
+})
+```
+
 Math styles are loaded automatically when calling async render APIs (`renderToHtml` / `renderToVue`) in browser environments.  
 Use `@airalogy/aimd-renderer/styles` only if you want to preload styles manually.
 

@@ -8,6 +8,7 @@ import type {
   ProcessorOptions,
 } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
+import type { AimdRendererI18nOptions } from "../locales"
 
 /**
  * Render result
@@ -16,6 +17,8 @@ export interface RenderResult {
   nodes: VNode[]
   fields: ExtractedAimdFields
 }
+
+export type AimdRendererOptions = ProcessorOptions & AimdRendererI18nOptions
 
 import { toHtml } from "hast-util-to-html"
 import rehypeKatex from "rehype-katex"
@@ -28,6 +31,11 @@ import remarkRehype from "remark-rehype"
 import { unified } from "unified"
 
 import { remarkAimd } from "@airalogy/aimd-core/parser"
+import {
+  createAimdRendererMessages,
+  getAimdRendererQuizTypeLabel,
+  getAimdRendererScopeLabel,
+} from "../locales"
 import { renderToVNodes, type VueRendererOptions } from "../vue/vue-renderer"
 
 let mathStylesLoadPromise: Promise<unknown> | null = null
@@ -129,8 +137,9 @@ function buildQuizStemChildren(
  * Custom handler for AIMD nodes in remark-rehype
  * Converts MDAST AIMD nodes to HAST elements
  */
-function createAimdHandler(options: ProcessorOptions = {}) {
+function createAimdHandler(options: AimdRendererOptions = {}) {
   const quizPreview = resolveQuizPreviewOptions(options)
+  const messages = createAimdRendererMessages(options.locale, options.messages)
 
   return function aimdHandler(state: any, node: AimdNode): Element {
   // Build full node data including step hierarchy
@@ -234,7 +243,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
     }
     else {
       // Variable or figure reference: show as field with scope + name
-      const scopeLabel = fieldType === "ref_var" ? "var" : "figure"
+      const scopeLabel = fieldType === "ref_var" ? messages.scope.var : messages.scope.figure
       children.push({
         type: "element",
         tagName: "span",
@@ -281,7 +290,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__scope"] },
-        children: [{ type: "text", value: "var" }],
+        children: [{ type: "text", value: getAimdRendererScopeLabel("var", messages) }],
       } as Element,
       {
         type: "element",
@@ -312,7 +321,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__scope"] },
-            children: [{ type: "text", value: "table" }],
+            children: [{ type: "text", value: getAimdRendererScopeLabel("var_table", messages) }],
           } as Element,
           {
             type: "element",
@@ -379,7 +388,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
         type: "element",
         tagName: "span",
         properties: { className: ["aimd-field__scope"] },
-        children: [{ type: "text", value: "step" }],
+        children: [{ type: "text", value: getAimdRendererScopeLabel("step", messages) }],
       } as Element,
       {
         type: "element",
@@ -416,6 +425,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
   else if (fieldType === "quiz") {
     const quizNode = node as AimdQuizNode
     const quizType = quizNode.quizType
+    const typeLabel = getAimdRendererQuizTypeLabel(quizType, messages)
 
     children.push(
       {
@@ -427,7 +437,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__scope"] },
-            children: [{ type: "text", value: "quiz" }],
+            children: [{ type: "text", value: getAimdRendererScopeLabel("quiz", messages) }],
           } as Element,
           {
             type: "element",
@@ -439,14 +449,14 @@ function createAimdHandler(options: ProcessorOptions = {}) {
             type: "element",
             tagName: "span",
             properties: { className: ["aimd-field__type"] },
-            children: [{ type: "text", value: `(${quizType})` }],
+            children: [{ type: "text", value: `(${typeLabel})` }],
           } as Element,
           ...(quizNode.score !== undefined
             ? [{
                 type: "element",
                 tagName: "span",
                 properties: { className: ["aimd-quiz__score"] },
-                children: [{ type: "text", value: `${quizNode.score} pt` }],
+                children: [{ type: "text", value: messages.quiz.score(quizNode.score) }],
               } as Element]
             : []),
         ],
@@ -482,7 +492,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
           type: "element",
           tagName: "div",
           properties: { className: ["aimd-quiz__answer"] },
-          children: [{ type: "text", value: `Answer: ${answerText}` }],
+          children: [{ type: "text", value: messages.quiz.answer(answerText) }],
         } as Element)
       }
     }
@@ -506,7 +516,7 @@ function createAimdHandler(options: ProcessorOptions = {}) {
         type: "element",
         tagName: "div",
         properties: { className: ["aimd-quiz__rubric"] },
-        children: [{ type: "text", value: `Rubric: ${quizNode.rubric}` }],
+        children: [{ type: "text", value: messages.quiz.rubric(quizNode.rubric) }],
       } as Element)
     }
   }
@@ -673,7 +683,7 @@ function createBaseProcessor(options: ProcessorOptions = {}) {
 /**
  * Create HTML output processor
  */
-export function createHtmlProcessor(options: ProcessorOptions = {}) {
+export function createHtmlProcessor(options: AimdRendererOptions = {}) {
   const { math = true, sanitize = true } = options
   const aimdHandler = createAimdHandler(options)
 
@@ -700,7 +710,7 @@ export function createHtmlProcessor(options: ProcessorOptions = {}) {
  */
 export async function renderToHtml(
   content: string,
-  options: ProcessorOptions = {},
+  options: AimdRendererOptions = {},
 ): Promise<{ html: string, fields: ExtractedAimdFields }> {
   await ensureMathStylesLoaded(options.math)
   const processor = createHtmlProcessor(options)
@@ -731,7 +741,7 @@ export async function renderToHtml(
  */
 export async function renderToVue(
   content: string,
-  options: ProcessorOptions & VueRendererOptions = {},
+  options: AimdRendererOptions & VueRendererOptions = {},
 ): Promise<RenderResult> {
   await ensureMathStylesLoaded(options.math)
   const processor = createHtmlProcessor(options)
@@ -788,7 +798,7 @@ export function parseAndExtract(content: string): ExtractedAimdFields {
  */
 export function renderToHtmlSync(
   content: string,
-  options: ProcessorOptions = {},
+  options: AimdRendererOptions = {},
 ): { html: string, fields: ExtractedAimdFields } {
   const { gfm = true, math = false, breaks = true } = options
   const aimdHandler = createAimdHandler(options)
@@ -843,7 +853,7 @@ export function renderToHtmlSync(
 /**
  * Create reusable renderer instance
  */
-export function createRenderer(options: ProcessorOptions = {}) {
+export function createRenderer(options: AimdRendererOptions = {}) {
   const processor = createHtmlProcessor(options)
 
   return {
