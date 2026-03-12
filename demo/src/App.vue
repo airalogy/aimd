@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
+import { useDemoLocale, useDemoMessages } from './composables/demoI18n'
 
 const route = useRoute()
+const { locale } = useDemoLocale()
+const messages = useDemoMessages()
 
-const navItems = [
-  { path: '/full', label: '完整工作流' },
-  { path: '/core', label: 'Core 解析器' },
-  { path: '/editor', label: 'Editor 编辑器' },
-  { path: '/renderer', label: 'Renderer 渲染器' },
-  { path: '/recorder', label: 'Recorder 记录器' },
-]
+const navItems = computed(() => [
+  { path: '/full', label: messages.value.nav.full },
+  { path: '/core', label: messages.value.nav.core },
+  { path: '/editor', label: messages.value.nav.editor },
+  { path: '/renderer', label: messages.value.nav.renderer },
+  { path: '/recorder', label: messages.value.nav.recorder },
+])
 
 const currentPath = computed(() => route.path)
 </script>
@@ -18,7 +21,7 @@ const currentPath = computed(() => route.path)
 <template>
   <div class="app">
     <header class="app-header">
-      <h1 class="app-title">AIMD Packages Demo</h1>
+      <h1 class="app-title">{{ messages.app.title }}</h1>
       <nav class="app-nav">
         <router-link
           v-for="item in navItems"
@@ -29,6 +32,13 @@ const currentPath = computed(() => route.path)
           {{ item.label }}
         </router-link>
       </nav>
+      <label class="locale-switcher">
+        <span class="locale-switcher__label">{{ messages.app.languageLabel }}</span>
+        <select v-model="locale" class="locale-switcher__select">
+          <option value="zh-CN">{{ messages.app.localeNames['zh-CN'] }}</option>
+          <option value="en-US">{{ messages.app.localeNames['en-US'] }}</option>
+        </select>
+      </label>
     </header>
     <main class="app-main">
       <router-view />
@@ -75,6 +85,7 @@ body {
 .app-nav {
   display: flex;
   gap: 4px;
+  flex: 1;
 }
 
 .nav-link {
@@ -95,6 +106,30 @@ body {
 .nav-link.active {
   background: #e8f0fe;
   color: #1a73e8;
+}
+
+.locale-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.locale-switcher__label {
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.locale-switcher__select {
+  height: 34px;
+  min-width: 124px;
+  padding: 0 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
 }
 
 .app-main {
@@ -118,6 +153,11 @@ body {
     width: 100%;
     overflow-x: auto;
     padding-bottom: 2px;
+    flex: none;
+  }
+
+  .locale-switcher {
+    margin-left: 0;
   }
 
   .app-main {

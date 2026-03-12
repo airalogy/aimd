@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, nextTick, reactive, ref, watch, type VNode } from "vue"
+import { computed, h, nextTick, reactive, ref, watch, type VNode } from "vue"
 import type {
   AimdCheckNode,
   AimdQuizField,
@@ -11,6 +11,12 @@ import type {
   ExtractedAimdFields,
 } from "@airalogy/aimd-core/types"
 import { parseAndExtract, renderToVue } from "@airalogy/aimd-renderer"
+import type { AimdRecorderMessagesInput } from "../locales"
+import {
+  createAimdRecorderMessages,
+  getAimdRecorderScopeLabel,
+  resolveAimdRecorderLocale,
+} from "../locales"
 import type { AimdProtocolRecordData } from "../types"
 import { createEmptyProtocolRecordData } from "../types"
 import AimdQuizRecorder from "./AimdQuizRecorder.vue"
@@ -21,11 +27,15 @@ const props = withDefaults(defineProps<{
   readonly?: boolean
   currentUserName?: string
   now?: Date | string | number
+  locale?: string
+  messages?: AimdRecorderMessagesInput
 }>(), {
   modelValue: undefined,
   readonly: false,
   currentUserName: undefined,
   now: undefined,
+  locale: undefined,
+  messages: undefined,
 })
 
 const emit = defineEmits<{
@@ -52,6 +62,8 @@ let settlingVarTableRowKey: string | null = null
 let varTableDropAnimationTimer: ReturnType<typeof setTimeout> | null = null
 const varTableRowKeyMap = new WeakMap<object, string>()
 let nextVarTableRowKeyId = 0
+const resolvedLocale = computed(() => resolveAimdRecorderLocale(props.locale))
+const resolvedMessages = computed(() => createAimdRecorderMessages(resolvedLocale.value, props.messages))
 
 const EMPTY_FIELDS: ExtractedAimdFields = {
   var: [],
@@ -1040,7 +1052,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
       style: wrapperStyle,
     }, [
       h("span", { class: "aimd-field aimd-field--no-style aimd-field__label" }, [
-        h("span", { class: "aimd-field__scope aimd-field__scope--var" }, "var"),
+        h("span", { class: "aimd-field__scope aimd-field__scope--var" }, getAimdRecorderScopeLabel("var", resolvedMessages.value)),
         h("span", { class: "aimd-field__id" }, id),
       ]),
       control,
@@ -1147,7 +1159,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
 
   return h("div", { class: "aimd-field aimd-field--var-table aimd-rec-inline-table" }, [
     h("div", { class: "aimd-field__header" }, [
-      h("span", { class: "aimd-field__scope" }, "table"),
+      h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("var_table", resolvedMessages.value)),
       h("span", { class: "aimd-field__name" }, tableName),
     ]),
     h("table", { class: "aimd-field__table-preview aimd-rec-inline-table__table" }, [
@@ -1155,7 +1167,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
         h("tr", [
           h("th", { class: "aimd-rec-inline-table__drag-head" }, ""),
           ...columns.map(column => h("th", column)),
-          h("th", { class: "aimd-rec-inline-table__action-head" }, "操作"),
+          h("th", { class: "aimd-rec-inline-table__action-head" }, resolvedMessages.value.table.actionColumn),
         ]),
       ]),
       h("tbody", rows.map((row, rowIndex) => {
@@ -1172,7 +1184,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
                 "aimd-rec-inline-table__drag-handle",
                 props.readonly ? "aimd-rec-inline-table__drag-handle--disabled" : "",
               ],
-              title: props.readonly ? "只读模式下无法拖拽" : "拖拽调整行顺序",
+              title: props.readonly ? resolvedMessages.value.table.dragDisabled : resolvedMessages.value.table.dragReorder,
               draggable: !props.readonly,
               onDragstart: (event: DragEvent) => startVarTableRowDrag(tableName, rowIndex, event),
               onDragend: endVarTableRowDrag,
@@ -1200,7 +1212,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
               class: "aimd-rec-inline-table__row-btn",
               disabled: props.readonly || rows.length <= 1,
               onClick: () => removeVarTableRow(tableName, rowIndex, columns),
-            }, "删除"),
+            }, resolvedMessages.value.table.deleteRow),
           ]),
         ])
       })),
@@ -1211,7 +1223,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
         class: "aimd-rec-inline-table__add-btn",
         disabled: props.readonly,
         onClick: () => addVarTableRow(tableName, columns),
-      }, "+ 添加行"),
+      }, `+ ${resolvedMessages.value.table.addRow}`),
     ]),
   ])
 }
@@ -1237,7 +1249,7 @@ function renderInlineStep(node: AimdStepNode): VNode {
           markRecordChanged()
         },
       }),
-      h("span", { class: "aimd-field__scope" }, "step"),
+      h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", resolvedMessages.value)),
       h("span", { class: "aimd-rec-inline__step-num" }, stepNumber),
       h("span", { class: "aimd-field__name" }, name),
     ]),
@@ -1245,7 +1257,7 @@ function renderInlineStep(node: AimdStepNode): VNode {
       "data-rec-focus-key": `step:${name}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
-      placeholder: "备注",
+      placeholder: resolvedMessages.value.step.annotationPlaceholder,
       value: state.annotation || "",
       onInput: (event: Event) => {
         state.annotation = (event.target as HTMLInputElement).value
@@ -1276,14 +1288,14 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
           markRecordChanged()
         },
       }),
-      h("span", { class: "aimd-field__scope" }, "check"),
+      h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", resolvedMessages.value)),
       h("span", { class: "aimd-field__name" }, node.label || name),
     ]),
     h("input", {
       "data-rec-focus-key": `check:${name}:annotation`,
       class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
       disabled: props.readonly,
-      placeholder: "检查备注",
+      placeholder: resolvedMessages.value.check.annotationPlaceholder,
       value: state.annotation || "",
       onInput: (event: Event) => {
         state.annotation = (event.target as HTMLInputElement).value
@@ -1318,6 +1330,8 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     modelValue: localRecord.quiz[quizId],
     readonly: props.readonly,
     focusKeyPrefix: `quiz:${quizId}`,
+    locale: resolvedLocale.value,
+    messages: props.messages,
     "onUpdate:modelValue": (value: unknown) => {
       localRecord.quiz[quizId] = value
       markRecordChanged()
@@ -1328,6 +1342,7 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
 async function rebuildInlineNodes(expectedRequestId?: number, focusSnapshot?: FocusSnapshot | null) {
   recordInitializedDuringRender = false
   const rendered = await renderToVue(props.content || "", {
+    locale: resolvedLocale.value,
     mode: "edit",
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
@@ -1393,11 +1408,15 @@ watch(
 )
 
 watch(
-  () => props.content,
+  () => ({
+    content: props.content,
+    locale: props.locale,
+    messages: props.messages,
+  }),
   () => {
     void parseAndBuild()
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 )
 </script>
 
@@ -1409,7 +1428,7 @@ watch(
       <component :is="() => inlineNodes" />
     </div>
 
-    <div v-else class="aimd-protocol-recorder__empty">No renderable protocol content.</div>
+    <div v-else class="aimd-protocol-recorder__empty">{{ resolvedMessages.common.emptyContent }}</div>
   </div>
 </template>
 

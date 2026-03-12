@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { AimdQuizField } from "@airalogy/aimd-core/types"
+import type { AimdRecorderMessagesInput } from "../locales"
+import {
+  createAimdRecorderMessages,
+  getAimdRecorderQuizTypeLabel,
+  getAimdRecorderScopeLabel,
+} from "../locales"
 
 interface StemTextSegment {
   type: "text"
@@ -14,12 +20,19 @@ interface StemBlankSegment {
 
 type StemSegment = StemTextSegment | StemBlankSegment
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   quiz: AimdQuizField
   modelValue: unknown
   readonly?: boolean
   focusKeyPrefix?: string
-}>()
+  locale?: string
+  messages?: AimdRecorderMessagesInput
+}>(), {
+  readonly: false,
+  focusKeyPrefix: undefined,
+  locale: undefined,
+  messages: undefined,
+})
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: unknown): void
@@ -125,15 +138,18 @@ const openValue = computed<string>({
     emit("update:modelValue", value)
   },
 })
+
+const resolvedMessages = computed(() => createAimdRecorderMessages(props.locale, props.messages))
+const quizTypeLabel = computed(() => getAimdRecorderQuizTypeLabel(props.quiz.type, resolvedMessages.value))
 </script>
 
 <template>
   <div class="aimd-quiz-recorder aimd-field aimd-field--quiz">
     <div class="aimd-quiz__meta">
-      <span class="aimd-field__scope">quiz</span>
+      <span class="aimd-field__scope">{{ getAimdRecorderScopeLabel('quiz', resolvedMessages) }}</span>
       <span class="aimd-field__name">{{ quiz.id }}</span>
-      <span class="aimd-field__type">({{ quiz.type }})</span>
-      <span v-if="typeof quiz.score === 'number'" class="aimd-quiz__score">{{ quiz.score }} pt</span>
+      <span class="aimd-field__type">({{ quizTypeLabel }})</span>
+      <span v-if="typeof quiz.score === 'number'" class="aimd-quiz__score">{{ resolvedMessages.quiz.score(quiz.score) }}</span>
     </div>
 
     <div class="aimd-quiz__stem">
@@ -189,7 +205,7 @@ const openValue = computed<string>({
       v-model="openValue"
       class="aimd-quiz-recorder__open-input"
       :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:open`"
-      placeholder="Input your answer..."
+      :placeholder="resolvedMessages.quiz.openPlaceholder"
       rows="4"
       :readonly="readonly"
     />

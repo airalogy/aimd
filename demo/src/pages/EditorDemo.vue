@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor'
-import { SAMPLE_AIMD } from '../composables/sampleContent'
+import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
+import { useSampleContent } from '../composables/sampleContent'
 
-const content = ref(SAMPLE_AIMD)
+const { locale } = useDemoLocale()
+const messages = useDemoMessages()
+const content = useSampleContent()
 const mode = ref<'source' | 'wysiwyg'>('source')
 
 function onReady(editor: any) {
@@ -14,11 +17,12 @@ function onReady(editor: any) {
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-editor</h2>
-    <p class="page-desc">AIMD Editor &mdash; Source mode &amp; WYSIWYG mode with Markdown and AIMD syntax support</p>
+    <p class="page-desc">{{ messages.pages.editor.desc }}</p>
 
     <AimdEditor
       v-model="content"
       v-model:mode="mode"
+      :locale="locale"
       :min-height="500"
       :enable-block-handle="true"
       @ready="onReady"

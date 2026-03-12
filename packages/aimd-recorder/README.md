@@ -35,10 +35,13 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   <AimdProtocolRecorder
     v-model="record"
     :content="content"
+    locale="en-US"
     current-user-name="Alice"
   />
 </template>
 ```
+
+Use `locale` to switch built-in recorder labels (`en-US` / `zh-CN`).
 
 `record` shape:
 
@@ -73,7 +76,7 @@ const quiz = {
 </script>
 
 <template>
-  <AimdQuizRecorder v-model="answer" :quiz="quiz" />
+  <AimdQuizRecorder v-model="answer" :quiz="quiz" locale="en-US" />
 </template>
 ```
 

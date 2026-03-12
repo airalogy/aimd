@@ -41,6 +41,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   <AimdProtocolRecorder
     v-model="record"
     :content="content"
+    locale="zh-CN"
     current-user-name="张三"
   />
 </template>
@@ -55,6 +56,39 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   "check": {},
   "quiz": {}
 }
+```
+
+## 语言
+
+`AimdProtocolRecorder` 和 `AimdQuizRecorder` 都支持通过 `locale` 切换内建标签：
+
+```vue
+<AimdProtocolRecorder locale="zh-CN" />
+<AimdQuizRecorder :quiz="quiz" locale="zh-CN" />
+```
+
+## 进阶
+
+如果需要微调 recorder 的内建标签，也可以覆盖 `messages`：
+
+```vue
+<script setup lang="ts">
+import { AimdProtocolRecorder } from "@airalogy/aimd-recorder"
+</script>
+
+<template>
+  <AimdProtocolRecorder
+    locale="zh-CN"
+    :messages="{
+      step: {
+        annotationPlaceholder: '步骤备注',
+      },
+      table: {
+        addRow: '新增一行',
+      },
+    }"
+  />
+</template>
 ```
 
 ## 仅题目控件示例

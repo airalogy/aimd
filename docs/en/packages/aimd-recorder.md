@@ -41,6 +41,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   <AimdProtocolRecorder
     v-model="record"
     :content="content"
+    locale="en-US"
     current-user-name="Alice"
   />
 </template>
@@ -55,4 +56,37 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   "check": {},
   "quiz": {}
 }
+```
+
+## Locale
+
+Both `AimdProtocolRecorder` and `AimdQuizRecorder` accept `locale` to switch built-in recorder labels:
+
+```vue
+<AimdProtocolRecorder locale="zh-CN" />
+<AimdQuizRecorder :quiz="quiz" locale="zh-CN" />
+```
+
+## Advanced
+
+If you need to fine-tune built-in recorder labels, override `messages`:
+
+```vue
+<script setup lang="ts">
+import { AimdProtocolRecorder } from "@airalogy/aimd-recorder"
+</script>
+
+<template>
+  <AimdProtocolRecorder
+    locale="en-US"
+    :messages="{
+      step: {
+        annotationPlaceholder: 'Step notes',
+      },
+      table: {
+        addRow: 'Append row',
+      },
+    }"
+  />
+</template>
 ```

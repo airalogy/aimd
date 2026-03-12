@@ -5,9 +5,11 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import type { VFile } from 'vfile'
-import { SAMPLE_AIMD } from '../composables/sampleContent'
+import { useDemoMessages } from '../composables/demoI18n'
+import { useSampleContent } from '../composables/sampleContent'
 
-const input = ref(SAMPLE_AIMD)
+const messages = useDemoMessages()
+const input = useSampleContent()
 const astOutput = ref('')
 const fieldsOutput = ref('')
 const parseError = ref('')
@@ -39,11 +41,11 @@ watch(input, parseContent, { immediate: true })
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-core</h2>
-    <p class="page-desc">AIMD 核心解析器 — 将 AIMD Markdown 解析为 AST 并提取字段信息</p>
+    <p class="page-desc">{{ messages.pages.core.desc }}</p>
 
     <div class="demo-layout">
       <div class="panel">
-        <h3 class="panel-title">输入 (AIMD Markdown)</h3>
+        <h3 class="panel-title">{{ messages.common.inputAimd }}</h3>
         <textarea
           v-model="input"
           class="code-input"
@@ -52,14 +54,14 @@ watch(input, parseContent, { immediate: true })
       </div>
 
       <div class="panel">
-        <h3 class="panel-title">提取的字段 (ExtractedAimdFields)</h3>
+        <h3 class="panel-title">{{ messages.common.extractedFields }}</h3>
         <div v-if="parseError" class="error">{{ parseError }}</div>
         <pre v-else class="code-output">{{ fieldsOutput }}</pre>
       </div>
     </div>
 
     <div class="panel full-width">
-      <h3 class="panel-title">AST 输出 (MDAST)</h3>
+      <h3 class="panel-title">{{ messages.common.astOutput }}</h3>
       <pre class="code-output ast-output">{{ astOutput }}</pre>
     </div>
   </div>
@@ -145,5 +147,11 @@ watch(input, parseContent, { immediate: true })
   padding: 16px;
   color: #d03050;
   font-size: 13px;
+}
+
+@media (max-width: 960px) {
+  .demo-layout {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -6,9 +6,12 @@ import {
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
 import '@airalogy/aimd-recorder/styles'
-import { SAMPLE_AIMD } from '../composables/sampleContent'
+import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
+import { useSampleContent } from '../composables/sampleContent'
 
-const input = ref(SAMPLE_AIMD)
+const { locale } = useDemoLocale()
+const messages = useDemoMessages()
+const input = useSampleContent()
 const recordData = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 
 function resetForm() {
@@ -21,28 +24,28 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-recorder</h2>
-    <p class="page-desc">AIMD 数据记录器 — 使用包内置协议内联录入组件</p>
+    <p class="page-desc">{{ messages.pages.recorder.desc }}</p>
 
     <div class="demo-layout">
       <div class="panel">
-        <h3 class="panel-title">AIMD 源文本</h3>
+        <h3 class="panel-title">{{ messages.common.aimdSourceText }}</h3>
         <textarea v-model="input" class="code-input" spellcheck="false" />
       </div>
 
       <div class="panel">
         <div class="panel-title-bar">
-          <h3 class="panel-title-text">数据记录表单（内联）</h3>
-          <button class="reset-btn" @click="resetForm">重置</button>
+          <h3 class="panel-title-text">{{ messages.pages.recorder.inlineFormTitle }}</h3>
+          <button class="reset-btn" @click="resetForm">{{ messages.common.reset }}</button>
         </div>
 
         <div class="form-content">
-          <AimdProtocolRecorder v-model="recordData" :content="input" />
+          <AimdProtocolRecorder v-model="recordData" :content="input" :locale="locale" />
         </div>
       </div>
     </div>
 
     <div class="panel full-width">
-      <h3 class="panel-title">收集到的数据 (Record Data)</h3>
+      <h3 class="panel-title">{{ messages.common.collectedData }}</h3>
       <pre class="code-output">{{ collectedJson }}</pre>
     </div>
   </div>

@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
+## [1.4.0] - 2026-03-12
+
+### Added
+
+- Added built-in runtime locale support for recorder UI via `locale` (`en-US` / `zh-CN`) on both `AimdProtocolRecorder` and `AimdQuizRecorder`.
+- Added `messages` overrides plus exported locale helpers (`createAimdRecorderMessages`, `resolveAimdRecorderLocale`) for customizing recorder labels without forking the components.
+
 ## [1.2.0] - 2026-03-05
 
 ### Changed

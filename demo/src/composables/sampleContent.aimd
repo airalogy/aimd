@@ -1,44 +1,44 @@
-# 研究协议示例
+# Research Protocol Example
 
-## 变量定义
+## Variable Definitions
 
-请输入样本名称：{{var|sample_name: str}}
+Enter sample name: {{var|sample_name: str}}
 
-记录者：{{var|operator: UserName}}
+Operator: {{var|operator: UserName}}
 
-记录时间：{{var|current_time: CurrentTime}}
+Record time: {{var|current_time: CurrentTime}}
 
-实验摘要：{{var|summary: AiralogyMarkdown}}
+Experiment summary: {{var|summary: AiralogyMarkdown}}
 
-温度设定：{{var|temperature: float = 25.0}}
+Temperature setting: {{var|temperature: float = 25.0}}
 
-浓度参数：{{var|concentration: float = 1.0, title = "浓度 (M)", unit = "mol/L"}}
+Concentration setting: {{var|concentration: float = 1.0, title = "Concentration (M)", unit = "mol/L"}}
 
-是否激活：{{var|is_active: bool = true}}
+Is active: {{var|is_active: bool = true}}
 
-## 变量表
+## Variable Table
 
 {{var|samples, subvars=[sample_id, concentration, volume]}}
 
-## 实验步骤
+## Experiment Steps
 
-{{step|sample_preparation}} 准备样本，确认样本名称 {{ref_var|sample_name}}。
+{{step|sample_preparation}} Prepare the sample and confirm sample name {{ref_var|sample_name}}.
 
-{{step|data_analysis}} 分析数据，检查温度 {{ref_var|temperature}}。
+{{step|data_analysis}} Analyze the data and verify temperature {{ref_var|temperature}}.
 
-## 质量检查
+## Quality Checks
 
 {{check|quality_control}}
 
 {{check|safety_verification}}
 
-## 题目（Quiz）
+## Quiz
 
 ```quiz
 id: quiz_single_1
 type: choice
 mode: single
-stem: 样本应优先保存在什么温度？
+stem: What temperature should the sample be stored at first?
 score: 2
 options:
   - key: A
@@ -46,7 +46,7 @@ options:
   - key: B
     text: 4°C
   - key: C
-    text: 室温
+    text: Room temperature
 answer: B
 ```
 
@@ -54,24 +54,24 @@ answer: B
 id: quiz_multiple_1
 type: choice
 mode: multiple
-stem: 以下哪些是实验记录中必须包含的信息？
+stem: Which items must be included in the experiment record?
 score: 3
 options:
   - key: A
-    text: 样本编号
+    text: Sample ID
   - key: B
-    text: 操作时间
+    text: Operation time
   - key: C
-    text: 操作者
+    text: Operator
   - key: D
-    text: 天气情况
+    text: Weather conditions
 answer: [A, B, C]
 ```
 
 ```quiz
 id: quiz_blank_1
 type: blank
-stem: 反应体系中 NaCl 的目标浓度为 [[b1]]。
+stem: The target NaCl concentration in the reaction system is [[b1]].
 score: 2
 blanks:
   - key: b1
@@ -81,29 +81,29 @@ blanks:
 ```quiz
 id: quiz_open_1
 type: open
-stem: 请解释为什么在该步骤中需要控温，并给出至少两个原因。
+stem: Explain why temperature control is required in this step and provide at least two reasons.
 score: 5
-rubric: 至少提到反应速率和样本稳定性两个方面。
+rubric: Mention both reaction rate and sample stability.
 ```
 
-## 引用
+## References
 
-参考步骤：{{ref_step|sample_preparation}}
+Referenced step: {{ref_step|sample_preparation}}
 
-## Markdown 特性
+## Markdown Features
 
-**粗体** *斜体* ~~删除线~~
+**Bold** *Italic* ~~Strikethrough~~
 
-- 列表项 1
-- 列表项 2
+- List item 1
+- List item 2
 
-| 列 A | 列 B | 列 C |
-|------|------|------|
-| 1    | 2    | 3    |
+| Column A | Column B | Column C |
+|----------|----------|----------|
+| 1        | 2        | 3        |
 
-> 引用块内容
+> Blockquote content
 
-行内公式 $E = mc^2$
+Inline math $E = mc^2$
 
 $$
 \sum_{i=1}^{n} x_i = x_1 + x_2 + \cdots + x_n

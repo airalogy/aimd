@@ -8,13 +8,16 @@ import {
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
 import '@airalogy/aimd-recorder/styles'
-import { SAMPLE_AIMD } from '../composables/sampleContent'
+import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
+import { useSampleContent } from '../composables/sampleContent'
 
 // --- Monaco Editor ---
 const editorContainer = ref<HTMLElement | null>(null)
 const { monaco, loading, init } = useMonaco()
 const editor = shallowRef<any>(null)
-const content = ref(SAMPLE_AIMD)
+const { locale } = useDemoLocale()
+const messages = useDemoMessages()
+const content = useSampleContent()
 
 onMounted(async () => {
   await init()
@@ -43,6 +46,12 @@ onBeforeUnmount(() => {
   editor.value?.dispose()
 })
 
+watch(content, (value) => {
+  if (editor.value && editor.value.getValue() !== value) {
+    editor.value.setValue(value)
+  }
+})
+
 // --- Preview ---
 const htmlOutput = ref('')
 const fields = ref<any>({})
@@ -57,7 +66,7 @@ const activeRightTab = ref<'preview' | 'form' | 'data'>('preview')
 async function processContent() {
   try {
     renderError.value = ''
-    const result = await renderToHtml(content.value)
+    const result = await renderToHtml(content.value, { locale: locale.value })
     htmlOutput.value = result.html
 
     const extracted = parseAndExtract(content.value)
@@ -67,7 +76,7 @@ async function processContent() {
   }
 }
 
-watch(content, processContent, { immediate: true })
+watch([content, locale], processContent, { immediate: true })
 
 const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
 
@@ -83,32 +92,32 @@ function resetForm() {
 
 <template>
   <div class="demo-page">
-    <h2 class="page-title">AIMD 完整工作流</h2>
-    <p class="page-desc">编辑 AIMD → 实时预览 → 填写字段值 → 收集数据</p>
+    <h2 class="page-title">{{ messages.pages.full.title }}</h2>
+    <p class="page-desc">{{ messages.pages.full.desc }}</p>
 
     <div class="stats-bar">
       <span class="stat">
-        变量: <strong>{{ fields.var?.length || 0 }}</strong>
+        {{ messages.pages.full.stats.var }}: <strong>{{ fields.var?.length || 0 }}</strong>
       </span>
       <span class="stat">
-        变量表: <strong>{{ fields.var_table?.length || 0 }}</strong>
+        {{ messages.pages.full.stats.table }}: <strong>{{ fields.var_table?.length || 0 }}</strong>
       </span>
       <span class="stat">
-        步骤: <strong>{{ fields.step?.length || 0 }}</strong>
+        {{ messages.pages.full.stats.step }}: <strong>{{ fields.step?.length || 0 }}</strong>
       </span>
       <span class="stat">
-        检查: <strong>{{ fields.check?.length || 0 }}</strong>
+        {{ messages.pages.full.stats.check }}: <strong>{{ fields.check?.length || 0 }}</strong>
       </span>
       <span class="stat">
-        引用: <strong>{{ (fields.ref_step?.length || 0) + (fields.ref_var?.length || 0) }}</strong>
+        {{ messages.pages.full.stats.refs }}: <strong>{{ (fields.ref_step?.length || 0) + (fields.ref_var?.length || 0) }}</strong>
       </span>
     </div>
 
     <div class="main-layout">
       <!-- Left: Monaco Editor -->
       <div class="panel editor-panel">
-        <h3 class="panel-title">AIMD 编辑器</h3>
-        <div v-if="loading" class="loading">加载编辑器...</div>
+        <h3 class="panel-title">{{ messages.pages.full.editorTitle }}</h3>
+        <div v-if="loading" class="loading">{{ messages.common.loadingEditor }}</div>
         <div ref="editorContainer" class="editor-container" />
       </div>
 
@@ -119,19 +128,19 @@ function resetForm() {
             :class="['tab-btn', { active: activeRightTab === 'preview' }]"
             @click="activeRightTab = 'preview'"
           >
-            渲染预览
+            {{ messages.pages.full.tabs.preview }}
           </button>
           <button
             :class="['tab-btn', { active: activeRightTab === 'form' }]"
             @click="activeRightTab = 'form'"
           >
-            填写数据 ({{ fieldCount }})
+            {{ messages.pages.full.tabs.form }} ({{ fieldCount }})
           </button>
           <button
             :class="['tab-btn', { active: activeRightTab === 'data' }]"
             @click="activeRightTab = 'data'"
           >
-            收集结果
+            {{ messages.pages.full.tabs.data }}
           </button>
         </div>
 
@@ -144,11 +153,11 @@ function resetForm() {
         <!-- Form Tab -->
         <div v-if="activeRightTab === 'form'" class="tab-content">
           <div class="form-toolbar">
-            <button class="reset-btn" @click="resetForm">重置表单</button>
+            <button class="reset-btn" @click="resetForm">{{ messages.common.resetForm }}</button>
           </div>
 
           <div class="form-content">
-            <AimdProtocolRecorder v-model="recordData" :content="content" />
+            <AimdProtocolRecorder v-model="recordData" :content="content" :locale="locale" />
           </div>
         </div>
 

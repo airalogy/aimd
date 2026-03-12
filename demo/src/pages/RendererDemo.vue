@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { ref, watch, h, type VNode } from 'vue'
+import { ref, watch, type VNode } from 'vue'
 import { renderToHtml, renderToVue, parseAndExtract } from '@airalogy/aimd-renderer'
-import { SAMPLE_AIMD } from '../composables/sampleContent'
+import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
+import { useSampleContent } from '../composables/sampleContent'
 import '@airalogy/aimd-recorder/styles'
 
-const input = ref(SAMPLE_AIMD)
+const { locale } = useDemoLocale()
+const messages = useDemoMessages()
+const input = useSampleContent()
 const htmlOutput = ref('')
 const fieldsOutput = ref('')
 const vueNodes = ref<VNode[]>([])
 const renderError = ref('')
 const activeTab = ref<'html' | 'vue' | 'fields'>('html')
-const locale = ref<'zh-CN' | 'en-US'>('zh-CN')
 
 async function render() {
   try {
@@ -35,21 +37,11 @@ watch([input, locale], render, { immediate: true })
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-renderer</h2>
-    <p class="page-desc">AIMD 渲染引擎 — 将 AIMD Markdown 渲染为 HTML 和 Vue VNodes</p>
-    <div class="control-bar">
-      <label class="locale-control">
-        <span class="locale-label">渲染语言</span>
-        <select v-model="locale" class="locale-select">
-          <option value="zh-CN">中文</option>
-          <option value="en-US">English</option>
-        </select>
-      </label>
-      <span class="control-hint">只影响 renderer 输出标签，不改变 demo 站点自身文案</span>
-    </div>
+    <p class="page-desc">{{ messages.pages.renderer.desc }}</p>
 
     <div class="demo-layout">
       <div class="panel">
-        <h3 class="panel-title">输入 (AIMD Markdown)</h3>
+        <h3 class="panel-title">{{ messages.common.inputAimd }}</h3>
         <textarea
           v-model="input"
           class="code-input"
@@ -63,19 +55,19 @@ watch([input, locale], render, { immediate: true })
             :class="['tab-btn', { active: activeTab === 'html' }]"
             @click="activeTab = 'html'"
           >
-            HTML 渲染
+            {{ messages.pages.renderer.tabs.html }}
           </button>
           <button
             :class="['tab-btn', { active: activeTab === 'vue' }]"
             @click="activeTab = 'vue'"
           >
-            Vue VNodes
+            {{ messages.pages.renderer.tabs.vue }}
           </button>
           <button
             :class="['tab-btn', { active: activeTab === 'fields' }]"
             @click="activeTab = 'fields'"
           >
-            提取字段
+            {{ messages.pages.renderer.tabs.fields }}
           </button>
         </div>
 
@@ -92,7 +84,7 @@ watch([input, locale], render, { immediate: true })
     </div>
 
     <div class="panel full-width">
-      <h3 class="panel-title">HTML 源码</h3>
+      <h3 class="panel-title">{{ messages.common.htmlSource }}</h3>
       <pre class="code-output html-source">{{ htmlOutput }}</pre>
     </div>
   </div>
@@ -115,46 +107,6 @@ watch([input, locale], render, { immediate: true })
   color: #666;
   font-size: 14px;
   margin-top: -12px;
-}
-
-.control-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 16px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-}
-
-.locale-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.locale-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #444;
-}
-
-.locale-select {
-  min-width: 120px;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  background: #fff;
-  color: #333;
-  font-size: 13px;
-}
-
-.control-hint {
-  font-size: 12px;
-  color: #666;
 }
 
 .demo-layout {
