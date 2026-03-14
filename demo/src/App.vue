@@ -12,6 +12,7 @@ const docsHref = computed(() => locale.value === 'zh-CN'
 const githubHref = 'https://github.com/airalogy/aimd'
 
 const navItems = computed(() => [
+  { path: '/tutorial', label: messages.value.nav.tutorial },
   { path: '/full', label: messages.value.nav.full },
   { path: '/core', label: messages.value.nav.core },
   { path: '/editor', label: messages.value.nav.editor },

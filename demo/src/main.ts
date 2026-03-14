@@ -6,7 +6,8 @@ const router = createRouter({
   // Use hash history so GitHub Pages can serve deep links without rewrite rules.
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/full' },
+    { path: '/', redirect: '/tutorial' },
+    { path: '/tutorial', component: () => import('./pages/TutorialDemo.vue') },
     { path: '/full', component: () => import('./pages/FullDemo.vue') },
     { path: '/core', component: () => import('./pages/CoreDemo.vue') },
     { path: '/editor', component: () => import('./pages/EditorDemo.vue') },

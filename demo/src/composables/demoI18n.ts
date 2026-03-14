@@ -47,6 +47,7 @@ export interface DemoMessages {
     }
   }
   nav: {
+    tutorial: string
     full: string
     core: string
     editor: string
@@ -99,6 +100,42 @@ export interface DemoMessages {
       desc: string
       inlineFormTitle: string
     }
+    tutorial: {
+      title: string
+      desc: string
+      progressLabel: string
+      lessonLabel: string
+      focusLabel: string
+      syntaxLabel: string
+      checklistLabel: string
+      hintsLabel: string
+      hintLabel: string
+      solutionLabel: string
+      feedbackLabel: string
+      parseErrorLabel: string
+      renderErrorLabel: string
+      tabs: {
+        guide: string
+        preview: string
+        fields: string
+      }
+      actions: {
+        restoreStarter: string
+        loadSolution: string
+        showSolution: string
+        hideSolution: string
+        previous: string
+        next: string
+      }
+      status: {
+        completedTitle: string
+        completedBody: string
+        inProgressTitle: string
+        inProgressBody: string
+        finishedTitle: string
+        finishedBody: string
+      }
+    }
   }
 }
 
@@ -117,6 +154,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       },
     },
     nav: {
+      tutorial: 'Interactive Tutorial',
       full: 'Full Workflow',
       core: 'Core Parser',
       editor: 'Editor',
@@ -169,6 +207,42 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
         desc: 'AIMD protocol recorder with built-in inline data-entry components',
         inlineFormTitle: 'Inline Record Form',
       },
+      tutorial: {
+        title: 'Interactive AIMD Tutorial',
+        desc: 'Learn AIMD syntax by editing short exercises with live checks, rendered preview, and extracted fields.',
+        progressLabel: 'Progress',
+        lessonLabel: 'Lesson',
+        focusLabel: 'Focus',
+        syntaxLabel: 'Syntax Pattern',
+        checklistLabel: 'Pass Checks',
+        hintsLabel: 'Hints',
+        hintLabel: 'Hint',
+        solutionLabel: 'Solution',
+        feedbackLabel: 'Feedback',
+        parseErrorLabel: 'Parser Feedback',
+        renderErrorLabel: 'Renderer Feedback',
+        tabs: {
+          guide: 'Guide',
+          preview: 'Preview',
+          fields: 'Fields',
+        },
+        actions: {
+          restoreStarter: 'Restore Starter',
+          loadSolution: 'Load Solution',
+          showSolution: 'Show Solution',
+          hideSolution: 'Hide Solution',
+          previous: 'Previous',
+          next: 'Next Lesson',
+        },
+        status: {
+          completedTitle: 'Lesson complete',
+          completedBody: 'All checks are passing. Move on when you are ready.',
+          inProgressTitle: 'Keep editing',
+          inProgressBody: 'Work through the checks on the right. The preview and extracted fields update as you type.',
+          finishedTitle: 'Tutorial complete',
+          finishedBody: 'You finished every lesson. Revisit any step, tweak the snippets, or continue into the package demos.',
+        },
+      },
     },
   },
   'zh-CN': {
@@ -185,6 +259,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       },
     },
     nav: {
+      tutorial: '交互式教程',
       full: '完整工作流',
       core: 'Core 解析器',
       editor: 'Editor 编辑器',
@@ -236,6 +311,42 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       recorder: {
         desc: 'AIMD 数据记录器 — 使用包内置协议内联录入组件',
         inlineFormTitle: '数据记录表单（内联）',
+      },
+      tutorial: {
+        title: 'AIMD 交互式教程',
+        desc: '通过短练习、实时校验、渲染预览和字段提取，快速学会 AIMD 语法。',
+        progressLabel: '进度',
+        lessonLabel: '课程',
+        focusLabel: '重点',
+        syntaxLabel: '语法模式',
+        checklistLabel: '通过条件',
+        hintsLabel: '提示',
+        hintLabel: '提示',
+        solutionLabel: '参考答案',
+        feedbackLabel: '反馈',
+        parseErrorLabel: '解析反馈',
+        renderErrorLabel: '渲染反馈',
+        tabs: {
+          guide: '指南',
+          preview: '预览',
+          fields: '字段',
+        },
+        actions: {
+          restoreStarter: '恢复起始内容',
+          loadSolution: '载入答案',
+          showSolution: '显示答案',
+          hideSolution: '隐藏答案',
+          previous: '上一课',
+          next: '下一课',
+        },
+        status: {
+          completedTitle: '本课完成',
+          completedBody: '所有检查都通过了，可以继续下一课。',
+          inProgressTitle: '继续编辑',
+          inProgressBody: '根据右侧检查项逐步完成，预览和字段结果会实时更新。',
+          finishedTitle: '教程完成',
+          finishedBody: '你已经完成全部课程。可以回看任意一课继续修改，也可以继续浏览其他 demo。',
+        },
       },
     },
   },
