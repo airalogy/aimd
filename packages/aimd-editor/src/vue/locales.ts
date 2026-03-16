@@ -39,6 +39,18 @@ export interface AimdEditorMessages {
     ref_fig: { label: string, desc: string }
     cite: { label: string, desc: string }
   }
+  varTypePresets: {
+    str: { label: string, desc: string }
+    int: { label: string, desc: string }
+    float: { label: string, desc: string }
+    bool: { label: string, desc: string }
+    date: { label: string, desc: string }
+    datetime: { label: string, desc: string }
+    time: { label: string, desc: string }
+    currentTime: { label: string, desc: string }
+    userName: { label: string, desc: string }
+    airalogyMarkdown: { label: string, desc: string }
+  }
   mdToolbar: {
     h1: string
     h2: string
@@ -60,6 +72,9 @@ export interface AimdEditorMessages {
   dialog: {
     title: (label: string) => string
     variableId: string
+    typePresetLabel: string
+    typeHint: string
+    customType: string
     type: string
     defaultValue: string
     titleLabel: string
@@ -91,9 +106,11 @@ export interface AimdEditorMessages {
     referencedFigureId: string
     citationId: string
     citationHint: string
+    customTypeHint: string
   }
   placeholders: {
     variableId: string
+    type: string
     defaultValue: string
     title: string
     tableId: string
@@ -228,6 +245,18 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     ref_fig: { label: 'Ref Fig', desc: 'Reference a defined figure' },
     cite: { label: 'Citation', desc: 'Insert a citation' },
   },
+  varTypePresets: {
+    str: { label: 'str', desc: 'Single-line text' },
+    int: { label: 'int', desc: 'Whole number' },
+    float: { label: 'float', desc: 'Decimal number' },
+    bool: { label: 'bool', desc: 'Yes / no checkbox' },
+    date: { label: 'date', desc: 'Calendar date picker' },
+    datetime: { label: 'datetime', desc: 'Date and time picker' },
+    time: { label: 'time', desc: 'Time-only picker' },
+    currentTime: { label: 'CurrentTime', desc: 'Auto-fill the current time' },
+    userName: { label: 'UserName', desc: 'Auto-fill the current user name' },
+    airalogyMarkdown: { label: 'AiralogyMarkdown', desc: 'Multi-line markdown notes' },
+  },
   mdToolbar: {
     h1: 'Heading 1',
     h2: 'Heading 2',
@@ -249,6 +278,9 @@ const EN_US_MESSAGES: AimdEditorMessages = {
   dialog: {
     title: label => `Insert AIMD ${label}`,
     variableId: 'Variable ID',
+    typePresetLabel: 'Common Types',
+    typeHint: 'Pick the closest match for the field you want to collect.',
+    customType: 'Custom / Advanced Type',
     type: 'Type',
     defaultValue: 'Default Value',
     titleLabel: 'Title',
@@ -280,9 +312,11 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     referencedFigureId: 'Referenced Figure ID',
     citationId: 'Citation ID',
     citationHint: 'Comma-separated citation IDs',
+    customTypeHint: 'Optional. Enter another AIMD type if you need something more specific, such as list or dict.',
   },
   placeholders: {
     variableId: 'sample_id',
+    type: 'list / dict / CustomType',
     defaultValue: 'Optional',
     title: 'Display title (optional)',
     tableId: 'table_id',
@@ -399,6 +433,18 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     ref_fig: { label: '引用图片', desc: '引用已定义的图片' },
     cite: { label: '引用文献', desc: '插入文献引用' },
   },
+  varTypePresets: {
+    str: { label: 'str', desc: '单行文本' },
+    int: { label: 'int', desc: '整数' },
+    float: { label: 'float', desc: '小数' },
+    bool: { label: 'bool', desc: '是 / 否复选框' },
+    date: { label: 'date', desc: '日期选择器' },
+    datetime: { label: 'datetime', desc: '日期时间选择器' },
+    time: { label: 'time', desc: '时间选择器' },
+    currentTime: { label: 'CurrentTime', desc: '自动填入当前时间' },
+    userName: { label: 'UserName', desc: '自动填入当前用户名' },
+    airalogyMarkdown: { label: 'AiralogyMarkdown', desc: '多行 Markdown 备注' },
+  },
   mdToolbar: {
     h1: '一级标题',
     h2: '二级标题',
@@ -420,6 +466,9 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
   dialog: {
     title: label => `插入 AIMD ${label}`,
     variableId: '变量 ID',
+    typePresetLabel: '常用类型',
+    typeHint: '先选一个最接近的输入方式，后面也可以再手动改。',
+    customType: '自定义 / 高级类型',
     type: '类型',
     defaultValue: '默认值',
     titleLabel: '标题',
@@ -451,9 +500,11 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     referencedFigureId: '引用图片 ID',
     citationId: '文献 ID',
     citationHint: '多个文献 ID 用逗号分隔',
+    customTypeHint: '可选。如果需要更具体的 AIMD 类型，可以在这里输入，例如 list 或 dict。',
   },
   placeholders: {
     variableId: 'sample_id',
+    type: 'list / dict / CustomType',
     defaultValue: '可选',
     title: '显示标题（可选）',
     tableId: 'table_id',

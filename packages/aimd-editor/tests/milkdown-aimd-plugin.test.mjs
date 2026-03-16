@@ -8,8 +8,10 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const pluginPath = resolve(__dirname, '../src/vue/milkdown-aimd-plugin.ts')
 const editorPath = resolve(__dirname, '../src/vue/AimdEditor.vue')
+const dialogPath = resolve(__dirname, '../src/vue/AimdFieldDialog.vue')
 const source = readFileSync(pluginPath, 'utf8')
 const editorSource = readFileSync(editorPath, 'utf8')
+const dialogSource = readFileSync(dialogPath, 'utf8')
 
 function getToMarkdownBlock(content) {
   const match = content.match(/toMarkdown:\s*\{[\s\S]*?\n\s*}\s*,\n\s*}\s*as NodeSchema\)\)/)
@@ -61,4 +63,15 @@ test('AimdEditor protects markdown before feeding content into Milkdown', () => 
   assert.match(editorSource, /ctx\.set\(defaultValueCtx,\s*toMilkdownMarkdown\(defaultVal\.value\)\)/)
   assert.match(editorSource, /replaceAll\(toMilkdownMarkdown\(content\.value\)\)/)
   assert.match(editorSource, /replaceAll\(toMilkdownMarkdown\(val\)\)/)
+})
+
+test('AimdFieldDialog var type section exposes explained presets and keeps custom input', () => {
+  assert.match(dialogSource, /aimd-var-type-grid/)
+  assert.match(dialogSource, /aimd-var-type-card/)
+  assert.match(dialogSource, /selectVarTypePreset/)
+  assert.match(dialogSource, /CurrentTime/)
+  assert.match(dialogSource, /UserName/)
+  assert.match(dialogSource, /AiralogyMarkdown/)
+  assert.doesNotMatch(dialogSource, /<select v-model="fields\.type"/)
+  assert.doesNotMatch(dialogSource, /aimd-var-type-suggestions/)
 })

@@ -33,6 +33,13 @@ interface BlankItem {
   answer: string
 }
 
+interface VarTypePresetOption {
+  key: string
+  value: string
+  label: string
+  desc: string
+}
+
 const quizChoiceOptions = ref<ChoiceOptionItem[]>([])
 const quizBlankItems = ref<BlankItem[]>([])
 const quizMultipleAnswers = ref<string[]>([])
@@ -40,6 +47,30 @@ const draggingChoiceIndex = ref<number | null>(null)
 const dragOverChoiceIndex = ref<number | null>(null)
 const formError = ref('')
 const localizedFieldTypes = computed(() => createAimdFieldTypes(props.messages))
+const varTypePresets = computed<VarTypePresetOption[]>(() => [
+  { key: 'str', value: 'str', ...props.messages.varTypePresets.str },
+  { key: 'int', value: 'int', ...props.messages.varTypePresets.int },
+  { key: 'float', value: 'float', ...props.messages.varTypePresets.float },
+  { key: 'bool', value: 'bool', ...props.messages.varTypePresets.bool },
+  { key: 'date', value: 'date', ...props.messages.varTypePresets.date },
+  { key: 'datetime', value: 'datetime', ...props.messages.varTypePresets.datetime },
+  { key: 'time', value: 'time', ...props.messages.varTypePresets.time },
+  { key: 'currentTime', value: 'CurrentTime', ...props.messages.varTypePresets.currentTime },
+  { key: 'userName', value: 'UserName', ...props.messages.varTypePresets.userName },
+  { key: 'airalogyMarkdown', value: 'AiralogyMarkdown', ...props.messages.varTypePresets.airalogyMarkdown },
+])
+
+function normalizeVarTypeToken(value: string | undefined): string {
+  return (value || '').trim().toLowerCase().replace(/[\s_-]/g, '')
+}
+
+function isVarTypePresetActive(value: string): boolean {
+  return normalizeVarTypeToken(fields.value.type) === normalizeVarTypeToken(value)
+}
+
+function selectVarTypePreset(value: string) {
+  fields.value.type = value
+}
 
 function parseChoiceOptions(input: string): ChoiceOptionItem[] {
   const parts = input.split(',').map(s => s.trim()).filter(Boolean)
@@ -428,17 +459,30 @@ function close() {
               <span class="aimd-field-label">{{ props.messages.dialog.variableId }} <em>*</em></span>
               <input v-model="fields.name" :placeholder="props.messages.placeholders.variableId" class="aimd-field-input" />
             </label>
+            <div class="aimd-field-row">
+              <span class="aimd-field-label">{{ props.messages.dialog.typePresetLabel }}</span>
+              <span class="aimd-field-hint">{{ props.messages.dialog.typeHint }}</span>
+              <div class="aimd-var-type-grid">
+                <button
+                  v-for="preset in varTypePresets"
+                  :key="preset.key"
+                  type="button"
+                  :class="['aimd-var-type-card', { active: isVarTypePresetActive(preset.value) }]"
+                  @click="selectVarTypePreset(preset.value)"
+                >
+                  <span class="aimd-var-type-card-title">{{ preset.label }}</span>
+                  <span class="aimd-var-type-card-desc">{{ preset.desc }}</span>
+                </button>
+              </div>
+            </div>
             <label class="aimd-field-row">
-              <span class="aimd-field-label">{{ props.messages.dialog.type }}</span>
-              <select v-model="fields.type" class="aimd-field-input">
-                <option value="">{{ props.messages.common.none }}</option>
-                <option value="str">str</option>
-                <option value="int">int</option>
-                <option value="float">float</option>
-                <option value="bool">bool</option>
-                <option value="list">list</option>
-                <option value="dict">dict</option>
-              </select>
+              <span class="aimd-field-label">{{ props.messages.dialog.customType }}</span>
+              <input
+                v-model="fields.type"
+                :placeholder="props.messages.placeholders.type"
+                class="aimd-field-input"
+              />
+              <span class="aimd-field-hint">{{ props.messages.dialog.customTypeHint }}</span>
             </label>
             <label class="aimd-field-row">
               <span class="aimd-field-label">{{ props.messages.dialog.defaultValue }}</span>
@@ -828,6 +872,56 @@ function close() {
 .aimd-field-hint {
   font-size: 11px;
   color: #999;
+}
+
+.aimd-var-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.aimd-var-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s, transform 0.15s;
+}
+
+.aimd-var-type-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  transform: translateY(-1px);
+}
+
+.aimd-var-type-card:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.aimd-var-type-card.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.aimd-var-type-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.aimd-var-type-card-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #6b7280;
 }
 
 .aimd-collection-editor {

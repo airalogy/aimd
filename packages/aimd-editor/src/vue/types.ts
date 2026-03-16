@@ -259,10 +259,12 @@ export function buildAimdSyntax(
 ): string {
   switch (type) {
     case 'var': {
-      let inner = fields.name || 'my_var'
-      if (fields.type) inner += ': ' + fields.type
+      let inner = (fields.name || '').trim() || 'my_var'
+      const varType = (fields.type || '').trim()
+      const title = (fields.title || '').trim()
+      if (varType) inner += ': ' + varType
       if (fields.default) inner += ' = ' + fields.default
-      if (fields.title) inner += ', title = "' + fields.title + '"'
+      if (title) inner += ', title = "' + title + '"'
       return `{{var|${inner}}}`
     }
     case 'var_table': {
