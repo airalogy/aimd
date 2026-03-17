@@ -32,8 +32,8 @@ export function createStepContext(): StepContext {
  */
 export function parseKeyValueParams(content: string): Record<string, string | boolean | number> {
   const params: Record<string, string | boolean | number> = {}
-  // Match key=value, key="value", key='value', or key=r"value" (Python raw string)
-  const kvPattern = /(\w+)\s*=\s*(?:r?"([^"]*)"|r?'([^']*)'|(\S+?)(?=,|$|\s))/g
+  // Match key=value, key="value" (with escaped quotes), key='value', or key=r"value"
+  const kvPattern = /(\w+)\s*=\s*(?:r?"((?:[^"\\]|\\.)*)"|r?'((?:[^'\\]|\\.)*)'|(\S+?)(?=,|$|\s))/g
   let match: RegExpExecArray | null = kvPattern.exec(content)
 
   while (match !== null) {
@@ -47,6 +47,12 @@ export function parseKeyValueParams(content: string): Record<string, string | bo
       }
       else if (match[4] && match[4].startsWith("r'")) {
         value = match[4].slice(2, -1)
+      }
+      // Unescape escaped quotes within quoted strings
+      if (match[2] !== undefined) {
+        value = value.replace(/\\"/g, "\"")
+      } else if (match[3] !== undefined) {
+        value = value.replace(/\\'/g, "'")
       }
     }
 
@@ -424,6 +430,80 @@ function parseDefaultValue(value: string): string | number | boolean | null {
   }
 
   return trimmed
+}
+
+/**
+ * Validate that a variable's default value matches its declared type.
+ * Returns an array of warning messages (empty if valid).
+ * This is non-breaking — it collects warnings rather than throwing.
+ */
+export function validateVarDefaultType(def: AimdVarDefinition): string[] {
+  if (def.type === undefined || def.default === undefined || def.default === null) {
+    return []
+  }
+
+  const warnings: string[] = []
+  const type = def.type.toLowerCase()
+  const value = def.default
+
+  switch (type) {
+    case "int":
+    case "integer":
+      if (typeof value === "number") {
+        if (!Number.isInteger(value)) {
+          warnings.push(`"${def.id}": default ${value} is not an integer`)
+        }
+      } else if (typeof value === "string") {
+        if (!/^-?\d+$/.test(value)) {
+          warnings.push(`"${def.id}": default "${value}" is not a valid integer`)
+        }
+      } else if (typeof value === "boolean") {
+        warnings.push(`"${def.id}": default is boolean, expected integer`)
+      }
+      break
+
+    case "float":
+    case "number":
+      if (typeof value === "string") {
+        if (Number.isNaN(Number(value))) {
+          warnings.push(`"${def.id}": default "${value}" is not a valid number`)
+        }
+      } else if (typeof value === "boolean") {
+        warnings.push(`"${def.id}": default is boolean, expected float`)
+      }
+      break
+
+    case "bool":
+    case "boolean":
+      if (typeof value !== "boolean") {
+        if (typeof value === "number" && (value === 0 || value === 1)) {
+          // 0 and 1 are acceptable as bool defaults
+        } else {
+          warnings.push(`"${def.id}": default ${JSON.stringify(value)} is not a valid boolean`)
+        }
+      }
+      break
+
+    case "str":
+    case "string":
+    case "text":
+      if (typeof value !== "string") {
+        warnings.push(`"${def.id}": default ${JSON.stringify(value)} is not a string`)
+      }
+      break
+
+    case "date":
+      if (typeof value === "string") {
+        if (!/^\d{4}-\d{2}-\d{2}/.test(value)) {
+          warnings.push(`"${def.id}": default "${value}" does not match ISO date format`)
+        }
+      } else {
+        warnings.push(`"${def.id}": default ${JSON.stringify(value)} is not a valid date string`)
+      }
+      break
+  }
+
+  return warnings
 }
 
 /**

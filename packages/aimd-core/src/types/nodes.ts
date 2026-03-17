@@ -74,6 +74,8 @@ export interface AimdVarDefinition {
   subvars?: Record<string, AimdVarDefinition>
   /** Additional kwargs like pattern, title, description, etc. */
   kwargs?: Record<string, string | number | boolean>
+  /** Validation warnings (e.g. type/default mismatch). Non-breaking. */
+  warnings?: string[]
 }
 
 /**

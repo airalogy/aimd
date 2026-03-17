@@ -3,6 +3,7 @@ import type { Component, VNode, VNodeChild } from "vue"
 import type { AimdNode, AimdQuizNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
 import { Fragment, h } from "vue"
 import type { AimdRendererI18nOptions, AimdRendererLocale, AimdRendererMessages } from "../locales"
+import { resolveQuizPreviewOptions, type ResolvedQuizPreviewOptions } from "../common/quiz-preview"
 import {
   createAimdRendererMessages,
   DEFAULT_AIMD_RENDERER_LOCALE,
@@ -14,7 +15,7 @@ import {
 /**
  * Extended Element data type
  */
-interface AimdElementData {
+export interface AimdElementData {
   aimd?: AimdNode
 }
 
@@ -42,17 +43,8 @@ export interface AimdRendererContext extends RenderContext {
   messages: AimdRendererMessages
 }
 
-interface ResolvedQuizPreviewOptions {
-  showAnswers: boolean
-  showRubric: boolean
-}
-
 function resolveQuizPreviewOptionsFromContext(ctx: RenderContext): ResolvedQuizPreviewOptions {
-  const defaultReveal = ctx.mode === "report"
-  return {
-    showAnswers: ctx.quizPreview?.showAnswers ?? defaultReveal,
-    showRubric: ctx.quizPreview?.showRubric ?? defaultReveal,
-  }
+  return resolveQuizPreviewOptions(ctx.mode, ctx.quizPreview)
 }
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
@@ -569,7 +561,7 @@ function resolveRenderContext(options: VueRendererOptions): AimdRendererContext 
 /**
  * Figure context for tracking figure numbers and references
  */
-interface FigureContext {
+export interface FigureContext {
   /** Map from fig ID to sequence number */
   figureNumbers: Map<string, number>
   /** Current figure sequence counter */
@@ -879,7 +871,13 @@ export function hastToVue(
             .filter(Boolean)
           const result = renderer(aimdData, context, childVNodes)
           if (isPromiseLike<VNode>(result)) {
-            // This traversal is synchronous; async custom renderers are ignored here.
+            if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+              console.warn(
+                `[aimd-renderer] Async renderer for "${aimdData.fieldType}" returned a Promise, `
+                + `but hastToVue() is synchronous. The node will be skipped. `
+                + `Use a synchronous renderer or handle async rendering at a higher level.`,
+              )
+            }
             return null
           }
           if (result) {
