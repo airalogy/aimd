@@ -2,7 +2,7 @@
 
 AIMD 记录 UI 组件与样式集合，包含协议内联录入组件与可复用题目作答控件。
 
-内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown`。
+内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown` 和 `DNASequence`。
 在 recorder/edit 模式下，`ref_var` 如果已经有记录值，会优先以只读内联内容显示该值。
 前端受限的 `assigner runtime=client` 代码块会在 recorder 中本地执行，用于纯 `var` 计算。
 
@@ -32,7 +32,8 @@ const content = ref(`# Protocol
 记录者：{{var|operator: UserName}}
 记录时间：{{var|current_time: CurrentTime}}
 温度设置：{{var|temperature: float = 25.0}}
-实验摘要：{{var|summary: AiralogyMarkdown}}`)
+实验摘要：{{var|summary: AiralogyMarkdown}}
+质粒：{{var|plasmid: DNASequence}}`)
 const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 </script>
 
@@ -45,6 +46,19 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   />
 </template>
 ```
+
+`DNASequence` 字段会渲染一个专用 DNA 编辑器，支持：
+
+- 默认以 `交互式` 模式进行可视化编辑
+- 单独提供 `原始结构` 模式处理序列原文和结构化精修
+- 可选的顶层序列名称字段，可用于质粒或构建体命名
+- 共享工具栏可导入 FASTA / GenBank 序列文件，并将当前值导出为 GenBank `.gbk` 文件
+- 交互式空状态下可直接粘贴 DNA 文本
+- IUPAC DNA 序列输入
+- 拓扑切换（`linear` / `circular`）
+- GenBank 对齐子集风格的特征编辑
+- 多段位置片段（segments）与每段的 partial 标记
+- `gene`、`product`、`label`、`note` 等限定词行编辑
 
 通过 `locale` 可以切换 recorder 内建标签（`en-US` / `zh-CN`）。
 `AimdProtocolRecorder` 仍保留为已废弃的兼容别名，但新的代码建议直接使用 `AimdRecorder`。

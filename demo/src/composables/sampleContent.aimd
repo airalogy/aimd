@@ -10,6 +10,8 @@ Record time: {{var|current_time: CurrentTime}}
 
 Experiment summary: {{var|summary: AiralogyMarkdown}}
 
+Plasmid sequence: {{var|plasmid_sequence: DNASequence}}
+
 Temperature setting: {{var|temperature: float = 25.0}}
 
 Concentration setting: {{var|concentration: float = 1.0, title = "Concentration (M)"}}

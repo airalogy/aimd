@@ -155,7 +155,7 @@ export function normalizeVarTableFields(raw: unknown): AimdVarTableField[] {
   return raw.filter((item): item is AimdVarTableField => (
     !!item
     && typeof item === "object"
-    && typeof (item as any).name === "string"
+    && typeof (item as any).id === "string"
     && Array.isArray((item as any).subvars)
   ))
 }
@@ -256,11 +256,11 @@ export function ensureDefaultsFromFields(localRecord: AimdProtocolRecordData, fi
   let changed = false
 
   for (const vt of normalizeVarTableFields(fields.var_table)) {
-    const columns = vt.subvars.map(subvar => subvar.name)
-    const rows = localRecord.var[vt.name]
+    const columns = vt.subvars.map(subvar => subvar.id)
+    const rows = localRecord.var[vt.id]
     const normalizedRows = normalizeVarTableRows(rows, columns)
     if (JSON.stringify(normalizedRows) !== JSON.stringify(rows)) {
-      localRecord.var[vt.name] = normalizedRows
+      localRecord.var[vt.id] = normalizedRows
       changed = true
     }
   }

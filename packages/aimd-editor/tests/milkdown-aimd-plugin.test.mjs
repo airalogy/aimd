@@ -72,6 +72,7 @@ test('AimdFieldDialog var type section exposes explained presets and keeps custo
   assert.match(dialogSource, /CurrentTime/)
   assert.match(dialogSource, /UserName/)
   assert.match(dialogSource, /AiralogyMarkdown/)
+  assert.match(dialogSource, /DNASequence/)
   assert.doesNotMatch(dialogSource, /<select v-model="fields\.type"/)
   assert.doesNotMatch(dialogSource, /aimd-var-type-suggestions/)
 })

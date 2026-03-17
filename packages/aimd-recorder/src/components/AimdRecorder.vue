@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, reactive, ref, watch, type VNode } from "vue"
+import { computed, defineAsyncComponent, h, nextTick, reactive, ref, watch, type VNode } from "vue"
 import type {
   AimdCheckNode,
   AimdClientAssignerField,
@@ -53,7 +53,10 @@ import {
   restoreFocusSnapshot,
 } from "../composables/useFocusManagement"
 import type { FocusSnapshot } from "../composables/useFocusManagement"
+import { normalizeDnaSequenceValue } from "../composables/useDnaSequence"
 import AimdQuizRecorder from "./AimdQuizRecorder.vue"
+
+const AimdDnaSequenceField = defineAsyncComponent(() => import("./AimdDnaSequenceField.vue"))
 
 // ---------------------------------------------------------------------------
 // Props & emits
@@ -396,12 +399,16 @@ function resolveNowDate(): Date {
 }
 
 function getVarInitialValue(node: AimdVarNode, type: string | undefined): unknown {
+  const normalizedType = normalizeVarTypeName(type)
   if (node.definition && Object.prototype.hasOwnProperty.call(node.definition, "default")) {
+    if (normalizedType === "dnasequence") {
+      return normalizeDnaSequenceValue(node.definition.default)
+    }
     return node.definition.default
   }
-  const normalizedType = normalizeVarTypeName(type)
   const inputKind = getVarInputKind(type)
   if (inputKind === "checkbox") return false
+  if (inputKind === "dna") return normalizeDnaSequenceValue(undefined)
   if (normalizedType === "currenttime") return formatDateTimeWithTimezone(resolveNowDate())
   if (normalizedType === "username" && typeof props.currentUserName === "string") return props.currentUserName
   return ""
@@ -634,6 +641,13 @@ function renderInlineVar(node: AimdVarNode): VNode {
       recordInitializedDuringRender = true
     }
   }
+  if (inputKind === "dna") {
+    const normalizedValue = normalizeDnaSequenceValue(localRecord.var[id])
+    if (JSON.stringify(normalizedValue) !== JSON.stringify(localRecord.var[id])) {
+      localRecord.var[id] = normalizedValue
+      recordInitializedDuringRender = true
+    }
+  }
 
   const htmlInputType = inputKind === "datetime"
     ? "datetime-local"
@@ -687,6 +701,23 @@ function renderInlineVar(node: AimdVarNode): VNode {
       ]),
       control,
     ])
+
+  if (inputKind === "dna") {
+    return maybeWrap(fieldKey, "var", h(AimdDnaSequenceField, {
+      class: extraClasses,
+      varId: id,
+      modelValue: localRecord.var[id],
+      disabled,
+      placeholder,
+      messages: resolvedMessages.value,
+      "onUpdate:modelValue": (value: unknown) => {
+        localRecord.var[id] = value
+        markRecordChanged({ runClientAssigners: true })
+        emit("field-change", { section: "var", fieldKey: id, value })
+      },
+      onBlur: onVarBlur,
+    }))
+  }
 
   if (inputKind === "checkbox") {
     return maybeWrap(fieldKey, "var", renderStackedVar(

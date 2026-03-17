@@ -55,6 +55,7 @@ const varTypePresets = computed<VarTypePresetOption[]>(() => [
   { key: 'date', value: 'date', ...props.messages.varTypePresets.date },
   { key: 'datetime', value: 'datetime', ...props.messages.varTypePresets.datetime },
   { key: 'time', value: 'time', ...props.messages.varTypePresets.time },
+  { key: 'dnaSequence', value: 'DNASequence', ...props.messages.varTypePresets.dnaSequence },
   { key: 'currentTime', value: 'CurrentTime', ...props.messages.varTypePresets.currentTime },
   { key: 'userName', value: 'UserName', ...props.messages.varTypePresets.userName },
   { key: 'airalogyMarkdown', value: 'AiralogyMarkdown', ...props.messages.varTypePresets.airalogyMarkdown },

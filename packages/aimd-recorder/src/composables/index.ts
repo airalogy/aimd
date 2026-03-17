@@ -36,3 +36,20 @@ export {
   applyVarStackWidth,
 } from './useVarHelpers'
 export type { VarInputKind } from './useVarHelpers'
+
+export {
+  AIMD_DNA_SEQUENCE_FORMAT,
+  normalizeDnaSequenceText,
+  collectInvalidDnaSequenceCharacters,
+  createEmptyDnaSequenceAnnotation,
+  createEmptyDnaSequenceQualifier,
+  createEmptyDnaSequenceSegment,
+  getNextDnaSequenceAnnotationId,
+  normalizeDnaSequenceAnnotation,
+  normalizeDnaSequenceQualifier,
+  normalizeDnaSequenceSegment,
+  normalizeDnaSequenceValue,
+  calculateDnaSequenceGcPercent,
+  getDnaSequenceSegmentIssue,
+  serializeDnaSequenceToGenBank,
+} from './useDnaSequence'

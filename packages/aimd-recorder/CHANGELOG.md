@@ -2,6 +2,26 @@
 
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
+## [1.6.0] - 2026-03-17
+
+### Added
+
+- Added a built-in `DNASequence` recorder widget for AIMD `var` fields, including editable sequence text, `linear` / `circular` topology, and GenBank-aligned subset editing for feature segments and qualifier rows.
+- Added a viewer-first `DNASequence` recorder experience powered by `SeqViz`, including inline linear/circular sequence visualization, drag-to-select range creation, and click-to-focus feature selection.
+- Added one-click GenBank export for `DNASequence` fields, downloading the current structured value as a `.gbk` file with sequence, topology, feature locations, and qualifier rows.
+- Added an optional top-level `name` field to the `DNASequence` recorder so users can label a plasmid or construct independently from per-feature annotation names.
+
+### Changed
+
+- Kept the recorder-side `DNASequence` canonical payload at `airalogy_dna_v1`, while expanding the structure to support multi-segment locations, per-segment partial flags, and qualifier rows.
+- Shifted the default editor from a pure form to a visual sequence workflow plus an advanced details editor for multi-segment locations, per-segment partial flags, and qualifier rows.
+- Split the built-in `DNASequence` recorder into two explicit modes: a default interactive mode centered on the visual viewer and a raw structure mode for sequence text, multi-segment coordinates, and qualifier editing.
+- Reduced the default DNA editor surface area so common viewer-based operations no longer compete visually with the full structured editor in the same screen.
+- Reworked the interactive empty state so users can start by pasting DNA text or importing sequence-oriented FASTA / GenBank files instead of being redirected to the raw structure editor.
+- Moved `DNASequence` file import into the shared top toolbar so both `Interactive` and `Raw structure` modes expose the same import/export actions.
+- Defined file import and interactive sequence onboarding as replacement actions: importing or pasting a new sequence now clears existing annotations that are not reconstructed from the imported text.
+- Imported FASTA / GenBank content now populates the sequence name when a header or locus name is available, and GenBank export/download filenames prefer the top-level `DNASequence.name` over the AIMD var id.
+
 ## [1.5.1] - 2026-03-13
 
 ### Added

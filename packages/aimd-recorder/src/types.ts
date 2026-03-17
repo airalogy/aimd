@@ -3,6 +3,36 @@ export interface AimdStepOrCheckRecordItem {
   annotation: string
 }
 
+export interface AimdDnaSequenceSegment {
+  start: number
+  end: number
+  partial_start?: boolean
+  partial_end?: boolean
+}
+
+export interface AimdDnaSequenceQualifier {
+  key: string
+  value: string
+}
+
+export interface AimdDnaSequenceAnnotation {
+  id: string
+  name: string
+  type: string
+  strand: 1 | -1
+  color?: string
+  segments: AimdDnaSequenceSegment[]
+  qualifiers: AimdDnaSequenceQualifier[]
+}
+
+export interface AimdDnaSequenceValue {
+  format: "airalogy_dna_v1"
+  name: string
+  sequence: string
+  topology: "linear" | "circular"
+  annotations: AimdDnaSequenceAnnotation[]
+}
+
 export interface AimdProtocolRecordData {
   var: Record<string, unknown>
   step: Record<string, AimdStepOrCheckRecordItem>
@@ -25,7 +55,7 @@ export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
 
 /** Field metadata — app passes via prop to describe extra field info */
 export interface AimdFieldMeta {
-  inputType?: string           // override input type: 'file' | 'enum' | 'number' | 'markdown'
+  inputType?: string           // override input type: 'file' | 'enum' | 'number' | 'markdown' | 'dna'
   required?: boolean
   pattern?: string             // regex validation
   enumOptions?: Array<{ label: string; value: unknown }>

@@ -9,7 +9,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type VarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time"
+export type VarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna"
 
 // ---------------------------------------------------------------------------
 // Type normalisation & input-kind resolution
@@ -40,6 +40,10 @@ export function getVarInputKind(type: string | undefined): VarInputKind {
 
   if (normalized === "time" || normalized === "duration") {
     return "time"
+  }
+
+  if (normalized === "dnasequence") {
+    return "dna"
   }
 
   if (normalized === "md" || normalized === "markdown" || normalized === "airalogymarkdown") {
@@ -212,6 +216,10 @@ export function getVarInputDisplayValue(value: unknown, kind: VarInputKind): str
     return typeof normalized === "number" ? normalized : (typeof normalized === "string" ? normalized : "")
   }
 
+  if (kind === "dna") {
+    return typeof normalized === "string" ? normalized : JSON.stringify(normalized)
+  }
+
   if (typeof normalized === "string") {
     return normalized
   }
@@ -251,6 +259,7 @@ export function parseVarInputValue(rawValue: string, type: string | undefined, k
 function getVarControlMinWidth(inputKind: VarInputKind): number {
   switch (inputKind) {
     case "textarea":
+    case "dna":
       return 160
     default:
       return 0

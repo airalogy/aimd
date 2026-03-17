@@ -15,7 +15,7 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - Recorder UI styles via `@airalogy/aimd-recorder/styles`.
 - Inline protocol recorder component: `AimdRecorder` (render + input in-place).
 - Reusable quiz answer component: `AimdQuizRecorder`.
-- Built-in var input handling for `CurrentTime`, `UserName`, `AiralogyMarkdown`.
+- Built-in var input handling for `CurrentTime`, `UserName`, `AiralogyMarkdown`, `DNASequence`.
 - Input handling for `choice`, `blank`, and `open` quiz types.
 - In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 - Frontend-only `assigner runtime=client` blocks run locally for pure var computations.
@@ -38,7 +38,8 @@ Sample: {{var|sample_name: str}}
 Operator: {{var|operator: UserName}}
 Record Time: {{var|current_time: CurrentTime}}
 Temperature: {{var|temperature: float = 25.0}}
-Notes: {{var|notes: AiralogyMarkdown}}`)
+Notes: {{var|notes: AiralogyMarkdown}}
+Plasmid: {{var|plasmid: DNASequence}}`)
 const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 </script>
 
@@ -94,6 +95,22 @@ recorderRef.value?.runManualClientAssigners()
 ```
 
 ## Locale
+
+`DNASequence` uses a dedicated recorder widget with:
+
+- a default `Interactive` mode focused on the visual viewer
+- a separate `Raw structure` mode for sequence text and structured cleanup
+- an optional top-level sequence name field for plasmid or construct naming
+- shared toolbar actions for importing FASTA / GenBank sequence files and exporting the current value as a GenBank `.gbk` file
+- interactive onboarding for pasting DNA text
+- editable IUPAC DNA sequence text
+- inline visual sequence viewer backed by `SeqViz`
+- drag-to-select range creation and click-to-focus feature selection
+- `linear` / `circular` topology
+- GenBank-aligned feature annotations with multi-segment locations
+- per-segment partial start / partial end flags
+- qualifier rows for keys such as `gene`, `product`, `label`, and `note`
+- an advanced editor panel for multi-segment and qualifier-heavy cleanup
 
 Both `AimdRecorder` and `AimdQuizRecorder` accept `locale` to switch built-in recorder labels:
 

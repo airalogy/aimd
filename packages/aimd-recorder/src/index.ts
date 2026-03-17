@@ -11,6 +11,7 @@ import './styles/aimd.css'
 import { AimdProtocolRecorder as DeprecatedAimdProtocolRecorder } from './components'
 
 export { AimdRecorder, AimdQuizRecorder } from './components'
+export { AimdDnaSequenceField } from './components'
 /**
  * @deprecated Use `AimdRecorder` instead.
  */
@@ -25,6 +26,10 @@ export type {
   AimdStepOrCheckRecordItem,
   AimdFieldMeta,
   AimdFieldState,
+  AimdDnaSequenceAnnotation,
+  AimdDnaSequenceQualifier,
+  AimdDnaSequenceSegment,
+  AimdDnaSequenceValue,
   FieldEventPayload,
   TableEventPayload,
 } from './types'

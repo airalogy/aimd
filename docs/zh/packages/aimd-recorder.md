@@ -16,7 +16,7 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - 提供协议内联录入组件 `AimdRecorder`：
   在 Markdown 渲染位置直接插入 `var / var_table / step / check / quiz` 的记录控件。
 - 提供可复用题目控件 `AimdQuizRecorder`（单独使用 quiz 输入时可复用）。
-- 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown`。
+- 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown`、`DNASequence`。
 - 在 recorder/edit 模式下，`ref_var` 如果已经有记录值，会优先以只读内联内容显示该值。
 - 前端受限的 `assigner runtime=client` 代码块会在 recorder 中本地执行，用于纯 `var` 计算。
 
@@ -38,7 +38,8 @@ const content = ref(`# Protocol
 记录者：{{var|operator: UserName}}
 记录时间：{{var|current_time: CurrentTime}}
 温度设置：{{var|temperature: float = 25.0}}
-实验摘要：{{var|summary: AiralogyMarkdown}}`)
+实验摘要：{{var|summary: AiralogyMarkdown}}
+质粒：{{var|plasmid: DNASequence}}`)
 const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 </script>
 
@@ -94,6 +95,22 @@ recorderRef.value?.runManualClientAssigners()
 ```
 
 ## 语言
+
+`DNASequence` 会渲染专用 DNA 录入控件，支持：
+
+- 默认以 `交互式` 模式提供可视化编辑
+- 单独提供 `原始结构` 模式处理序列原文和结构化精修
+- 可选的顶层序列名称字段，可用于质粒或构建体命名
+- 共享工具栏可导入 FASTA / GenBank 序列文件，并将当前值导出为 GenBank `.gbk` 文件
+- 交互式空状态下可直接粘贴 DNA 文本
+- 可编辑的 IUPAC DNA 序列文本
+- 基于 `SeqViz` 的内联可视化序列视图
+- 直接拖拽选择范围、点击已有特征聚焦编辑
+- `linear` / `circular` 拓扑切换
+- 与 GenBank 对齐子集一致的特征注释与多段位置
+- 每个片段的 partial 起点 / partial 终点标记
+- `gene`、`product`、`label`、`note` 等限定词行编辑
+- 面向复杂多段位置和限定词的高级编辑区
 
 `AimdRecorder` 和 `AimdQuizRecorder` 都支持通过 `locale` 切换内建标签：
 

@@ -2,12 +2,15 @@
 
 All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
-## [Unreleased]
+## [1.3.0] - 2026-03-17
 
-### Fixed
+### Added
 
-- Expanded the interactive `var` insertion UI from a closed type dropdown to a freeform input with common AIMD presets, so recorder-supported types like `date`, `datetime`, `time`, `CurrentTime`, `UserName`, and `AiralogyMarkdown` are now discoverable from the dialog.
-- Reworked the interactive `var` type picker into an explained preset grid plus an optional custom type input, so first-time users can choose the right field behavior without already knowing AIMD type names.
+- Added explained interactive `var` type presets for recorder-supported types such as `date`, `datetime`, `time`, `CurrentTime`, `UserName`, `AiralogyMarkdown`, and `DNASequence`, so users can discover field behaviors directly from the insertion dialog.
+
+### Changed
+
+- Replaced the closed interactive `var` type dropdown with a freeform input plus an explained preset grid, so first-time users can choose the right type without already knowing AIMD type names.
 
 ## [1.2.3] - 2026-03-13
 

@@ -18,6 +18,12 @@
 - Keep English and Chinese docs aligned in scope unless the user explicitly asks otherwise.
 - Keep package README concise and onboarding-focused; put fuller explanations and API usage in `docs/`.
 
+## Demo Sample Expectations
+
+- `demo/src/composables/sampleContent.aimd` is the canonical interactive sample used across AIMD demos.
+- When adding a new built-in var type, recorder widget, or other user-visible field experience, add a minimal example to `demo/src/composables/sampleContent.aimd` unless the user explicitly asks not to.
+- Prefer one clear example per built-in type in the sample so users can discover it directly from the demo UI.
+
 ## Versioning Policy For AI Agents
 
 - When a change affects a package's **published behavior**, update that package version in its `package.json`.

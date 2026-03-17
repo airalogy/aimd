@@ -2,7 +2,7 @@
 
 Reusable recording UI for AIMD, including inline protocol recorder, quiz answer components, and styles.
 
-Built-in variable input types include `CurrentTime`, `UserName`, and `AiralogyMarkdown`.
+Built-in variable input types include `CurrentTime`, `UserName`, `AiralogyMarkdown`, and `DNASequence`.
 In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 Frontend-only `assigner runtime=client` blocks are executed locally for pure var computations.
 
@@ -32,7 +32,8 @@ Sample: {{var|sample_name: str}}
 Operator: {{var|operator: UserName}}
 Record Time: {{var|current_time: CurrentTime}}
 Temperature: {{var|temperature: float = 25.0}}
-Notes: {{var|notes: AiralogyMarkdown}}`)
+Notes: {{var|notes: AiralogyMarkdown}}
+Plasmid: {{var|plasmid: DNASequence}}`)
 const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 </script>
 
@@ -45,6 +46,19 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   />
 </template>
 ```
+
+`DNASequence` fields render a dedicated DNA editor with:
+
+- a default `Interactive` mode focused on the sequence viewer
+- a separate `Raw structure` mode for sequence text and structured cleanup
+- an optional top-level sequence name field for plasmid or construct naming
+- shared toolbar actions for importing FASTA / GenBank sequence files and exporting the current value as a GenBank `.gbk` file
+- interactive onboarding for pasting DNA text
+- sequence input using IUPAC DNA letters
+- topology toggle (`linear` / `circular`)
+- GenBank-aligned feature rows with multi-segment locations
+- partial start / partial end flags per segment
+- qualifier rows such as `gene`, `product`, `label`, and `note`
 
 Use `locale` to switch built-in recorder labels (`en-US` / `zh-CN`).
 `AimdProtocolRecorder` is still available as a deprecated compatibility alias, but new code should use `AimdRecorder`.

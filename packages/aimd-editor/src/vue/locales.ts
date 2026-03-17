@@ -47,6 +47,7 @@ export interface AimdEditorMessages {
     date: { label: string, desc: string }
     datetime: { label: string, desc: string }
     time: { label: string, desc: string }
+    dnaSequence: { label: string, desc: string }
     currentTime: { label: string, desc: string }
     userName: { label: string, desc: string }
     airalogyMarkdown: { label: string, desc: string }
@@ -253,6 +254,7 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     date: { label: 'date', desc: 'Calendar date picker' },
     datetime: { label: 'datetime', desc: 'Date and time picker' },
     time: { label: 'time', desc: 'Time-only picker' },
+    dnaSequence: { label: 'DNASequence', desc: 'Editable DNA sequence with annotations' },
     currentTime: { label: 'CurrentTime', desc: 'Auto-fill the current time' },
     userName: { label: 'UserName', desc: 'Auto-fill the current user name' },
     airalogyMarkdown: { label: 'AiralogyMarkdown', desc: 'Multi-line markdown notes' },
@@ -441,6 +443,7 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     date: { label: 'date', desc: '日期选择器' },
     datetime: { label: 'datetime', desc: '日期时间选择器' },
     time: { label: 'time', desc: '时间选择器' },
+    dnaSequence: { label: 'DNASequence', desc: '可编辑的 DNA 序列与注释' },
     currentTime: { label: 'CurrentTime', desc: '自动填入当前时间' },
     userName: { label: 'UserName', desc: '自动填入当前用户名' },
     airalogyMarkdown: { label: 'AiralogyMarkdown', desc: '多行 Markdown 备注' },
