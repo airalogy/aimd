@@ -6,7 +6,7 @@ import type { AimdClientAssignerField } from '@airalogy/aimd-core/types'
 function makeAssigner(overrides: Partial<AimdClientAssignerField> & { id: string }): AimdClientAssignerField {
   return {
     runtime: 'client',
-    mode: 'auto_force',
+    mode: 'auto',
     function_source: 'function assign(fields) { return {}; }',
     dependent_fields: [],
     assigned_fields: [],
@@ -124,7 +124,7 @@ describe('client-assigner: modes', () => {
   it('auto_force always runs', () => {
     const assigners = [makeAssigner({
       id: 'force',
-      mode: 'auto_force',
+      mode: 'auto',
       function_source: 'function assign(fields) { return { y: fields.x + 1 }; }',
       dependent_fields: ['x'],
       assigned_fields: ['y'],

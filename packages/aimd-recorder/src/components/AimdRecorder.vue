@@ -283,7 +283,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
 
   const vnode = h(AimdVarField, {
     node,
-    value: localRecord.var[id],
+    value: localRecord.var[id] as any,
     disabled,
     extraClasses,
     messages: resolvedMessages.value,
