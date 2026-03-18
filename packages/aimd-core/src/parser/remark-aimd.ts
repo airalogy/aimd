@@ -86,7 +86,7 @@ function createAimdNode(
     }
 
     case "step": {
-      const { id, level, check, checkedMessage } = parseStepContent(content)
+      const { id, level, check, title, subtitle, checkedMessage, result, props } = parseStepContent(content)
       const stepNode: AimdStepNode = {
         type: "aimd",
         fieldType: "step",
@@ -98,10 +98,20 @@ function createAimdNode(
         step: "1",
         hasChildren: false,
         check,
+        props,
       }
 
+      if (title) {
+        stepNode.title = title
+      }
+      if (subtitle) {
+        stepNode.subtitle = subtitle
+      }
       if (checkedMessage) {
-        ;(stepNode as any).checkedMessage = checkedMessage
+        stepNode.checkedMessage = checkedMessage
+      }
+      if (result) {
+        stepNode.result = true
       }
 
       if (stepContext) {
@@ -181,12 +191,12 @@ function processTextNode(
   const result: InlineContentNode[] = []
   let lastIndex = 0
 
-  // eslint-disable-next-line regexp/no-super-linear-backtracking
-  const pattern = /\{\{(var_table|var|step|check|ref_step|ref_var|ref_fig|cite)\s*\|\s*([^}]+?)\s*\}\}/g
+  const pattern = /\{\{(var_table|var|step|check|ref_step|ref_var|ref_fig|cite)\s*\|\s*([^}]+)\}\}/g
 
   let match: RegExpExecArray | null = pattern.exec(value)
   while (match !== null) {
-    const [fullMatch, type, content] = match
+    const [fullMatch, type, rawContent] = match
+    const content = rawContent.trim()
     const startIndex = match.index
 
     if (startIndex > lastIndex) {

@@ -34,3 +34,9 @@ features:
 ```bash
 pnpm docs:dev
 ```
+
+## 指南与参考
+
+- [集成指南](/zh/integration)
+- [API 参考](/zh/api-reference)
+- [故障排查 / FAQ](/zh/troubleshooting)

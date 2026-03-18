@@ -65,6 +65,20 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## 校验辅助函数
+
+如果你的编辑器、lint 流程或导入链路需要在 AIMD 内容进入 renderer / recorder 之前先做 parser 级校验，`@airalogy/aimd-core/parser` 还导出了两个可复用辅助函数：
+
+```ts
+import {
+  validateClientAssignerFunctionSource,
+  validateVarDefaultType,
+} from "@airalogy/aimd-core/parser"
+```
+
+- `validateClientAssignerFunctionSource(functionSource, id)` 会拒绝不安全或不受支持的前端 `client_assigner` 代码，例如 `eval`、`window`、`fetch`、Unicode 转义绕过，以及其他非确定性结构。
+- `validateVarDefaultType(def)` 会在 AIMD var 的默认值与声明类型不匹配时返回 warning 文本。
+
 ## 继续阅读
 
 - 解析节点与字段提取结果现在只保留 `id`。如果你在升级旧接入，请先阅读[迁移说明](/zh/packages/aimd-core/compatibility)。

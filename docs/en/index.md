@@ -34,3 +34,9 @@ Run docs locally:
 ```bash
 pnpm docs:dev
 ```
+
+## Guides And Reference
+
+- [Integration Guide](/en/integration)
+- [API Reference](/en/api-reference)
+- [Troubleshooting / FAQ](/en/troubleshooting)

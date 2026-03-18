@@ -65,6 +65,20 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## Validation Helpers
+
+If your editor, linter, or import pipeline needs parser-level validation before AIMD content reaches the renderer or recorder, `@airalogy/aimd-core/parser` also exports two reusable helpers:
+
+```ts
+import {
+  validateClientAssignerFunctionSource,
+  validateVarDefaultType,
+} from "@airalogy/aimd-core/parser"
+```
+
+- `validateClientAssignerFunctionSource(functionSource, id)` rejects unsafe or unsupported frontend `client_assigner` code such as `eval`, `window`, `fetch`, Unicode-escape bypasses, and other non-deterministic constructs.
+- `validateVarDefaultType(def)` returns warning strings when an AIMD var default does not match its declared type.
+
 ## Further Reading
 
 - Parsed nodes and extracted fields now use `id` only. If you are upgrading older integrations, read [Migration](/en/packages/aimd-core/compatibility) first.

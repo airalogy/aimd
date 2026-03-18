@@ -104,6 +104,24 @@ recorderRef.value?.runClientAssigner("calculate_total_liquid_ml")
 recorderRef.value?.runManualClientAssigners()
 ```
 
+## 宿主字段适配器
+
+```ts
+import { h } from "vue"
+
+const fieldAdapters = {
+  step: ({ node, defaultVNode }) =>
+    h("step-card", {
+      "step-id": node.id,
+      "step-number": node.step,
+      title: node.title || node.id,
+      level: String(node.level),
+    }, () => [defaultVNode]),
+}
+```
+
+当宿主应用需要替换或包裹内建字段 UI，但仍希望继续复用 AIMD 解析和 recorder record-state 管理时，可以把 `fieldAdapters` 传给 `AimdRecorder`。
+
 ### 仅题目控件
 
 ```vue

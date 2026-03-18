@@ -58,6 +58,17 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## Validation Helpers
+
+```ts
+import {
+  validateClientAssignerFunctionSource,
+  validateVarDefaultType,
+} from "@airalogy/aimd-core/parser"
+```
+
+Use `validateClientAssignerFunctionSource()` when host tooling needs to preflight fenced `assigner runtime=client` functions before saving or executing them. Use `validateVarDefaultType()` to surface warnings when an authored AIMD var default does not match its declared type.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-core>

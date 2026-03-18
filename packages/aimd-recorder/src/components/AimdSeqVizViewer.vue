@@ -85,8 +85,16 @@ function renderViewer() {
   root.render(createElement(SeqViz, viewerProps.value))
 }
 
+let renderDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
 watch(viewerProps, () => {
-  renderViewer()
+  if (renderDebounceTimer !== null) {
+    clearTimeout(renderDebounceTimer)
+  }
+  renderDebounceTimer = setTimeout(() => {
+    renderDebounceTimer = null
+    renderViewer()
+  }, 16)
 }, { deep: true })
 
 onMounted(() => {
@@ -94,6 +102,9 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  if (renderDebounceTimer !== null) {
+    clearTimeout(renderDebounceTimer)
+  }
   root?.unmount()
   root = null
 })

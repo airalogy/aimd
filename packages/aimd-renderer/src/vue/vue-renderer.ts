@@ -3,6 +3,7 @@ import type { Component, VNode, VNodeChild } from "vue"
 import type { AimdNode, AimdQuizNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
 import { Fragment, h } from "vue"
 import type { AimdRendererI18nOptions, AimdRendererLocale, AimdRendererMessages } from "../locales"
+import { resolveQuizPreviewOptions, type ResolvedQuizPreviewOptions } from "../common/quiz-preview"
 import {
   createAimdRendererMessages,
   DEFAULT_AIMD_RENDERER_LOCALE,
@@ -14,7 +15,7 @@ import {
 /**
  * Extended Element data type
  */
-interface AimdElementData {
+export interface AimdElementData {
   aimd?: AimdNode
 }
 
@@ -42,17 +43,15 @@ export interface AimdRendererContext extends RenderContext {
   messages: AimdRendererMessages
 }
 
-interface ResolvedQuizPreviewOptions {
-  showAnswers: boolean
-  showRubric: boolean
+export interface AimdStepCardRendererOptions {
+  showScopeLabel?: boolean
+  showCheckBadge?: boolean
+  bodyClassName?: string
+  className?: string
 }
 
 function resolveQuizPreviewOptionsFromContext(ctx: RenderContext): ResolvedQuizPreviewOptions {
-  const defaultReveal = ctx.mode === "report"
-  return {
-    showAnswers: ctx.quizPreview?.showAnswers ?? defaultReveal,
-    showRubric: ctx.quizPreview?.showRubric ?? defaultReveal,
-  }
+  return resolveQuizPreviewOptions(ctx.mode, ctx.quizPreview)
 }
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
@@ -92,6 +91,49 @@ function buildQuizStemChildren(
 
   if (children.length === 0) {
     children.push(stem)
+  }
+
+  return children
+}
+
+function isStepBodyVNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object") {
+    return false
+  }
+
+  const props = (node as VNode).props as Record<string, unknown> | null | undefined
+  if (!props) {
+    return false
+  }
+
+  const classValue = props.class
+  const classNames = Array.isArray(classValue)
+    ? classValue
+    : typeof classValue === "string"
+      ? [classValue]
+      : []
+
+  return props["data-aimd-step-body"] === "true"
+    || props["data-aimd-step-body"] === true
+    || props.dataAimdStepBody === "true"
+    || props.dataAimdStepBody === true
+    || classNames.some((className) => typeof className === "string" && className.includes("aimd-step-body"))
+}
+
+function normalizeStepCardBodyChildren(children?: VNodeChild[]): VNodeChild[] {
+  if (!children || children.length === 0) {
+    return []
+  }
+
+  const groupedBody = children.find((child) => isStepBodyVNode(child))
+  if (groupedBody && typeof groupedBody === "object" && groupedBody !== null) {
+    const groupedChildren = (groupedBody as VNode).children
+    if (Array.isArray(groupedChildren)) {
+      return groupedChildren as VNodeChild[]
+    }
+    if (groupedChildren !== null && groupedChildren !== undefined) {
+      return [groupedChildren as VNodeChild]
+    }
   }
 
   return children
@@ -569,7 +611,7 @@ function resolveRenderContext(options: VueRendererOptions): AimdRendererContext 
 /**
  * Figure context for tracking figure numbers and references
  */
-interface FigureContext {
+export interface FigureContext {
   /** Map from fig ID to sequence number */
   figureNumbers: Map<string, number>
   /** Current figure sequence counter */
@@ -879,7 +921,13 @@ export function hastToVue(
             .filter(Boolean)
           const result = renderer(aimdData, context, childVNodes)
           if (isPromiseLike<VNode>(result)) {
-            // This traversal is synchronous; async custom renderers are ignored here.
+            if (typeof process !== "undefined" && process.env?.NODE_ENV !== "production") {
+              console.warn(
+                `[aimd-renderer] Async renderer for "${aimdData.fieldType}" returned a Promise, `
+                + `but hastToVue() is synchronous. The node will be skipped. `
+                + `Use a synchronous renderer or handle async rendering at a higher level.`,
+              )
+            }
             return null
           }
           if (result) {
@@ -979,6 +1027,189 @@ export function createComponentRenderer(
   return (node, ctx, children) => {
     const props = propsMapper ? propsMapper(node, ctx) : { node, ctx }
     return h(component, props, children ? { default: () => children } : undefined)
+  }
+}
+
+export function createStepCardRenderer(
+  options: AimdStepCardRendererOptions = {},
+): AimdComponentRenderer {
+  const {
+    showScopeLabel = true,
+    showCheckBadge = true,
+    bodyClassName = "",
+    className = "",
+  } = options
+
+  return (node, ctx, children) => {
+    const stepNode = node as AimdStepNode
+    const stepLabel = stepNode.step || "?"
+    const title = stepNode.title || stepNode.id
+    const subtitle = stepNode.subtitle || ""
+    const isResult = Boolean(stepNode.result)
+    const hasCheck = Boolean(stepNode.check)
+    const level = Number(stepNode.level || 1)
+    const bodyChildren = normalizeStepCardBodyChildren(children)
+
+    const rootClasses = [
+      "aimd-step-card",
+      className,
+      level > 1 ? `aimd-step-card--level-${level}` : "",
+      isResult ? "aimd-step-card--result" : "",
+      hasCheck ? "aimd-step-card--checkable" : "",
+    ].filter(Boolean)
+
+    return h("article", {
+      class: rootClasses,
+      "data-aimd-step-id": stepNode.id,
+      "data-aimd-step-level": String(level),
+      style: {
+        display: "grid",
+        gap: "14px",
+        padding: level > 1 ? "16px 18px 16px 20px" : "18px 20px",
+        margin: "12px 0",
+        borderRadius: "18px",
+        border: "1px solid rgba(26, 39, 31, 0.12)",
+        background: isResult
+          ? "linear-gradient(180deg, rgba(255,248,233,0.98) 0%, rgba(255,252,245,0.98) 100%)"
+          : "linear-gradient(180deg, rgba(248,252,249,0.98) 0%, rgba(255,255,255,0.98) 100%)",
+        boxShadow: "0 18px 40px rgba(15, 31, 23, 0.08)",
+        position: "relative",
+        overflow: "hidden",
+      },
+    }, [
+      h("header", {
+        class: "aimd-step-card__header",
+        style: {
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "14px",
+        },
+      }, [
+        h("div", {
+          style: {
+            display: "flex",
+            gap: "14px",
+            alignItems: "flex-start",
+            minWidth: "0",
+          },
+        }, [
+          h("div", {
+            class: "aimd-step-card__badge",
+            style: {
+              minWidth: "42px",
+              height: "42px",
+              borderRadius: "14px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: "700",
+              fontSize: "14px",
+              color: "#0d5139",
+              background: hasCheck
+                ? "linear-gradient(180deg, rgba(212,242,227,1) 0%, rgba(184,233,208,1) 100%)"
+                : "linear-gradient(180deg, rgba(232,241,236,1) 0%, rgba(216,232,222,1) 100%)",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+              flexShrink: 0,
+            },
+          }, stepLabel),
+          h("div", {
+            style: {
+              display: "grid",
+              gap: "6px",
+              minWidth: "0",
+            },
+          }, [
+            showScopeLabel
+              ? h("div", {
+                  style: {
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#5d7066",
+                  },
+                }, ctx.messages.scope.step)
+              : null,
+            h("div", {
+              class: "aimd-step-card__title",
+              style: {
+                fontSize: "18px",
+                fontWeight: "700",
+                lineHeight: "1.2",
+                color: "#1b2b22",
+                wordBreak: "break-word",
+              },
+            }, title),
+            subtitle
+              ? h("div", {
+                  class: "aimd-step-card__subtitle",
+                  style: {
+                    fontSize: "13px",
+                    lineHeight: "1.45",
+                    color: "#5c6f65",
+                  },
+                }, subtitle)
+              : null,
+          ]),
+        ]),
+        h("div", {
+          style: {
+            display: "flex",
+            gap: "8px",
+            alignItems: "center",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          },
+        }, [
+          showCheckBadge && hasCheck
+            ? h("span", {
+                style: {
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  background: "rgba(22, 114, 79, 0.10)",
+                  color: "#0d5139",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                },
+              }, "Check")
+            : null,
+          isResult
+            ? h("span", {
+                style: {
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "6px 10px",
+                  borderRadius: "999px",
+                  background: "rgba(181, 118, 0, 0.10)",
+                  color: "#8a4f00",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                },
+              }, "Result")
+            : null,
+        ]),
+      ]),
+      bodyChildren.length > 0
+        ? h("div", {
+            class: ["aimd-step-card__body", bodyClassName].filter(Boolean),
+            style: {
+              display: "grid",
+              gap: "10px",
+              color: "#24352c",
+              fontSize: "14px",
+              lineHeight: "1.75",
+            },
+          }, bodyChildren)
+        : null,
+    ])
   }
 }
 

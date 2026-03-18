@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
+## [1.7.0] - 2026-03-19
+
+### Added
+
+- Added `fieldAdapters` on `AimdRecorder` so host applications can replace or wrap built-in `var`, `var_table`, `step`, `check`, and `quiz` field UIs while keeping AIMD parsing and record-state management in the recorder.
+- Exported recorder-side adapter types (`AimdRecorderFieldAdapter*`) for typed host integrations that need access to the parsed node, current value, localized messages, and default recorder vnode.
+
 ## [1.6.0] - 2026-03-17
 
 ### Added

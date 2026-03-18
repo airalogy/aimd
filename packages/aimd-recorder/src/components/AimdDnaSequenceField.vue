@@ -13,44 +13,36 @@ import {
   createEmptyDnaSequenceAnnotation,
   createEmptyDnaSequenceQualifier,
   createEmptyDnaSequenceSegment,
-  getDnaSequenceSegmentIssue,
   getNextDnaSequenceAnnotationId,
-  normalizeDnaSequenceName,
   normalizeDnaSequenceValue,
-  serializeDnaSequenceToGenBank,
 } from "../composables/useDnaSequence"
-import AimdSeqVizViewer from "./AimdSeqVizViewer.vue"
+import {
+  buildViewerAnnotationId,
+  buildViewerAnnotations,
+  createExternalSelectionFromSegment,
+  createExternalSelectionFromSelection,
+  createSegmentsFromSelection,
+  detectImportedName,
+  detectImportedTopology,
+  downloadGenBankFile,
+  formatSegment,
+  normalizeImportedSequenceText,
+  normalizeViewerSelection,
+  parseViewerAnnotationId,
+  stripFileExtension,
+} from "../composables/useDnaSequenceField"
+import type {
+  DnaEditorMode,
+  ViewerExternalSelection,
+  ViewerSelection,
+} from "../composables/useDnaSequenceField"
 
-type DnaEditorMode = "interactive" | "raw"
+import DnaSequenceToolbar from "./DnaSequenceToolbar.vue"
+import DnaSequenceViewer from "./DnaSequenceViewer.vue"
+import DnaSequenceEditor from "./DnaSequenceEditor.vue"
+import DnaAnnotationEditor from "./DnaAnnotationEditor.vue"
 
-interface ViewerAnnotation {
-  id: string
-  name: string
-  start: number
-  end: number
-  direction?: 1 | -1
-  color?: string
-}
-
-interface ViewerSelection {
-  clockwise?: boolean
-  direction?: number
-  end?: number
-  id?: string
-  length?: number
-  name?: string
-  start?: number
-  type: string
-  viewer?: "LINEAR" | "CIRCULAR"
-}
-
-interface ViewerExternalSelection {
-  clockwise?: boolean
-  end: number
-  start: number
-}
-
-const VIEWER_ANNOTATION_PREFIX = "dna_annotation"
+// ---- Props & Emits (public API — unchanged) ----
 
 const props = withDefaults(defineProps<{
   modelValue?: unknown
@@ -69,6 +61,8 @@ const emit = defineEmits<{
   (e: "blur"): void
 }>()
 
+// ---- Core reactive state ----
+
 const value = computed(() => normalizeDnaSequenceValue(props.modelValue))
 const sequenceLength = computed(() => value.value.sequence.length)
 const gcPercent = computed(() => calculateDnaSequenceGcPercent(value.value.sequence))
@@ -79,45 +73,40 @@ const activeAnnotationId = ref<string | null>(null)
 const activeSegmentIndex = ref(0)
 const selection = ref<ViewerSelection | null>(null)
 const viewerSelection = ref<ViewerExternalSelection | null>(null)
-const interactiveNameInputRef = ref<HTMLInputElement | null>(null)
 const interactiveSequenceDraft = ref("")
 const importFileInputRef = ref<HTMLInputElement | null>(null)
 const importErrorMessage = ref<string | null>(null)
+const annotationEditorRef = ref<InstanceType<typeof DnaAnnotationEditor> | null>(null)
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value)
-}
+const isInteractiveMode = computed(() => editorMode.value === "interactive")
+const hasInteractiveSequenceDraft = computed(() => interactiveSequenceDraft.value.trim().length > 0)
 
-function buildViewerAnnotationId(annotationId: string, segmentIndex: number): string {
-  return `${VIEWER_ANNOTATION_PREFIX}:${annotationId}:${segmentIndex}`
-}
+const activeAnnotationIndex = computed(() =>
+  value.value.annotations.findIndex(a => a.id === activeAnnotationId.value))
 
-function parseViewerAnnotationId(id: string | undefined): { annotationId: string; segmentIndex: number } | null {
-  if (!id || !id.startsWith(`${VIEWER_ANNOTATION_PREFIX}:`)) {
-    return null
+const activeAnnotation = computed(() =>
+  activeAnnotationIndex.value >= 0 ? value.value.annotations[activeAnnotationIndex.value] : null)
+
+const viewerAnnotations = computed(() =>
+  buildViewerAnnotations(value.value.annotations, sequenceLength.value))
+
+const selectionSegments = computed(() =>
+  createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value))
+
+const selectionRangeLabel = computed(() => {
+  if (selectionSegments.value.length === 0) return ""
+  return props.messages.dna.selectionRange(selectionSegments.value.map(formatSegment).join(", "))
+})
+
+const selectionTargetLabel = computed(() => {
+  if (!selection.value) return ""
+  if (selection.value.type === "ANNOTATION" && selection.value.name) {
+    return props.messages.dna.selectionTarget(selection.value.name)
   }
+  return props.messages.dna.selectionTarget(props.messages.dna.selectionModeSequence)
+})
 
-  const [, annotationId = "", rawSegmentIndex = "0"] = id.split(":")
-  const segmentIndex = Number.parseInt(rawSegmentIndex, 10)
-  if (!annotationId || !Number.isFinite(segmentIndex) || segmentIndex < 0) {
-    return null
-  }
-
-  return {
-    annotationId,
-    segmentIndex,
-  }
-}
-
-function formatSegment(segment: AimdDnaSequenceSegment): string {
-  const start = segment.partial_start ? `<${segment.start}` : String(segment.start)
-  const end = segment.partial_end ? `>${segment.end}` : String(segment.end)
-  return `${start}..${end}`
-}
-
-function annotationSegmentsLabel(annotation: AimdDnaSequenceAnnotation): string {
-  return annotation.segments.map(formatSegment).join(", ")
-}
+// ---- Value mutation helpers ----
 
 function commit(nextValue: unknown) {
   emit("update:modelValue", normalizeDnaSequenceValue(nextValue))
@@ -128,10 +117,8 @@ function patchValue(patch: Partial<AimdDnaSequenceValue>) {
 }
 
 function patchAnnotation(index: number, patch: Partial<AimdDnaSequenceAnnotation>) {
-  const annotations = value.value.annotations.map((annotation, annotationIndex) =>
-    annotationIndex === index
-      ? { ...annotation, ...patch }
-      : annotation)
+  const annotations = value.value.annotations.map((annotation, i) =>
+    i === index ? { ...annotation, ...patch } : annotation)
   patchValue({ annotations })
 }
 
@@ -142,11 +129,8 @@ function patchSegment(
 ) {
   const annotation = value.value.annotations[annotationIndex]
   if (!annotation) return
-
-  const segments = annotation.segments.map((segment, currentIndex) =>
-    currentIndex === segmentIndex
-      ? { ...segment, ...patch }
-      : segment)
+  const segments = annotation.segments.map((s, i) =>
+    i === segmentIndex ? { ...s, ...patch } : s)
   patchAnnotation(annotationIndex, { segments })
 }
 
@@ -157,304 +141,22 @@ function patchQualifier(
 ) {
   const annotation = value.value.annotations[annotationIndex]
   if (!annotation) return
-
-  const qualifiers = annotation.qualifiers.map((qualifier, currentIndex) =>
-    currentIndex === qualifierIndex
-      ? { ...qualifier, ...patch }
-      : qualifier)
+  const qualifiers = annotation.qualifiers.map((q, i) =>
+    i === qualifierIndex ? { ...q, ...patch } : q)
   patchAnnotation(annotationIndex, { qualifiers })
 }
 
-function normalizeViewerSelection(value: unknown): ViewerSelection | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null
-  }
-
-  const selection = value as Record<string, unknown>
-  const hasRange = isFiniteNumber(selection.start) && isFiniteNumber(selection.end)
-  const type = typeof selection.type === "string" && selection.type
-    ? selection.type
-    : hasRange
-      ? "SEQ"
-      : ""
-  if (!type) {
-    return null
-  }
-
-  return {
-    type,
-    clockwise: selection.clockwise === true,
-    direction: isFiniteNumber(selection.direction) ? selection.direction : undefined,
-    end: isFiniteNumber(selection.end) ? selection.end : undefined,
-    id: typeof selection.id === "string" ? selection.id : undefined,
-    length: isFiniteNumber(selection.length) ? selection.length : undefined,
-    name: typeof selection.name === "string" ? selection.name : undefined,
-    start: isFiniteNumber(selection.start) ? selection.start : undefined,
-    viewer: selection.viewer === "CIRCULAR" ? "CIRCULAR" : selection.viewer === "LINEAR" ? "LINEAR" : undefined,
-  }
-}
-
-function createSegmentsFromSelection(
-  nextSelection: ViewerSelection | null,
-  topology: "linear" | "circular",
-  totalLength: number,
-): AimdDnaSequenceSegment[] {
-  if (!nextSelection || totalLength <= 0) {
-    return []
-  }
-
-  if (!isFiniteNumber(nextSelection.start) || !isFiniteNumber(nextSelection.end)) {
-    return []
-  }
-
-  const rawStart = Math.max(0, Math.min(nextSelection.start, totalLength - 1))
-  const rawEnd = Math.max(0, Math.min(nextSelection.end, totalLength))
-
-  if (rawEnd === rawStart) {
-    return []
-  }
-
-  if (topology === "circular" && rawEnd < rawStart) {
-    const segments: AimdDnaSequenceSegment[] = []
-
-    if (rawStart < totalLength) {
-      segments.push({
-        start: rawStart + 1,
-        end: totalLength,
-        partial_start: false,
-        partial_end: false,
-      })
-    }
-
-    if (rawEnd > 0) {
-      segments.push({
-        start: 1,
-        end: rawEnd,
-        partial_start: false,
-        partial_end: false,
-      })
-    }
-
-    return segments.filter(segment => segment.end >= segment.start)
-  }
-
-  const start = Math.min(rawStart, rawEnd)
-  const end = Math.max(rawStart, rawEnd)
-  return [{
-    start: start + 1,
-    end,
-    partial_start: false,
-    partial_end: false,
-  }]
-}
-
-function createExternalSelectionFromSegment(segment: AimdDnaSequenceSegment): ViewerExternalSelection {
-  return {
-    start: Math.max(segment.start - 1, 0),
-    end: segment.end,
-    clockwise: true,
-  }
-}
-
-function createExternalSelectionFromSelection(nextSelection: ViewerSelection | null): ViewerExternalSelection | null {
-  if (!nextSelection || !isFiniteNumber(nextSelection.start) || !isFiniteNumber(nextSelection.end)) {
-    return null
-  }
-
-  return {
-    start: nextSelection.start,
-    end: nextSelection.end,
-    clockwise: nextSelection.clockwise,
-  }
-}
-
-function setEditorMode(mode: DnaEditorMode) {
-  editorMode.value = mode
-}
-
-function openRawEditor() {
-  editorMode.value = "raw"
-}
-
-function openInteractiveEditor() {
-  editorMode.value = "interactive"
-}
-
-async function focusActiveAnnotationEditor() {
-  if (!activeAnnotation.value) {
-    return
-  }
-
-  await nextTick()
-  interactiveNameInputRef.value?.scrollIntoView({ block: "nearest" })
-  interactiveNameInputRef.value?.focus()
-  interactiveNameInputRef.value?.select()
-}
+// ---- Selection helpers ----
 
 function clearSelection() {
   selection.value = null
   viewerSelection.value = null
 }
 
-function sanitizeDownloadBaseName(value: string): string {
-  const normalized = value.trim().replace(/\s+/g, "_").replace(/[^A-Za-z0-9_.-]/g, "_")
-  return normalized || "dna_sequence"
-}
-
-function downloadGenBank() {
-  if (sequenceLength.value <= 0 || typeof document === "undefined" || typeof URL === "undefined") {
-    return
-  }
-
-  const content = serializeDnaSequenceToGenBank(value.value, {
-    name: value.value.name || props.varId,
-  })
-  const blob = new Blob([content], {
-    type: "text/plain;charset=utf-8",
-  })
-  const objectUrl = URL.createObjectURL(blob)
-  const anchor = document.createElement("a")
-  anchor.href = objectUrl
-  anchor.download = `${sanitizeDownloadBaseName(value.value.name || props.varId)}.gbk`
-  document.body.append(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => {
-    URL.revokeObjectURL(objectUrl)
-  }, 0)
-}
-
-function detectImportedTopology(text: string): "linear" | "circular" | null {
-  const normalized = text.replace(/\r\n?/g, "\n")
-  const locusLine = normalized.match(/(?:^|\n)LOCUS[^\n]*/i)?.[0]
-  if (!locusLine) {
-    return null
-  }
-  if (/\bcircular\b/i.test(locusLine)) {
-    return "circular"
-  }
-  if (/\blinear\b/i.test(locusLine)) {
-    return "linear"
-  }
-  return null
-}
-
-function stripFileExtension(value: string): string {
-  return value.replace(/\.[^.]+$/, "")
-}
-
-function detectImportedName(text: string, fallbackName = ""): string {
-  const normalized = text.replace(/\r\n?/g, "\n")
-  const locusMatch = normalized.match(/(?:^|\n)LOCUS\s+([^\s]+)/i)
-  if (locusMatch?.[1]) {
-    return normalizeDnaSequenceName(locusMatch[1])
-  }
-
-  const fastaMatch = normalized.match(/^\s*>(.+)$/m)
-  if (fastaMatch?.[1]) {
-    return normalizeDnaSequenceName(fastaMatch[1])
-  }
-
-  return normalizeDnaSequenceName(fallbackName)
-}
-
-function normalizeImportedSequenceText(text: string): string {
-  const normalized = text.replace(/\r\n?/g, "\n")
-  const genBankMatch = normalized.match(/(?:^|\n)ORIGIN\b([\s\S]*?)(?:\n\/\/|\s*$)/i)
-  if (genBankMatch?.[1]) {
-    return genBankMatch[1].replace(/[^A-Za-z]/g, "").toUpperCase()
-  }
-
-  if (/^\s*>/m.test(normalized)) {
-    return normalized
-      .split("\n")
-      .filter(line => !line.trimStart().startsWith(">"))
-      .join("")
-      .replace(/[^A-Za-z]/g, "")
-      .toUpperCase()
-  }
-
-  return normalized.replace(/[^A-Za-z]/g, "").toUpperCase()
-}
-
-function confirmImportReplacement(): boolean {
-  if (sequenceLength.value <= 0 && value.value.annotations.length === 0) {
-    return true
-  }
-  if (typeof window === "undefined" || typeof window.confirm !== "function") {
-    return true
-  }
-  return window.confirm(props.messages.dna.importReplaceConfirm)
-}
-
-function applyImportedSequenceText(rawText: string, fallbackName = ""): boolean {
-  const nextSequence = normalizeImportedSequenceText(rawText)
-  if (!nextSequence) {
-    importErrorMessage.value = props.messages.dna.onboardingNoSequenceDetected
-    return false
-  }
-
-  const invalid = collectInvalidDnaSequenceCharacters(nextSequence)
-  if (invalid.length > 0) {
-    importErrorMessage.value = props.messages.dna.invalidCharacters(invalid.join(", "))
-    return false
-  }
-
-  if (!confirmImportReplacement()) {
-    return false
-  }
-
-  const nextName = detectImportedName(rawText, fallbackName) || value.value.name
-  commit({
-    ...value.value,
-    name: nextName,
-    sequence: nextSequence,
-    topology: detectImportedTopology(rawText) ?? value.value.topology,
-    annotations: [],
-  })
-  interactiveSequenceDraft.value = ""
-  importErrorMessage.value = null
-  activeAnnotationId.value = null
-  activeSegmentIndex.value = 0
-  clearSelection()
-  return true
-}
-
-function onInteractiveSequenceDraftInput(event: Event) {
-  interactiveSequenceDraft.value = (event.target as HTMLTextAreaElement).value
-  importErrorMessage.value = null
-}
-
-function applyInteractiveSequenceDraft() {
-  applyImportedSequenceText(interactiveSequenceDraft.value)
-}
-
-function openImportPicker() {
-  importFileInputRef.value?.click()
-}
-
-async function onImportChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ""
-  if (!file) {
-    return
-  }
-
-  try {
-    const text = await file.text()
-    applyImportedSequenceText(text, stripFileExtension(file.name))
-  } catch {
-    importErrorMessage.value = props.messages.dna.onboardingImportReadError
-  }
-}
-
 function selectAnnotation(annotationId: string, segmentIndex = 0) {
-  const annotation = value.value.annotations.find(item => item.id === annotationId)
+  const annotation = value.value.annotations.find(a => a.id === annotationId)
   const segment = annotation?.segments[segmentIndex]
-  if (!annotation || !segment) {
-    return
-  }
+  if (!annotation || !segment) return
 
   activeAnnotationId.value = annotationId
   activeSegmentIndex.value = segmentIndex
@@ -471,18 +173,30 @@ function selectAnnotation(annotationId: string, segmentIndex = 0) {
   viewerSelection.value = createExternalSelectionFromSegment(segment)
 }
 
-function focusAnnotationInInteractive(annotationId: string, segmentIndex = 0) {
-  selectAnnotation(annotationId, segmentIndex)
-  openInteractiveEditor()
+// ---- Editor mode helpers ----
+
+function openRawEditor() {
+  editorMode.value = "raw"
 }
 
-function handleAnnotationPrimaryAction(annotationId: string) {
-  if (editorMode.value === "interactive") {
-    focusAnnotationInInteractive(annotationId)
-    return
-  }
+function openInteractiveEditor() {
+  editorMode.value = "interactive"
+}
 
-  selectAnnotation(annotationId)
+// ---- Annotation CRUD ----
+
+function createAnnotationFromSelection() {
+  const segments = createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value)
+  if (segments.length === 0) return
+
+  const nextId = getNextDnaSequenceAnnotationId(value.value.annotations)
+  const annotation = createEmptyDnaSequenceAnnotation(nextId)
+  annotation.strand = selection.value?.direction === -1 ? -1 : 1
+  annotation.segments = segments
+
+  patchValue({ annotations: [...value.value.annotations, annotation] })
+  activeAnnotationId.value = annotation.id
+  activeSegmentIndex.value = 0
 }
 
 function addAnnotation() {
@@ -503,10 +217,7 @@ function addAnnotation() {
     }]
   }
 
-  patchValue({
-    annotations: [...value.value.annotations, annotation],
-  })
-
+  patchValue({ annotations: [...value.value.annotations, annotation] })
   activeAnnotationId.value = annotation.id
   activeSegmentIndex.value = 0
 }
@@ -514,7 +225,7 @@ function addAnnotation() {
 function removeAnnotation(index: number) {
   const removed = value.value.annotations[index]
   patchValue({
-    annotations: value.value.annotations.filter((_, annotationIndex) => annotationIndex !== index),
+    annotations: value.value.annotations.filter((_, i) => i !== index),
   })
 
   if (removed && activeAnnotationId.value === removed.id) {
@@ -528,7 +239,6 @@ function removeAnnotation(index: number) {
 function addSegment(annotationIndex: number) {
   const annotation = value.value.annotations[annotationIndex]
   if (!annotation) return
-
   patchAnnotation(annotationIndex, {
     segments: [...annotation.segments, createEmptyDnaSequenceSegment()],
   })
@@ -540,7 +250,7 @@ function removeSegment(annotationIndex: number, segmentIndex: number) {
 
   const nextSegments = annotation.segments.length <= 1
     ? [createEmptyDnaSequenceSegment()]
-    : annotation.segments.filter((_, currentIndex) => currentIndex !== segmentIndex)
+    : annotation.segments.filter((_, i) => i !== segmentIndex)
 
   patchAnnotation(annotationIndex, { segments: nextSegments })
 
@@ -552,7 +262,6 @@ function removeSegment(annotationIndex: number, segmentIndex: number) {
 function addQualifier(annotationIndex: number) {
   const annotation = value.value.annotations[annotationIndex]
   if (!annotation) return
-
   patchAnnotation(annotationIndex, {
     qualifiers: [
       ...annotation.qualifiers,
@@ -564,42 +273,41 @@ function addQualifier(annotationIndex: number) {
 function removeQualifier(annotationIndex: number, qualifierIndex: number) {
   const annotation = value.value.annotations[annotationIndex]
   if (!annotation) return
-
   patchAnnotation(annotationIndex, {
-    qualifiers: annotation.qualifiers.filter((_, currentIndex) => currentIndex !== qualifierIndex),
+    qualifiers: annotation.qualifiers.filter((_, i) => i !== qualifierIndex),
   })
 }
 
-function onSequenceInput(event: Event) {
-  patchValue({ sequence: (event.target as HTMLTextAreaElement).value })
+function applySelectionToActiveSegment() {
+  const annotationIndex = value.value.annotations.findIndex(a => a.id === activeAnnotationId.value)
+  if (annotationIndex < 0) return
+
+  const annotation = value.value.annotations[annotationIndex]
+  const segments = createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value)
+  if (!annotation || segments.length === 0) return
+
+  const currentIndex = Math.min(activeSegmentIndex.value, annotation.segments.length - 1)
+  const nextSegments = annotation.segments.flatMap((s, i) =>
+    i === currentIndex ? segments : [s])
+
+  patchAnnotation(annotationIndex, { segments: nextSegments })
+  activeSegmentIndex.value = currentIndex
 }
 
-function onSegmentIntInput(
-  annotationIndex: number,
-  segmentIndex: number,
-  key: "start" | "end",
-  event: Event,
-) {
-  const raw = (event.target as HTMLInputElement).value
-  const parsed = Number.parseInt(raw, 10)
-  if (Number.isFinite(parsed) && parsed > 0) {
-    patchSegment(annotationIndex, segmentIndex, { [key]: parsed } as Partial<AimdDnaSequenceSegment>)
-  }
+function focusAnnotationInInteractive(annotationId: string, segmentIndex = 0) {
+  selectAnnotation(annotationId, segmentIndex)
+  openInteractiveEditor()
 }
 
-function segmentIssueLabel(segment: AimdDnaSequenceSegment): string | null {
-  const issue = getDnaSequenceSegmentIssue(segment, sequenceLength.value)
-  if (issue === "requires_sequence") {
-    return props.messages.dna.segmentRequiresSequence
+function handleAnnotationPrimaryAction(annotationId: string) {
+  if (editorMode.value === "interactive") {
+    focusAnnotationInInteractive(annotationId)
+    return
   }
-  if (issue === "range") {
-    return props.messages.dna.segmentRangeError
-  }
-  if (issue === "out_of_bounds") {
-    return props.messages.dna.segmentOutOfBounds(segment.end, sequenceLength.value)
-  }
-  return null
+  selectAnnotation(annotationId)
 }
+
+// ---- Viewer selection handler ----
 
 function onViewerSelection(nextSelection: ViewerSelection) {
   const normalized = normalizeViewerSelection(nextSelection)
@@ -613,44 +321,101 @@ function onViewerSelection(nextSelection: ViewerSelection) {
   }
 }
 
-function createAnnotationFromSelection() {
-  const segments = createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value)
-  if (segments.length === 0) {
-    return
+// ---- Import / export ----
+
+function confirmImportReplacement(): boolean {
+  if (sequenceLength.value <= 0 && value.value.annotations.length === 0) return true
+  if (typeof window === "undefined" || typeof window.confirm !== "function") return true
+  return window.confirm(props.messages.dna.importReplaceConfirm)
+}
+
+function applyImportedSequenceText(rawText: string, fallbackName = ""): boolean {
+  const nextSequence = normalizeImportedSequenceText(rawText)
+  if (!nextSequence) {
+    importErrorMessage.value = props.messages.dna.onboardingNoSequenceDetected
+    return false
   }
 
-  const nextId = getNextDnaSequenceAnnotationId(value.value.annotations)
-  const annotation = createEmptyDnaSequenceAnnotation(nextId)
-  annotation.strand = selection.value?.direction === -1 ? -1 : 1
-  annotation.segments = segments
+  const invalid = collectInvalidDnaSequenceCharacters(nextSequence)
+  if (invalid.length > 0) {
+    importErrorMessage.value = props.messages.dna.invalidCharacters(invalid.join(", "))
+    return false
+  }
 
-  patchValue({
-    annotations: [...value.value.annotations, annotation],
+  if (!confirmImportReplacement()) return false
+
+  const nextName = detectImportedName(rawText, fallbackName) || value.value.name
+  commit({
+    ...value.value,
+    name: nextName,
+    sequence: nextSequence,
+    topology: detectImportedTopology(rawText) ?? value.value.topology,
+    annotations: [],
   })
-
-  activeAnnotationId.value = annotation.id
+  interactiveSequenceDraft.value = ""
+  importErrorMessage.value = null
+  activeAnnotationId.value = null
   activeSegmentIndex.value = 0
+  clearSelection()
+  return true
 }
 
-function applySelectionToActiveSegment() {
-  const annotationIndex = value.value.annotations.findIndex(annotation => annotation.id === activeAnnotationId.value)
-  if (annotationIndex < 0) {
-    return
-  }
-
-  const annotation = value.value.annotations[annotationIndex]
-  const segments = createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value)
-  if (!annotation || segments.length === 0) {
-    return
-  }
-
-  const currentIndex = Math.min(activeSegmentIndex.value, annotation.segments.length - 1)
-  const nextSegments = annotation.segments.flatMap((segment, index) =>
-    index === currentIndex ? segments : [segment])
-
-  patchAnnotation(annotationIndex, { segments: nextSegments })
-  activeSegmentIndex.value = currentIndex
+function openImportPicker() {
+  importFileInputRef.value?.click()
 }
+
+async function onImportChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ""
+  if (!file) return
+
+  try {
+    const text = await file.text()
+    applyImportedSequenceText(text, stripFileExtension(file.name))
+  } catch {
+    importErrorMessage.value = props.messages.dna.onboardingImportReadError
+  }
+}
+
+function downloadGenBank() {
+  downloadGenBankFile(value.value, props.varId)
+}
+
+// ---- Toolbar event handlers ----
+
+function onEditorModeChange(mode: DnaEditorMode) {
+  editorMode.value = mode
+}
+
+function onTopologyChange(topology: "linear" | "circular") {
+  patchValue({ topology })
+}
+
+// ---- Viewer event handlers ----
+
+function onSequenceDraftInput(draft: string) {
+  interactiveSequenceDraft.value = draft
+  importErrorMessage.value = null
+}
+
+function applyInteractiveSequenceDraft() {
+  applyImportedSequenceText(interactiveSequenceDraft.value)
+}
+
+async function focusActiveAnnotationEditor() {
+  if (!activeAnnotation.value) return
+  await nextTick()
+  annotationEditorRef.value?.focusNameInput()
+}
+
+// ---- Raw editor handler ----
+
+function onSequenceUpdate(seq: string) {
+  patchValue({ sequence: seq })
+}
+
+// ---- Watchers ----
 
 watch(() => value.value.annotations, annotations => {
   if (annotations.length === 0) {
@@ -659,86 +424,22 @@ watch(() => value.value.annotations, annotations => {
     return
   }
 
-  const activeAnnotation = annotations.find(annotation => annotation.id === activeAnnotationId.value)
-  if (!activeAnnotation) {
+  const found = annotations.find(a => a.id === activeAnnotationId.value)
+  if (!found) {
     activeAnnotationId.value = annotations[0].id
     activeSegmentIndex.value = 0
     return
   }
 
-  activeSegmentIndex.value = Math.min(activeSegmentIndex.value, activeAnnotation.segments.length - 1)
+  activeSegmentIndex.value = Math.min(activeSegmentIndex.value, found.segments.length - 1)
 }, { deep: true, immediate: true })
 
-watch(() => value.value.sequence, sequence => {
-  if (sequence.length > 0) {
+watch(() => value.value.sequence, seq => {
+  if (seq.length > 0) {
     interactiveSequenceDraft.value = ""
     importErrorMessage.value = null
   }
 })
-
-const isInteractiveMode = computed(() => editorMode.value === "interactive")
-const hasInteractiveSequenceDraft = computed(() => interactiveSequenceDraft.value.trim().length > 0)
-
-const activeAnnotationIndex = computed(() =>
-  value.value.annotations.findIndex(annotation => annotation.id === activeAnnotationId.value))
-
-const activeAnnotation = computed(() =>
-  activeAnnotationIndex.value >= 0 ? value.value.annotations[activeAnnotationIndex.value] : null)
-
-const viewerAnnotations = computed<ViewerAnnotation[]>(() => {
-  const annotations: ViewerAnnotation[] = []
-  const totalLength = sequenceLength.value
-
-  for (const annotation of value.value.annotations) {
-    annotation.segments.forEach((segment, segmentIndex) => {
-      const start = Math.max(segment.start - 1, 0)
-      const end = Math.min(segment.end, totalLength)
-      if (totalLength <= 0 || end <= start) {
-        return
-      }
-
-      annotations.push({
-        id: buildViewerAnnotationId(annotation.id, segmentIndex),
-        name: annotation.segments.length > 1
-          ? `${annotation.name} ${segmentIndex + 1}/${annotation.segments.length}`
-          : annotation.name,
-        start,
-        end,
-        direction: annotation.strand,
-        color: annotation.color,
-      })
-    })
-  }
-
-  return annotations
-})
-
-const selectionSegments = computed(() =>
-  createSegmentsFromSelection(selection.value, value.value.topology, sequenceLength.value))
-
-const selectionRangeLabel = computed(() => {
-  if (selectionSegments.value.length === 0) {
-    return ""
-  }
-  return props.messages.dna.selectionRange(selectionSegments.value.map(formatSegment).join(", "))
-})
-
-const selectionTargetLabel = computed(() => {
-  if (!selection.value) {
-    return ""
-  }
-
-  if (selection.value.type === "ANNOTATION" && selection.value.name) {
-    return props.messages.dna.selectionTarget(selection.value.name)
-  }
-
-  return props.messages.dna.selectionTarget(props.messages.dna.selectionModeSequence)
-})
-
-const annotationPrimaryActionLabel = computed(() =>
-  isInteractiveMode.value
-    ? props.messages.dna.focusAnnotation
-    : props.messages.dna.editAnnotation)
 </script>
 
 <template>
@@ -749,67 +450,22 @@ const annotationPrimaryActionLabel = computed(() =>
     </span>
 
     <span class="aimd-dna-field">
-      <span class="aimd-dna-field__toolbar">
-        <label class="aimd-dna-field__toolbar-item aimd-dna-field__toolbar-item--mode">
-          <span class="aimd-dna-field__toolbar-label">{{ props.messages.dna.editMode }}</span>
-          <span class="aimd-dna-field__mode-switch" role="tablist" :aria-label="props.messages.dna.editMode">
-            <button
-              type="button"
-              class="aimd-dna-field__mode-button"
-              :class="{ 'aimd-dna-field__mode-button--active': editorMode === 'interactive' }"
-              :disabled="props.disabled"
-              @click="setEditorMode('interactive')"
-            >
-              {{ props.messages.dna.interactiveMode }}
-            </button>
-            <button
-              type="button"
-              class="aimd-dna-field__mode-button"
-              :class="{ 'aimd-dna-field__mode-button--active': editorMode === 'raw' }"
-              :disabled="props.disabled"
-              @click="setEditorMode('raw')"
-            >
-              {{ props.messages.dna.rawMode }}
-            </button>
-          </span>
-        </label>
+      <DnaSequenceToolbar
+        :editor-mode="editorMode"
+        :topology="value.topology"
+        :sequence-length="sequenceLength"
+        :gc-percent="gcPercent"
+        :disabled="props.disabled"
+        :import-error-message="importErrorMessage"
+        :is-interactive-mode="isInteractiveMode"
+        :messages="props.messages"
+        @update:editor-mode="onEditorModeChange"
+        @update:topology="onTopologyChange"
+        @import-file="openImportPicker"
+        @export-gen-bank="downloadGenBank"
+        @blur="emit('blur')"
+      />
 
-        <label class="aimd-dna-field__toolbar-item">
-          <span class="aimd-dna-field__toolbar-label">{{ props.messages.dna.topology }}</span>
-          <select
-            class="aimd-dna-field__select"
-            :value="value.topology"
-            :disabled="props.disabled"
-            @change="patchValue({ topology: ($event.target as HTMLSelectElement).value === 'circular' ? 'circular' : 'linear' })"
-            @blur="emit('blur')"
-          >
-            <option value="linear">{{ props.messages.dna.linear }}</option>
-            <option value="circular">{{ props.messages.dna.circular }}</option>
-          </select>
-        </label>
-
-        <span class="aimd-dna-field__stat">{{ props.messages.dna.length(sequenceLength) }}</span>
-        <span class="aimd-dna-field__stat">
-          {{ gcPercent === null ? props.messages.dna.gcUnavailable : props.messages.dna.gc(`${gcPercent.toFixed(1)}%`) }}
-        </span>
-        <span class="aimd-dna-field__toolbar-spacer" />
-        <button
-          type="button"
-          class="aimd-dna-field__action aimd-dna-field__action--toolbar"
-          :disabled="props.disabled"
-          @click="openImportPicker"
-        >
-          {{ props.messages.dna.onboardingImportFile }}
-        </button>
-        <button
-          type="button"
-          class="aimd-dna-field__action aimd-dna-field__action--toolbar"
-          :disabled="props.disabled || sequenceLength <= 0"
-          @click="downloadGenBank"
-        >
-          {{ props.messages.dna.exportGenBank }}
-        </button>
-      </span>
       <input
         ref="importFileInputRef"
         class="aimd-dna-field__hidden-file"
@@ -817,12 +473,6 @@ const annotationPrimaryActionLabel = computed(() =>
         accept=".txt,.seq,.fa,.fna,.fasta,.gb,.gbk,text/plain"
         @change="onImportChange"
       >
-      <span
-        v-if="importErrorMessage && (!isInteractiveMode || sequenceLength > 0)"
-        class="aimd-dna-field__hint aimd-dna-field__hint--error aimd-dna-field__hint--toolbar"
-      >
-        {{ importErrorMessage }}
-      </span>
 
       <span class="aimd-dna-field__metadata-grid">
         <label class="aimd-dna-field__annotation-field aimd-dna-field__annotation-field--metadata">
@@ -838,537 +488,78 @@ const annotationPrimaryActionLabel = computed(() =>
         </label>
       </span>
 
-      <template v-if="isInteractiveMode">
-        <span class="aimd-dna-field__section">
-          <span class="aimd-dna-field__section-title">{{ props.messages.dna.viewer }}</span>
+      <DnaSequenceViewer
+        v-if="isInteractiveMode"
+        :name="value.name || props.varId"
+        :sequence="value.sequence"
+        :topology="value.topology"
+        :sequence-length="sequenceLength"
+        :viewer-annotations="viewerAnnotations"
+        :viewer-selection="viewerSelection"
+        :selection-segments="selectionSegments"
+        :selection-range-label="selectionRangeLabel"
+        :selection-target-label="selectionTargetLabel"
+        :has-active-annotation="!!activeAnnotation"
+        :is-annotation-selection="selection?.type === 'ANNOTATION'"
+        :interactive-sequence-draft="interactiveSequenceDraft"
+        :has-interactive-sequence-draft="hasInteractiveSequenceDraft"
+        :import-error-message="importErrorMessage"
+        :disabled="props.disabled"
+        :placeholder="props.placeholder"
+        :messages="props.messages"
+        @viewer-selection="onViewerSelection"
+        @create-from-selection="createAnnotationFromSelection"
+        @apply-selection-to-segment="applySelectionToActiveSegment"
+        @edit-annotation="focusActiveAnnotationEditor"
+        @clear-selection="clearSelection"
+        @sequence-draft-input="onSequenceDraftInput"
+        @apply-sequence-draft="applyInteractiveSequenceDraft"
+        @open-raw-editor="openRawEditor"
+        @blur="emit('blur')"
+      />
 
-          <span v-if="sequenceLength <= 0" class="aimd-dna-field__empty">
-            <span class="aimd-dna-field__selection-title">{{ props.messages.dna.viewerRequiresSequence }}</span>
-            <label class="aimd-dna-field__annotation-field">
-              <span>{{ props.messages.dna.onboardingPasteLabel }}</span>
-              <textarea
-                class="aimd-dna-field__sequence aimd-dna-field__sequence--onboarding"
-                :disabled="props.disabled"
-                :placeholder="props.placeholder || props.messages.dna.sequencePlaceholder"
-                :value="interactiveSequenceDraft"
-                spellcheck="false"
-                @input="onInteractiveSequenceDraftInput"
-              />
-            </label>
-            <span class="aimd-dna-field__hint">
-              {{ props.messages.dna.onboardingImportHint }}
-            </span>
-            <span
-              v-if="importErrorMessage"
-              class="aimd-dna-field__hint aimd-dna-field__hint--error"
-            >
-              {{ importErrorMessage }}
-            </span>
-            <span class="aimd-dna-field__empty-actions">
-              <button
-                type="button"
-                class="aimd-dna-field__action"
-                :disabled="props.disabled || !hasInteractiveSequenceDraft"
-                @click="applyInteractiveSequenceDraft"
-              >
-                {{ props.messages.dna.onboardingApplySequence }}
-              </button>
-              <button
-                type="button"
-                class="aimd-dna-field__action"
-                :disabled="props.disabled"
-                @click="openRawEditor"
-              >
-                {{ props.messages.dna.rawMode }}
-              </button>
-            </span>
-          </span>
+      <DnaSequenceEditor
+        v-else
+        :sequence="value.sequence"
+        :invalid-characters="invalidCharacters"
+        :disabled="props.disabled"
+        :placeholder="props.placeholder"
+        :messages="props.messages"
+        @update:sequence="onSequenceUpdate"
+        @blur="emit('blur')"
+      />
 
-          <template v-else>
-            <span class="aimd-dna-field__viewer-shell">
-              <AimdSeqVizViewer
-                :name="value.name || props.varId"
-                :sequence="value.sequence"
-                :topology="value.topology"
-                :annotations="viewerAnnotations"
-                :selection="viewerSelection"
-                @selection="onViewerSelection"
-              />
-            </span>
-
-            <span class="aimd-dna-field__hint">
-              {{ props.messages.dna.viewerHint }}
-            </span>
-
-            <span
-              class="aimd-dna-field__selection-card"
-              :class="{ 'aimd-dna-field__selection-card--muted': selectionSegments.length === 0 }"
-            >
-              <span class="aimd-dna-field__selection-title">{{ props.messages.dna.selection }}</span>
-
-              <template v-if="selectionSegments.length > 0">
-                <span class="aimd-dna-field__selection-meta">{{ selectionRangeLabel }}</span>
-                <span class="aimd-dna-field__selection-meta">{{ selectionTargetLabel }}</span>
-                <span class="aimd-dna-field__selection-actions">
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action"
-                    :disabled="props.disabled"
-                    @click="createAnnotationFromSelection"
-                  >
-                    {{ props.messages.dna.createFromSelection }}
-                  </button>
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action"
-                    :disabled="props.disabled || !activeAnnotation"
-                    @click="applySelectionToActiveSegment"
-                  >
-                    {{ props.messages.dna.applySelectionToSegment }}
-                  </button>
-                  <button
-                    v-if="selection?.type === 'ANNOTATION' && activeAnnotation"
-                    type="button"
-                    class="aimd-dna-field__action"
-                    :disabled="props.disabled"
-                    @click="focusActiveAnnotationEditor"
-                  >
-                    {{ props.messages.dna.editAnnotation }}
-                  </button>
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action"
-                    :disabled="props.disabled"
-                    @click="clearSelection"
-                  >
-                    {{ props.messages.dna.selectionClear }}
-                  </button>
-                </span>
-              </template>
-
-              <span v-else class="aimd-dna-field__selection-meta">
-                {{ props.messages.dna.selectionEmpty }}
-              </span>
-            </span>
-          </template>
-        </span>
-      </template>
-
-      <template v-else>
-        <span class="aimd-dna-field__section">
-          <span class="aimd-dna-field__section-title">{{ props.messages.dna.sequence }}</span>
-          <textarea
-            class="aimd-dna-field__sequence"
-            :disabled="props.disabled"
-            :placeholder="props.placeholder || props.messages.dna.sequencePlaceholder"
-            :value="value.sequence"
-            spellcheck="false"
-            @input="onSequenceInput"
-            @blur="emit('blur')"
-          />
-          <span
-            v-if="invalidCharacters.length"
-            class="aimd-dna-field__hint aimd-dna-field__hint--error"
-          >
-            {{ props.messages.dna.invalidCharacters(invalidCharacters.join(', ')) }}
-          </span>
-          <span v-else class="aimd-dna-field__hint">
-            {{ props.messages.dna.iupacHint }}
-          </span>
-        </span>
-      </template>
-
-      <template v-if="isInteractiveMode && sequenceLength > 0">
-        <span class="aimd-dna-field__section">
-          <span class="aimd-dna-field__section-header">
-            <span class="aimd-dna-field__section-title">{{ props.messages.dna.interactiveDetails }}</span>
-            <span v-if="activeAnnotation" class="aimd-dna-field__section-meta">
-              {{ props.messages.dna.selectedAnnotation(activeAnnotation.name) }}
-            </span>
-            <button
-              type="button"
-              class="aimd-dna-field__action"
-              :disabled="props.disabled"
-              @click="openRawEditor"
-            >
-              {{ props.messages.dna.rawMode }}
-            </button>
-          </span>
-
-          <span class="aimd-dna-field__hint">
-            {{ props.messages.dna.interactiveDetailsHint }}
-          </span>
-
-          <span v-if="!activeAnnotation" class="aimd-dna-field__empty">
-            {{ props.messages.dna.interactiveDetailsEmpty }}
-          </span>
-
-          <template v-else>
-            <span class="aimd-dna-field__annotation-grid">
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.annotationName }}</span>
-                <input
-                  ref="interactiveNameInputRef"
-                  class="aimd-dna-field__input"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.name"
-                  @input="patchAnnotation(activeAnnotationIndex, { name: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.annotationType }}</span>
-                <input
-                  class="aimd-dna-field__input"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.type"
-                  @input="patchAnnotation(activeAnnotationIndex, { type: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.strand }}</span>
-                <select
-                  class="aimd-dna-field__select"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.strand"
-                  @change="patchAnnotation(activeAnnotationIndex, { strand: ($event.target as HTMLSelectElement).value === '-1' ? -1 : 1 })"
-                  @blur="emit('blur')"
-                >
-                  <option :value="1">{{ props.messages.dna.forward }}</option>
-                  <option :value="-1">{{ props.messages.dna.reverse }}</option>
-                </select>
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.color }}</span>
-                <input
-                  class="aimd-dna-field__input aimd-dna-field__input--color"
-                  type="color"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.color || '#2563eb'"
-                  @input="patchAnnotation(activeAnnotationIndex, { color: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-            </span>
-
-            <span class="aimd-dna-field__meta-pills">
-              <span class="aimd-dna-field__meta-pill">
-                {{ props.messages.dna.segments }}: {{ annotationSegmentsLabel(activeAnnotation) }}
-              </span>
-              <span class="aimd-dna-field__meta-pill">
-                {{ props.messages.dna.qualifiers }}: {{ activeAnnotation.qualifiers.length }}
-              </span>
-            </span>
-
-            <span class="aimd-dna-field__row-actions">
-              <button
-                type="button"
-                class="aimd-dna-field__action aimd-dna-field__action--danger"
-                :disabled="props.disabled"
-                @click="removeAnnotation(activeAnnotationIndex)"
-              >
-                {{ props.messages.dna.removeAnnotation }}
-              </button>
-            </span>
-          </template>
-        </span>
-      </template>
-
-      <template v-else>
-        <span class="aimd-dna-field__section">
-          <span class="aimd-dna-field__section-header">
-            <span class="aimd-dna-field__section-title">{{ props.messages.dna.annotations }}</span>
-            <button
-              type="button"
-              class="aimd-dna-field__action"
-              :disabled="props.disabled"
-              @click="addAnnotation"
-            >
-              {{ props.messages.dna.addAnnotation }}
-            </button>
-          </span>
-
-          <span v-if="value.annotations.length === 0" class="aimd-dna-field__empty">
-            {{ props.messages.dna.noAnnotations }}
-          </span>
-
-          <span v-else class="aimd-dna-field__annotation-list">
-            <span
-              v-for="(annotation, annotationIndex) in value.annotations"
-              :key="annotation.id"
-              class="aimd-dna-field__annotation-card"
-              :class="{ 'aimd-dna-field__annotation-card--active': annotation.id === activeAnnotationId }"
-            >
-              <span class="aimd-dna-field__annotation-card-main">
-                <span
-                  class="aimd-dna-field__annotation-swatch"
-                  :style="{ backgroundColor: annotation.color || '#2563eb' }"
-                />
-                <span class="aimd-dna-field__annotation-copy">
-                  <span class="aimd-dna-field__annotation-name">{{ annotation.name }}</span>
-                  <span class="aimd-dna-field__annotation-meta">{{ annotation.type }}</span>
-                  <span class="aimd-dna-field__annotation-meta">
-                    {{ props.messages.dna.segments }}: {{ annotationSegmentsLabel(annotation) }}
-                  </span>
-                </span>
-              </span>
-
-              <span class="aimd-dna-field__annotation-actions">
-                <button
-                  type="button"
-                  class="aimd-dna-field__action"
-                  :disabled="props.disabled"
-                  @click="handleAnnotationPrimaryAction(annotation.id)"
-                >
-                  {{ annotationPrimaryActionLabel }}
-                </button>
-                <button
-                  type="button"
-                  class="aimd-dna-field__action aimd-dna-field__action--danger"
-                  :disabled="props.disabled"
-                  @click="removeAnnotation(annotationIndex)"
-                >
-                  {{ props.messages.dna.removeAnnotation }}
-                </button>
-              </span>
-            </span>
-          </span>
-        </span>
-
-        <span class="aimd-dna-field__section">
-          <span class="aimd-dna-field__section-header">
-            <span class="aimd-dna-field__section-title">{{ props.messages.dna.advancedEditor }}</span>
-            <span v-if="activeAnnotation" class="aimd-dna-field__section-meta">
-              {{ props.messages.dna.selectedAnnotation(activeAnnotation.name) }}
-            </span>
-          </span>
-
-          <span class="aimd-dna-field__advanced-copy">
-            {{ props.messages.dna.advancedEditorHint }}
-          </span>
-
-          <span v-if="!activeAnnotation" class="aimd-dna-field__empty">
-            {{ props.messages.dna.advancedEditorEmpty }}
-          </span>
-
-          <template v-else>
-            <span class="aimd-dna-field__annotation-grid">
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.annotationName }}</span>
-                <input
-                  class="aimd-dna-field__input"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.name"
-                  @input="patchAnnotation(activeAnnotationIndex, { name: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.annotationType }}</span>
-                <input
-                  class="aimd-dna-field__input"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.type"
-                  @input="patchAnnotation(activeAnnotationIndex, { type: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.strand }}</span>
-                <select
-                  class="aimd-dna-field__select"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.strand"
-                  @change="patchAnnotation(activeAnnotationIndex, { strand: ($event.target as HTMLSelectElement).value === '-1' ? -1 : 1 })"
-                  @blur="emit('blur')"
-                >
-                  <option :value="1">{{ props.messages.dna.forward }}</option>
-                  <option :value="-1">{{ props.messages.dna.reverse }}</option>
-                </select>
-              </label>
-
-              <label class="aimd-dna-field__annotation-field">
-                <span>{{ props.messages.dna.color }}</span>
-                <input
-                  class="aimd-dna-field__input aimd-dna-field__input--color"
-                  type="color"
-                  :disabled="props.disabled"
-                  :value="activeAnnotation.color || '#2563eb'"
-                  @input="patchAnnotation(activeAnnotationIndex, { color: ($event.target as HTMLInputElement).value })"
-                  @blur="emit('blur')"
-                />
-              </label>
-            </span>
-
-            <span class="aimd-dna-field__subsection">
-              <span class="aimd-dna-field__subsection-header">
-                <span class="aimd-dna-field__subsection-title">{{ props.messages.dna.segments }}</span>
-                <button
-                  type="button"
-                  class="aimd-dna-field__action"
-                  :disabled="props.disabled"
-                  @click="addSegment(activeAnnotationIndex)"
-                >
-                  {{ props.messages.dna.addSegment }}
-                </button>
-              </span>
-
-              <span
-                v-for="(segment, segmentIndex) in activeAnnotation.segments"
-                :key="`${activeAnnotation.id}-segment-${segmentIndex}`"
-                class="aimd-dna-field__row-card"
-                :class="{ 'aimd-dna-field__row-card--active': segmentIndex === activeSegmentIndex }"
-              >
-                <span class="aimd-dna-field__segment-grid">
-                  <label class="aimd-dna-field__annotation-field">
-                    <span>{{ props.messages.dna.start }}</span>
-                    <input
-                      class="aimd-dna-field__input"
-                      type="number"
-                      min="1"
-                      :disabled="props.disabled"
-                      :value="segment.start"
-                      @input="onSegmentIntInput(activeAnnotationIndex, segmentIndex, 'start', $event)"
-                      @blur="emit('blur')"
-                    />
-                  </label>
-
-                  <label class="aimd-dna-field__annotation-field">
-                    <span>{{ props.messages.dna.end }}</span>
-                    <input
-                      class="aimd-dna-field__input"
-                      type="number"
-                      min="1"
-                      :disabled="props.disabled"
-                      :value="segment.end"
-                      @input="onSegmentIntInput(activeAnnotationIndex, segmentIndex, 'end', $event)"
-                      @blur="emit('blur')"
-                    />
-                  </label>
-
-                  <label class="aimd-dna-field__toggle">
-                    <input
-                      type="checkbox"
-                      :checked="!!segment.partial_start"
-                      :disabled="props.disabled"
-                      @change="patchSegment(activeAnnotationIndex, segmentIndex, { partial_start: ($event.target as HTMLInputElement).checked })"
-                      @blur="emit('blur')"
-                    />
-                    <span>{{ props.messages.dna.partialStart }}</span>
-                  </label>
-
-                  <label class="aimd-dna-field__toggle">
-                    <input
-                      type="checkbox"
-                      :checked="!!segment.partial_end"
-                      :disabled="props.disabled"
-                      @change="patchSegment(activeAnnotationIndex, segmentIndex, { partial_end: ($event.target as HTMLInputElement).checked })"
-                      @blur="emit('blur')"
-                    />
-                    <span>{{ props.messages.dna.partialEnd }}</span>
-                  </label>
-                </span>
-
-                <span
-                  v-if="segmentIssueLabel(segment)"
-                  class="aimd-dna-field__hint aimd-dna-field__hint--error"
-                >
-                  {{ segmentIssueLabel(segment) }}
-                </span>
-
-                <span class="aimd-dna-field__row-actions">
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action"
-                    :disabled="props.disabled"
-                    @click="focusAnnotationInInteractive(activeAnnotation.id, segmentIndex)"
-                  >
-                    {{ props.messages.dna.focusAnnotation }}
-                  </button>
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action aimd-dna-field__action--danger"
-                    :disabled="props.disabled"
-                    @click="removeSegment(activeAnnotationIndex, segmentIndex)"
-                  >
-                    {{ props.messages.dna.removeSegment }}
-                  </button>
-                </span>
-              </span>
-            </span>
-
-            <span class="aimd-dna-field__subsection">
-              <span class="aimd-dna-field__subsection-header">
-                <span class="aimd-dna-field__subsection-title">{{ props.messages.dna.qualifiers }}</span>
-                <button
-                  type="button"
-                  class="aimd-dna-field__action"
-                  :disabled="props.disabled"
-                  @click="addQualifier(activeAnnotationIndex)"
-                >
-                  {{ props.messages.dna.addQualifier }}
-                </button>
-              </span>
-
-              <span v-if="activeAnnotation.qualifiers.length === 0" class="aimd-dna-field__empty">
-                {{ props.messages.dna.noQualifiers }}
-              </span>
-
-              <span
-                v-for="(qualifier, qualifierIndex) in activeAnnotation.qualifiers"
-                :key="`${activeAnnotation.id}-qualifier-${qualifierIndex}`"
-                class="aimd-dna-field__row-card"
-              >
-                <span class="aimd-dna-field__qualifier-grid">
-                  <label class="aimd-dna-field__annotation-field">
-                    <span>{{ props.messages.dna.qualifierKey }}</span>
-                    <input
-                      class="aimd-dna-field__input"
-                      :disabled="props.disabled"
-                      :value="qualifier.key"
-                      @input="patchQualifier(activeAnnotationIndex, qualifierIndex, { key: ($event.target as HTMLInputElement).value })"
-                      @blur="emit('blur')"
-                    />
-                  </label>
-
-                  <label class="aimd-dna-field__annotation-field aimd-dna-field__annotation-field--wide">
-                    <span>{{ props.messages.dna.qualifierValue }}</span>
-                    <input
-                      class="aimd-dna-field__input"
-                      :disabled="props.disabled"
-                      :value="qualifier.value"
-                      @input="patchQualifier(activeAnnotationIndex, qualifierIndex, { value: ($event.target as HTMLInputElement).value })"
-                      @blur="emit('blur')"
-                    />
-                  </label>
-                </span>
-
-                <span class="aimd-dna-field__row-actions">
-                  <button
-                    type="button"
-                    class="aimd-dna-field__action aimd-dna-field__action--danger"
-                    :disabled="props.disabled"
-                    @click="removeQualifier(activeAnnotationIndex, qualifierIndex)"
-                  >
-                    {{ props.messages.dna.removeQualifier }}
-                  </button>
-                </span>
-              </span>
-            </span>
-          </template>
-        </span>
-      </template>
+      <DnaAnnotationEditor
+        ref="annotationEditorRef"
+        :annotations="value.annotations"
+        :active-annotation-id="activeAnnotationId"
+        :active-annotation-index="activeAnnotationIndex"
+        :active-annotation="activeAnnotation"
+        :active-segment-index="activeSegmentIndex"
+        :sequence-length="sequenceLength"
+        :is-interactive-mode="isInteractiveMode"
+        :selection-has-segments="selectionSegments.length > 0"
+        :disabled="props.disabled"
+        :messages="props.messages"
+        @add-annotation="addAnnotation"
+        @remove-annotation="removeAnnotation"
+        @patch-annotation="patchAnnotation"
+        @patch-segment="patchSegment"
+        @patch-qualifier="patchQualifier"
+        @add-segment="addSegment"
+        @remove-segment="removeSegment"
+        @add-qualifier="addQualifier"
+        @remove-qualifier="removeQualifier"
+        @handle-annotation-primary-action="handleAnnotationPrimaryAction"
+        @focus-annotation-in-interactive="focusAnnotationInInteractive"
+        @open-raw-editor="openRawEditor"
+        @blur="emit('blur')"
+      />
     </span>
   </span>
 </template>
 
-<style scoped>
+<style>
 .aimd-rec-inline--var-dna {
   display: inline-flex;
   flex-direction: column;

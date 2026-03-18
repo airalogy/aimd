@@ -1,16 +1,31 @@
 import type { Element, Properties, Root as HastRoot, Text as HastText } from "hast"
-import type { Plugin } from "unified"
 import type { VFile } from "vfile"
 import type { VNode } from "vue"
 import type {
+  AimdFieldType,
   AimdNode,
   AimdQuizNode,
   AimdStepNode,
   ProcessorOptions,
+  RenderContext,
 } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
 import type { AimdRendererI18nOptions } from "../locales"
-import type { ShikiHighlighter, VueRendererOptions } from "../vue/vue-renderer"
+import type { VueRendererOptions } from "../vue/vue-renderer"
+import { resolveQuizPreviewOptions } from "./quiz-preview"
+
+// ---------------------------------------------------------------------------
+// Sub-module imports
+// ---------------------------------------------------------------------------
+
+import { remarkInsertVisibleAssigners, remarkStripAssignerCodeBlocks } from "./assignerVisibility"
+import { highlightVisibleAssigners } from "./assignerHighlighting"
+import { annotateStepReferenceSequence } from "./annotateStepReferences"
+import { buildFigureChildren, assignFigureSequenceNumbers } from "./figureNumbering"
+
+// ---------------------------------------------------------------------------
+// Public types
+// ---------------------------------------------------------------------------
 
 /**
  * Render result
@@ -22,9 +37,196 @@ export interface RenderResult {
 
 export type AimdAssignerVisibility = "hidden" | "collapsed" | "expanded"
 
+export interface AimdHtmlRendererContext extends RenderContext {
+  locale: NonNullable<AimdRendererI18nOptions["locale"]> | string
+  messages: ReturnType<typeof createAimdRendererMessages>
+}
+
+export type AimdHtmlNodeRenderer = (
+  node: AimdNode,
+  defaultElement: Element,
+  context: AimdHtmlRendererContext,
+) => Element | null | undefined
+
 export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nOptions {
   assignerVisibility?: AimdAssignerVisibility
+  aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
+  groupStepBodies?: boolean
 }
+
+export interface CustomElementAimdRendererOptions {
+  container?: boolean
+  stripDefaultChildren?: boolean
+}
+
+function assignAimdNodeData(element: Element, node: AimdNode): Element {
+  const existingData = (element as any).data || {}
+  ;(element as any).data = {
+    ...existingData,
+    aimd: node,
+  }
+  return element
+}
+
+function cleanProperties(properties: Properties): Properties {
+  return Object.fromEntries(
+    Object.entries(properties).filter(([, value]) => value !== undefined && value !== null),
+  ) as Properties
+}
+
+export function createCustomElementAimdRenderer(
+  tagName: string,
+  mapProperties?: (
+    node: AimdNode,
+    context: AimdHtmlRendererContext,
+    defaultElement: Element,
+  ) => Properties,
+  options: CustomElementAimdRendererOptions = {},
+): AimdHtmlNodeRenderer {
+  return (node, defaultElement, context) => {
+    const mappedProperties = mapProperties ? mapProperties(node, context, defaultElement) : {}
+    return assignAimdNodeData({
+      ...defaultElement,
+      tagName,
+      properties: cleanProperties({
+        ...defaultElement.properties,
+        ...mappedProperties,
+        ...(options.container ? { "data-aimd-step-container": "true" } : {}),
+        ...(options.stripDefaultChildren ? { "data-aimd-strip-default-children": "true" } : {}),
+      }),
+    }, node)
+  }
+}
+
+function isWhitespaceTextNode(node: unknown): node is HastText {
+  return typeof node === "object"
+    && node !== null
+    && (node as HastText).type === "text"
+    && !String((node as HastText).value || "").trim()
+}
+
+function toCamelCaseKey(value: string): string {
+  return value.replace(/-([a-z])/g, (_, char: string) => char.toUpperCase())
+}
+
+function getPropertyValue(properties: Properties | undefined, key: string): string | undefined {
+  const value = properties?.[key] ?? properties?.[toCamelCaseKey(key)]
+  if (typeof value === "string") {
+    return value
+  }
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value)
+  }
+  if (Array.isArray(value) && value.length > 0) {
+    const first = value[0]
+    return typeof first === "string" ? first : undefined
+  }
+  return undefined
+}
+
+function isAimdStepElement(node: unknown): node is Element {
+  return typeof node === "object"
+    && node !== null
+    && (node as Element).type === "element"
+    && getPropertyValue((node as Element).properties, "data-aimd-type") === "step"
+}
+
+function isHeadingOrDivider(node: unknown): boolean {
+  if (typeof node !== "object" || node === null || (node as Element).type !== "element") {
+    return false
+  }
+
+  const tagName = (node as Element).tagName
+  return tagName === "hr" || /^h[1-6]$/.test(tagName)
+}
+
+function unwrapStandaloneContainerStep(node: unknown): Element | null {
+  if (isAimdStepElement(node)) {
+    return getPropertyValue(node.properties, "data-aimd-step-container") === "true" ? node : null
+  }
+
+  if (
+    typeof node !== "object"
+    || node === null
+    || (node as Element).type !== "element"
+    || (node as Element).tagName !== "p"
+  ) {
+    return null
+  }
+
+  const meaningfulChildren = ((node as Element).children || []).filter((child) => !isWhitespaceTextNode(child))
+  if (meaningfulChildren.length !== 1 || !isAimdStepElement(meaningfulChildren[0])) {
+    return null
+  }
+
+  const stepElement = meaningfulChildren[0]
+  return getPropertyValue(stepElement.properties, "data-aimd-step-container") === "true" ? stepElement : null
+}
+
+function cloneNodeForStepBody<T extends Element | HastText>(node: T): T {
+  return JSON.parse(JSON.stringify(node)) as T
+}
+
+function groupStepBodiesInParent(parent: HastRoot | Element): void {
+  const originalChildren = (parent.children || []) as Array<Element | HastText>
+  const nextChildren: Array<Element | HastText> = []
+
+  for (let index = 0; index < originalChildren.length; index += 1) {
+    const currentNode = originalChildren[index]
+    const stepContainer = unwrapStandaloneContainerStep(currentNode)
+
+    if (!stepContainer) {
+      if (typeof currentNode === "object" && currentNode !== null && (currentNode as Element).type === "element") {
+        groupStepBodiesInParent(currentNode as Element)
+      }
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    const bodyChildren: Array<Element | HastText> = []
+    let scanIndex = index + 1
+    while (scanIndex < originalChildren.length) {
+      const candidate = originalChildren[scanIndex]
+      if (unwrapStandaloneContainerStep(candidate) || isHeadingOrDivider(candidate)) {
+        break
+      }
+
+      if (typeof candidate === "object" && candidate !== null && (candidate as Element).type === "element") {
+        groupStepBodiesInParent(candidate as Element)
+      }
+
+      bodyChildren.push(cloneNodeForStepBody(candidate as Element | HastText))
+      scanIndex += 1
+    }
+
+    const stripChildren = getPropertyValue(stepContainer.properties, "data-aimd-strip-default-children") === "true"
+    stepContainer.children = stripChildren ? [] : [...(stepContainer.children || [])]
+    if (bodyChildren.length > 0) {
+      stepContainer.children.push({
+        type: "element",
+        tagName: "div",
+        properties: {
+          className: ["aimd-step-body"],
+          "data-aimd-step-body": "true",
+        },
+        children: bodyChildren,
+      })
+    }
+
+    nextChildren.push(stepContainer)
+    index = scanIndex - 1
+  }
+
+  ;(parent as HastRoot | Element).children = nextChildren as any
+}
+
+function groupStepBodies(tree: HastRoot): void {
+  groupStepBodiesInParent(tree)
+}
+
+// ---------------------------------------------------------------------------
+// Third-party imports
+// ---------------------------------------------------------------------------
 
 import { toHtml } from "hast-util-to-html"
 import rehypeKatex from "rehype-katex"
@@ -44,19 +246,15 @@ import {
 } from "../locales"
 import { renderToVNodes } from "../vue/vue-renderer"
 
+// ---------------------------------------------------------------------------
+// Module-level singletons
+// ---------------------------------------------------------------------------
+
 let mathStylesLoadPromise: Promise<unknown> | null = null
-let assignerHighlighterLoadPromise: Promise<ShikiHighlighter | null> | null = null
-const ASSIGNER_HIGHLIGHT_THEME = "github-light"
 
-interface MarkdownNode {
-  type: string
-  children?: MarkdownNode[]
-  lang?: string | null
-  meta?: string | null
-  value?: string
-}
-
-type MarkdownParent = MarkdownNode & { children: MarkdownNode[] }
+// ---------------------------------------------------------------------------
+// Internal helpers that remain in the coordinator
+// ---------------------------------------------------------------------------
 
 const EMPTY_EXTRACTED_FIELDS: ExtractedAimdFields = {
   var: [],
@@ -119,482 +317,9 @@ function getExtractedFields(file: VFile): ExtractedAimdFields {
   return (file.data.aimdFields as ExtractedAimdFields) || createEmptyExtractedFields()
 }
 
-function resolveAssignerVisibility(
-  visibility: AimdRendererOptions["assignerVisibility"],
-): AimdAssignerVisibility {
-  switch (visibility) {
-    case "collapsed":
-    case "expanded":
-      return visibility
-    default:
-      return "hidden"
-  }
-}
-
-function isAssignerCodeNode(node: MarkdownNode): boolean {
-  return node.type === "code" && (node.lang || "").trim().toLowerCase() === "assigner"
-}
-
-function getAssignerRuntime(meta: string | null | undefined): "client" | "server" {
-  const runtime = String((meta || "").match(/\bruntime\s*=\s*([^\s]+)/)?.[1] || "")
-    .trim()
-    .replace(/^['"]|['"]$/g, "")
-    .toLowerCase()
-  return runtime === "client" ? "client" : "server"
-}
-
-function getRenderedAssignerLanguage(runtime: "client" | "server"): "javascript" | "python" {
-  return runtime === "client" ? "javascript" : "python"
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
-
-function buildInlineStyle(declarations: Record<string, string>): string {
-  return Object.entries(declarations)
-    .map(([property, value]) => `${property}:${value}`)
-    .join(";")
-}
-
-interface AssignerPreviewPresentation {
-  badge: string
-  containerStyle: string
-  headerStyle: string
-  titleStyle: string
-  badgeStyle: string
-  preStyle: string
-  codeStyle: string
-}
-
-function getCollapsedAssignerPresentation(runtime: "client" | "server"): AssignerPreviewPresentation {
-  const isClient = runtime === "client"
-  const accent = isClient ? "#0f766e" : "#9a3412"
-  const accentSoft = isClient ? "rgba(15, 118, 110, 0.08)" : "rgba(154, 52, 18, 0.08)"
-  const border = "rgba(148, 163, 184, 0.26)"
-  const codeBackground = "#f8fafc"
-  const codeForeground = "#0f172a"
-  const ruleColor = "rgba(148, 163, 184, 0.18)"
-
-  return {
-    badge: isClient ? "JS" : "PY",
-    containerStyle: buildInlineStyle({
-      margin: "0.85rem 0",
-      border: `1px solid ${border}`,
-      "border-radius": "12px",
-      overflow: "hidden",
-      background: "rgba(255, 255, 255, 0.92)",
-    }),
-    headerStyle: buildInlineStyle({
-      display: "flex",
-      "align-items": "center",
-      "justify-content": "space-between",
-      gap: "0.7rem",
-      padding: "0.6rem 0.8rem",
-      "list-style": "none",
-      background: "rgba(248, 250, 252, 0.92)",
-      color: "#64748b",
-      "font-weight": "600",
-      "font-size": "0.86rem",
-    }),
-    titleStyle: buildInlineStyle({
-      display: "inline-flex",
-      "align-items": "center",
-      gap: "0.45rem",
-      "letter-spacing": "0.01em",
-    }),
-    badgeStyle: buildInlineStyle({
-      display: "inline-flex",
-      "align-items": "center",
-      "justify-content": "center",
-      padding: "0.12rem 0.44rem",
-      "min-width": "2rem",
-      "border-radius": "999px",
-      border: `1px solid ${accentSoft}`,
-      background: accentSoft,
-      color: accent,
-      "font-size": "0.72rem",
-      "font-weight": "700",
-      "letter-spacing": "0.08em",
-    }),
-    preStyle: buildInlineStyle({
-      margin: "0",
-      padding: "0.8rem 0.85rem 0.9rem",
-      overflow: "auto",
-      background: codeBackground,
-      border: "0",
-      "border-top": `1px solid ${ruleColor}`,
-      "tab-size": "2",
-    }),
-    codeStyle: buildInlineStyle({
-      display: "block",
-      color: codeForeground,
-      background: "transparent",
-      "font-family": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
-      "font-size": "0.88rem",
-      "line-height": "1.6",
-      "white-space": "pre",
-      padding: "0",
-    }),
-  }
-}
-
-function getExpandedAssignerPresentation(runtime: "client" | "server"): AssignerPreviewPresentation {
-  const presentation = getCollapsedAssignerPresentation(runtime)
-  return {
-    ...presentation,
-    containerStyle: buildInlineStyle({
-      ...Object.fromEntries(presentation.containerStyle.split(";").filter(Boolean).map(rule => {
-        const [property, value] = rule.split(":")
-        return [property, value]
-      })),
-      margin: "1rem 0",
-    }),
-    headerStyle: buildInlineStyle({
-      ...Object.fromEntries(presentation.headerStyle.split(";").filter(Boolean).map(rule => {
-        const [property, value] = rule.split(":")
-        return [property, value]
-      })),
-      cursor: "default",
-    }),
-  }
-}
-
-function createAssignerHeaderHtml(summary: string, presentation: AssignerPreviewPresentation): string {
-  return `<span style="${presentation.titleStyle}">${escapeHtml(summary)}</span>`
-    + `<span aria-hidden="true" style="${presentation.badgeStyle}">${presentation.badge}</span>`
-}
-
-function buildExpandedAssignerNode(
-  value: string,
-  runtime: "client" | "server",
-  options: AimdRendererOptions,
-): MarkdownNode {
-  const messages = createAimdRendererMessages(options.locale, options.messages)
-  const language = getRenderedAssignerLanguage(runtime)
-  const summary = runtime === "client"
-    ? messages.assigner.clientSummary
-    : messages.assigner.serverSummary
-  const presentation = getExpandedAssignerPresentation(runtime)
-
-  return {
-    type: "html",
-    value:
-      `<div class="aimd-assigner-preview aimd-assigner-preview--expanded aimd-assigner-preview--${runtime}" data-aimd-assigner-runtime="${runtime}" style="${presentation.containerStyle}">`
-      + `<div style="${presentation.headerStyle}">`
-      + createAssignerHeaderHtml(summary, presentation)
-      + "</div>"
-      + `<pre style="${presentation.preStyle}"><code class="language-${language}" style="${presentation.codeStyle}">${escapeHtml(value)}</code></pre>`
-      + "</div>",
-  }
-}
-
-function visitMarkdownParents(node: MarkdownNode, visitor: (parent: MarkdownParent) => void): void {
-  if (!Array.isArray(node.children)) {
-    return
-  }
-
-  const parent = node as MarkdownParent
-  visitor(parent)
-
-  for (const child of parent.children) {
-    visitMarkdownParents(child, visitor)
-  }
-}
-
-function buildCollapsedAssignerNode(
-  value: string,
-  runtime: "client" | "server",
-  options: AimdRendererOptions,
-): MarkdownNode {
-  const messages = createAimdRendererMessages(options.locale, options.messages)
-  const language = getRenderedAssignerLanguage(runtime)
-  const summary = runtime === "client"
-    ? messages.assigner.clientSummary
-    : messages.assigner.serverSummary
-  const presentation = getCollapsedAssignerPresentation(runtime)
-
-  return {
-    type: "html",
-    value:
-      `<details class="aimd-assigner-preview aimd-assigner-preview--collapsed aimd-assigner-preview--${runtime}" data-aimd-assigner-runtime="${runtime}" style="${presentation.containerStyle}">`
-      + `<summary style="${presentation.headerStyle}">`
-      + createAssignerHeaderHtml(summary, presentation)
-      + "</summary>"
-      + `<pre style="${presentation.preStyle}"><code class="language-${language}" style="${presentation.codeStyle}">${escapeHtml(value)}</code></pre>`
-      + "</details>",
-  }
-}
-
-const remarkInsertVisibleAssigners: Plugin<[AimdRendererOptions?], MarkdownNode> = (options = {}) => {
-  return (tree) => {
-    const visibility = resolveAssignerVisibility(options.assignerVisibility)
-    if (visibility === "hidden") {
-      return
-    }
-
-    visitMarkdownParents(tree, (parent) => {
-      for (let index = 0; index < parent.children.length; index++) {
-        const child = parent.children[index]
-        if (!isAssignerCodeNode(child)) {
-          continue
-        }
-
-        const runtime = getAssignerRuntime(child.meta)
-        const replacement = visibility === "expanded"
-          ? buildExpandedAssignerNode(child.value || "", runtime, options)
-          : buildCollapsedAssignerNode(child.value || "", runtime, options)
-
-        parent.children.splice(index, 0, replacement)
-        index += 1
-      }
-    })
-  }
-}
-
-function getClassNames(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string")
-  }
-  if (typeof value === "string" && value.trim()) {
-    return value.trim().split(/\s+/)
-  }
-  return []
-}
-
-function hasClassName(node: Element, className: string): boolean {
-  return getClassNames(node.properties?.className).includes(className)
-}
-
-function getCodeLanguage(node: Element): string | null {
-  const languageClass = getClassNames(node.properties?.className).find(name => name.startsWith("language-"))
-  return languageClass ? languageClass.replace("language-", "") : null
-}
-
-function collectTextContent(node: Element): string {
-  return node.children.map((child) => {
-    if (child.type === "text") {
-      return child.value
-    }
-    if (child.type === "element") {
-      return collectTextContent(child)
-    }
-    return ""
-  }).join("")
-}
-
-function visitHastElements(node: HastRoot | Element, visitor: (element: Element) => void): void {
-  if (node.type === "element") {
-    visitor(node)
-  }
-
-  const children = "children" in node ? node.children : []
-  for (const child of children) {
-    if (child.type === "element") {
-      visitHastElements(child, visitor)
-    }
-  }
-}
-
-function findDescendantElement(node: Element, predicate: (element: Element) => boolean): Element | null {
-  for (const child of node.children) {
-    if (child.type !== "element") {
-      continue
-    }
-    if (predicate(child)) {
-      return child
-    }
-    const nested = findDescendantElement(child, predicate)
-    if (nested) {
-      return nested
-    }
-  }
-  return null
-}
-
-function createHighlightedLineChildren(
-  tokens: Array<{ content: string, variants: Record<string, { color: string }> }>,
-): Array<Element | HastText> {
-  if (tokens.length === 0) {
-    return [{ type: "text", value: "\u00A0" }]
-  }
-
-  return tokens.map((token) => {
-    const color = Object.values(token.variants || {}).find(variant => typeof variant?.color === "string")?.color
-    return {
-      type: "element",
-      tagName: "span",
-      properties: color ? { style: buildInlineStyle({ color }) } : {},
-      children: [{ type: "text", value: token.content || " " }],
-    } as Element
-  })
-}
-
-async function getAssignerHighlighter(): Promise<ShikiHighlighter | null> {
-  if (!assignerHighlighterLoadPromise) {
-    assignerHighlighterLoadPromise = import("shiki")
-      .then(async ({ createHighlighter }) => {
-        const highlighter = await createHighlighter({
-          themes: [ASSIGNER_HIGHLIGHT_THEME],
-          langs: ["javascript", "python"],
-        })
-        return highlighter as unknown as ShikiHighlighter
-      })
-      .catch(() => null)
-  }
-
-  return assignerHighlighterLoadPromise
-}
-
-async function highlightVisibleAssigners(tree: HastRoot, options: AimdRendererOptions): Promise<void> {
-  if (resolveAssignerVisibility(options.assignerVisibility) === "hidden") {
-    return
-  }
-
-  const highlighter = await getAssignerHighlighter()
-  if (!highlighter?.codeToTokensWithThemes) {
-    return
-  }
-
-  visitHastElements(tree, (element) => {
-    if (!hasClassName(element, "aimd-assigner-preview")) {
-      return
-    }
-
-    const codeNode = findDescendantElement(element, candidate => candidate.tagName === "code")
-    if (!codeNode || codeNode.properties?.["data-aimd-highlighted"] === "true") {
-      return
-    }
-
-    const lang = getCodeLanguage(codeNode) || "text"
-    const codeContent = collectTextContent(codeNode)
-    const lines = highlighter.codeToTokensWithThemes?.(codeContent, {
-      lang,
-      themes: { light: ASSIGNER_HIGHLIGHT_THEME },
-    }) || []
-
-    codeNode.children = lines.map((lineTokens) => {
-      return {
-        type: "element",
-        tagName: "span",
-        properties: {
-          className: ["aimd-assigner-code__line"],
-          style: buildInlineStyle({ display: "block" }),
-        },
-        children: createHighlightedLineChildren(lineTokens),
-      } as Element
-    })
-    codeNode.properties = {
-      ...codeNode.properties,
-      className: [...getClassNames(codeNode.properties?.className), "aimd-assigner-code"],
-      "data-aimd-highlighted": "true",
-    }
-  })
-}
-
-const remarkStripAssignerCodeBlocks: Plugin<[], MarkdownNode> = () => {
-  return (tree) => {
-    visitMarkdownParents(tree, (parent) => {
-      parent.children = parent.children.filter(child => !isAssignerCodeNode(child))
-    })
-  }
-}
-
-function buildStepSequenceMap(fields: ExtractedAimdFields): Map<string, string> {
-  const sequenceMap = new Map<string, string>()
-
-  for (const step of fields.stepHierarchy || []) {
-    if (typeof step.id === "string" && step.id.trim() && typeof step.step === "string" && step.step.trim()) {
-      sequenceMap.set(step.id, step.step)
-    }
-  }
-
-  return sequenceMap
-}
-
-function annotateStepReferenceSequence(
-  tree: HastRoot,
-  fields: ExtractedAimdFields,
-  options: AimdRendererOptions,
-): void {
-  const stepSequenceMap = buildStepSequenceMap(fields)
-  if (stepSequenceMap.size === 0) {
-    return
-  }
-
-  const messages = createAimdRendererMessages(options.locale, options.messages)
-
-  const visitNode = (node: HastRoot | Element): void => {
-    if (node.type === "element") {
-      const element = node as Element
-      const aimdType = element.properties?.["data-aimd-type"] || element.properties?.dataAimdType
-
-      if (aimdType === "ref_step") {
-        const refTarget = element.properties?.["data-aimd-id"] || element.properties?.dataAimdId
-        if (typeof refTarget === "string") {
-          const stepSequence = stepSequenceMap.get(refTarget)
-          if (stepSequence) {
-            element.properties["data-aimd-step-sequence"] = stepSequence
-            element.properties.title = refTarget
-
-            const aimdData = (element.data as { aimd?: AimdNode } | undefined)?.aimd
-            if (aimdData) {
-              ;(aimdData as any).stepSequence = stepSequence
-            }
-
-            const jsonData = element.properties["data-aimd-json"]
-            if (typeof jsonData === "string") {
-              try {
-                const parsed = JSON.parse(jsonData) as Record<string, unknown>
-                parsed.stepSequence = stepSequence
-                element.properties["data-aimd-json"] = JSON.stringify(parsed)
-              }
-              catch {
-                // Ignore malformed fallback JSON and keep runtime metadata only.
-              }
-            }
-
-            element.children = [{
-              type: "element",
-              tagName: "span",
-              properties: { className: ["aimd-ref__content"] },
-              children: [{
-                type: "element",
-                tagName: "span",
-                properties: { className: ["aimd-field", "aimd-field--step", "aimd-field--readonly"] },
-                children: [{
-                  type: "element",
-                  tagName: "span",
-                  properties: { className: ["research-step__sequence"] },
-                  children: [{ type: "text", value: messages.step.reference(stepSequence) }],
-                } as Element],
-              } as Element],
-            } as Element]
-          }
-        }
-      }
-
-      for (const child of element.children || []) {
-        if (child.type === "element") {
-          visitNode(child)
-        }
-      }
-      return
-    }
-
-    for (const child of node.children) {
-      if (child.type === "element") {
-        visitNode(child)
-      }
-    }
-  }
-
-  visitNode(tree)
-}
+// ---------------------------------------------------------------------------
+// Field-type helpers used by createAimdHandler
+// ---------------------------------------------------------------------------
 
 /**
  * Map field type to CSS class modifier (BEM format)
@@ -608,23 +333,7 @@ function getFieldTypeClass(fieldType: AimdNode["fieldType"]): string {
   }
 }
 
-interface ResolvedQuizPreviewOptions {
-  showAnswers: boolean
-  showRubric: boolean
-}
-
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
-
-function resolveQuizPreviewOptions(
-  options: Pick<ProcessorOptions, "mode" | "quizPreview">,
-): ResolvedQuizPreviewOptions {
-  const mode = options.mode ?? "preview"
-  const defaultReveal = mode === "report"
-  return {
-    showAnswers: options.quizPreview?.showAnswers ?? defaultReveal,
-    showRubric: options.quizPreview?.showRubric ?? defaultReveal,
-  }
-}
 
 function buildQuizStemChildren(
   quizType: AimdQuizNode["quizType"],
@@ -676,13 +385,25 @@ function buildQuizStemChildren(
   return children
 }
 
+// ---------------------------------------------------------------------------
+// AIMD handler (remark-rehype custom handler)
+// ---------------------------------------------------------------------------
+
 /**
  * Custom handler for AIMD nodes in remark-rehype
  * Converts MDAST AIMD nodes to HAST elements
  */
 function createAimdHandler(options: AimdRendererOptions = {}) {
-  const quizPreview = resolveQuizPreviewOptions(options)
+  const quizPreview = resolveQuizPreviewOptions(options.mode ?? "preview", options.quizPreview)
   const messages = createAimdRendererMessages(options.locale, options.messages)
+  const htmlRendererContext: AimdHtmlRendererContext = {
+    mode: options.mode ?? "preview",
+    readonly: false,
+    value: undefined,
+    quizPreview: options.quizPreview,
+    locale: options.locale ?? "en-US",
+    messages,
+  }
 
   return function aimdHandler(state: any, node: AimdNode): Element {
   // Build full node data including step hierarchy
@@ -742,6 +463,11 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     nodeData.nextId = stepNode.nextId
     nodeData.hasChildren = stepNode.hasChildren
     nodeData.check = stepNode.check
+    nodeData.title = stepNode.title
+    nodeData.subtitle = stepNode.subtitle
+    nodeData.checkedMessage = stepNode.checkedMessage
+    nodeData.result = stepNode.result
+    nodeData.props = stepNode.props
   }
 
   // Serialize AIMD node data to JSON for preservation through rehypeRaw
@@ -1069,54 +795,15 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     }
   }
   else if (fieldType === "fig") {
-    // Figure: image + title + legend
+    // Figure: delegate to figureNumbering module
     const figNode = node as any
-    const figId = figNode.id || id
-    const figSrc = figNode.src || ""
-    const figTitle = figNode.title
-    const figLegend = figNode.legend
-
-    // Create img element
-    children.push({
-      type: "element",
-      tagName: "img",
-      properties: {
-        src: figSrc,
-        alt: figTitle || figId,
-        className: ["aimd-figure__image"],
-      },
-      children: [],
-    } as Element)
-
-    // Create figcaption if title or legend exists
-    if (figTitle || figLegend) {
-      const captionChildren: (Element | HastText)[] = []
-
-      if (figTitle) {
-        captionChildren.push({
-          type: "element",
-          tagName: "div",
-          properties: { className: ["aimd-figure__title"] },
-          children: [{ type: "text", value: figTitle }],
-        } as Element)
-      }
-
-      if (figLegend) {
-        captionChildren.push({
-          type: "element",
-          tagName: "div",
-          properties: { className: ["aimd-figure__legend"] },
-          children: [{ type: "text", value: figLegend }],
-        } as Element)
-      }
-
-      children.push({
-        type: "element",
-        tagName: "figcaption",
-        properties: { className: ["aimd-figure__caption"] },
-        children: captionChildren,
-      } as Element)
-    }
+    children.push(...buildFigureChildren({
+      id: figNode.id || id,
+      src: figNode.src,
+      title: figNode.title,
+      legend: figNode.legend,
+      sequence: figNode.sequence,
+    }))
   }
 
   // Build properties
@@ -1147,6 +834,22 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     const stepNode = node as AimdStepNode
     properties["data-aimd-step"] = stepNode.step
     properties["data-aimd-level"] = stepNode.level
+    properties["data-aimd-check"] = stepNode.check ? "true" : "false"
+    if (options.groupStepBodies) {
+      properties["data-aimd-step-container"] = "true"
+    }
+    if (stepNode.title) {
+      properties["data-aimd-title"] = stepNode.title
+    }
+    if (stepNode.subtitle) {
+      properties["data-aimd-subtitle"] = stepNode.subtitle
+    }
+    if (stepNode.checkedMessage) {
+      properties["data-aimd-checked-message"] = stepNode.checkedMessage
+    }
+    if (stepNode.result) {
+      properties["data-aimd-result"] = "true"
+    }
     properties.id = `step-${id}`
   }
 
@@ -1185,17 +888,31 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     properties["data-aimd-quiz-stem"] = quizNode.stem
   }
 
-  const element: Element = {
+  const isGroupedStepContainer = fieldType === "step" && options.groupStepBodies
+  const element: Element = assignAimdNodeData({
     type: "element",
-    tagName: isRef ? "a" : (isFig ? "figure" : ((fieldType === "var_table" || isQuiz) ? "div" : "span")),
+    tagName: isRef
+      ? "a"
+      : (isFig ? "figure" : ((fieldType === "var_table" || isQuiz || isGroupedStepContainer) ? "div" : "span")),
     properties,
     children,
+  }, node)
+
+  const customRenderer = options.aimdElementRenderers?.[node.fieldType]
+  if (customRenderer) {
+    const customElement = customRenderer(node, element, htmlRendererContext)
+    if (customElement) {
+      return assignAimdNodeData(customElement, node)
+    }
   }
-  // Store AIMD data for Vue renderer (may be lost after rehypeRaw)
-  ;(element as any).data = { aimd: node }
+
   return element
   }
 }
+
+// ---------------------------------------------------------------------------
+// Processor pipeline
+// ---------------------------------------------------------------------------
 
 /**
  * Create base processor
@@ -1256,6 +973,10 @@ export function createHtmlProcessor(options: AimdRendererOptions = {}) {
   return processor
 }
 
+// ---------------------------------------------------------------------------
+// Public render functions
+// ---------------------------------------------------------------------------
+
 /**
  * Render Markdown/AIMD to HTML string
  */
@@ -1272,6 +993,10 @@ export async function renderToHtml(
 
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
+  assignFigureSequenceNumbers(hastTree, fields)
+  if (options.groupStepBodies) {
+    groupStepBodies(hastTree)
+  }
   await highlightVisibleAssigners(hastTree, options)
   const html = toHtml(hastTree, { allowDangerousHtml: true })
 
@@ -1294,6 +1019,10 @@ export async function renderToVue(
 
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
+  assignFigureSequenceNumbers(hastTree, fields)
+  if (options.groupStepBodies) {
+    groupStepBodies(hastTree)
+  }
   await highlightVisibleAssigners(hastTree, options)
   const nodes = renderToVNodes(hastTree, options)
 
@@ -1331,6 +1060,10 @@ export function renderToHtmlSync(
 
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
+  assignFigureSequenceNumbers(hastTree, fields)
+  if (options.groupStepBodies) {
+    groupStepBodies(hastTree)
+  }
   const html = toHtml(hastTree, { allowDangerousHtml: true })
 
   return { html, fields }

@@ -143,4 +143,33 @@ import { AimdRecorder } from "@airalogy/aimd-recorder"
 </template>
 ```
 
+### Host Field Adapters
+
+Use `fieldAdapters` when the host application needs to replace or wrap built-in recorder fields with its own components while still keeping AIMD parsing and record state in `AimdRecorder`.
+
+```vue
+<script setup lang="ts">
+import { h } from "vue"
+import { AimdRecorder } from "@airalogy/aimd-recorder"
+</script>
+
+<template>
+  <AimdRecorder
+    :content="content"
+    :model-value="record"
+    :field-adapters="{
+      step: ({ node, defaultVNode }) =>
+        h('step-card', {
+          'step-id': node.id,
+          'step-number': node.step,
+          title: node.title || node.id,
+          level: String(node.level),
+        }, () => [defaultVNode]),
+    }"
+  />
+</template>
+```
+
+Each adapter receives the parsed AIMD node, current field value, full record snapshot, built-in localized messages, and the default recorder vnode. `wrapField` still runs after adapter resolution, so host apps can keep global wrappers for validation or assigner chrome.
+
 `AimdProtocolRecorder` is still exported as a deprecated compatibility alias, but new usage should prefer `AimdRecorder`.

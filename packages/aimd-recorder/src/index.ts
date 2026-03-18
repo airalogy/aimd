@@ -23,6 +23,12 @@ export {
 } from './locales'
 export type {
   AimdProtocolRecordData,
+  AimdRecorderFieldAdapter,
+  AimdRecorderFieldAdapterContext,
+  AimdRecorderFieldAdapters,
+  AimdRecorderFieldNode,
+  AimdRecorderFieldNodeMap,
+  AimdRecorderFieldType,
   AimdStepOrCheckRecordItem,
   AimdFieldMeta,
   AimdFieldState,

@@ -2,6 +2,17 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.2.0] - 2026-03-19
+
+### Added
+
+- Added `createCustomElementAimdRenderer` plus `aimdElementRenderers` / `groupStepBodies` so host applications can map AIMD nodes into their own custom HTML elements while preserving AIMD metadata.
+- Added `createStepCardRenderer()` as a reusable Vue renderer for step nodes with grouped body content, title/subtitle presentation, and result/check badges.
+
+### Changed
+
+- Preserved parsed step kwargs such as `title`, `subtitle`, `checked_message`, and `result` through renderer-side node metadata so host renderers can build richer custom step UIs.
+
 ## [2.1.0] - 2026-03-13
 
 ### Changed

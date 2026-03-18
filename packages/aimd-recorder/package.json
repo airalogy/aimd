@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-recorder",
   "type": "module",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "AIMD editor Vue components and UI",
   "keywords": [
     "aimd",
@@ -37,7 +37,8 @@
   "scripts": {
     "type-check": "vue-tsc --noEmit",
     "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "vitest run --config vitest.config.ts"
   },
   "peerDependencies": {
     "@vueuse/core": "^13.5.0",

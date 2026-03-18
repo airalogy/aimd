@@ -1,3 +1,13 @@
+import type { VNode } from "vue"
+import type {
+  AimdCheckNode,
+  AimdQuizNode,
+  AimdStepNode,
+  AimdVarNode,
+  AimdVarTableNode,
+} from "@airalogy/aimd-core/types"
+import type { AimdRecorderMessages } from "./locales"
+
 export interface AimdStepOrCheckRecordItem {
   checked: boolean
   annotation: string
@@ -85,3 +95,37 @@ export interface TableEventPayload {
   rowIndex?: number
   columns: string[]
 }
+
+export type AimdRecorderFieldType = "var" | "var_table" | "step" | "check" | "quiz"
+
+export interface AimdRecorderFieldNodeMap {
+  var: AimdVarNode
+  var_table: AimdVarTableNode
+  step: AimdStepNode
+  check: AimdCheckNode
+  quiz: AimdQuizNode
+}
+
+export type AimdRecorderFieldNode = AimdRecorderFieldNodeMap[keyof AimdRecorderFieldNodeMap]
+
+export interface AimdRecorderFieldAdapterContext<TFieldType extends AimdRecorderFieldType = AimdRecorderFieldType> {
+  fieldType: TFieldType
+  fieldKey: string
+  node: AimdRecorderFieldNodeMap[TFieldType]
+  value: unknown
+  defaultVNode: VNode
+  readonly: boolean
+  locale: string
+  messages: AimdRecorderMessages
+  record: AimdProtocolRecordData
+  fieldMeta?: Record<string, AimdFieldMeta>
+  fieldState?: Record<string, AimdFieldState>
+}
+
+export type AimdRecorderFieldAdapter<TFieldType extends AimdRecorderFieldType = AimdRecorderFieldType> = (
+  context: AimdRecorderFieldAdapterContext<TFieldType>,
+) => VNode | null | undefined
+
+export type AimdRecorderFieldAdapters = Partial<{
+  [K in AimdRecorderFieldType]: AimdRecorderFieldAdapter<K>
+}>

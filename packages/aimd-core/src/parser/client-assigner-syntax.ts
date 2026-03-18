@@ -1,3 +1,4 @@
+import * as acorn from "acorn"
 import type { AimdClientAssignerField, AimdClientAssignerMode } from "../types/aimd"
 
 const CLIENT_ASSIGNER_SUPPORTED_MODES = new Set<AimdClientAssignerMode>(["auto", "auto_first", "manual"])
@@ -28,6 +29,152 @@ const CLIENT_ASSIGNER_FORBIDDEN_PATTERNS: Array<{ pattern: RegExp, message: stri
     message: "must not use time-dependent APIs",
   },
 ]
+
+/**
+ * AST node types that map to forbidden syntax constructs.
+ * Keys are ESTree node types, values are the error messages.
+ */
+const FORBIDDEN_AST_NODE_MESSAGES: Record<string, string> = {
+  ImportDeclaration: "contains unsupported control-flow or module syntax",
+  ImportExpression: "contains unsupported control-flow or module syntax",
+  ExportNamedDeclaration: "contains unsupported control-flow or module syntax",
+  ExportDefaultDeclaration: "contains unsupported control-flow or module syntax",
+  ExportAllDeclaration: "contains unsupported control-flow or module syntax",
+  ClassDeclaration: "contains unsupported control-flow or module syntax",
+  ClassExpression: "contains unsupported control-flow or module syntax",
+  NewExpression: "contains unsupported control-flow or module syntax",
+  ArrowFunctionExpression: "does not allow arrow functions",
+  AwaitExpression: "contains unsupported control-flow or module syntax",
+  YieldExpression: "contains unsupported control-flow or module syntax",
+  ThrowStatement: "contains unsupported control-flow or module syntax",
+  TryStatement: "contains unsupported control-flow or module syntax",
+  SwitchStatement: "contains unsupported control-flow or module syntax",
+  WhileStatement: "contains unsupported control-flow or module syntax",
+  ForStatement: "contains unsupported control-flow or module syntax",
+  ForInStatement: "contains unsupported control-flow or module syntax",
+  ForOfStatement: "contains unsupported control-flow or module syntax",
+  DoWhileStatement: "contains unsupported control-flow or module syntax",
+}
+
+const FORBIDDEN_GLOBAL_NAMES = new Set([
+  "window", "document", "globalThis", "self",
+  "fetch", "XMLHttpRequest", "WebSocket",
+  "Function", "eval", "setTimeout", "setInterval",
+])
+
+const FORBIDDEN_META_NAMES = new Set([
+  "__proto__", "prototype", "constructor",
+])
+
+function walkAstNode(node: any, visitor: (node: any) => void): void {
+  if (!node || typeof node !== "object") return
+  visitor(node)
+  for (const key of Object.keys(node)) {
+    if (key === "type" || key === "start" || key === "end") continue
+    const value = node[key]
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (child && typeof child.type === "string") {
+          walkAstNode(child, visitor)
+        }
+      }
+    } else if (value && typeof value === "object" && typeof value.type === "string") {
+      walkAstNode(value, visitor)
+    }
+  }
+}
+
+function checkForbiddenName(name: string, id: string): void {
+  if (FORBIDDEN_GLOBAL_NAMES.has(name)) {
+    throw new Error(`client assigner "${id}" uses blocked runtime globals`)
+  }
+  if (FORBIDDEN_META_NAMES.has(name)) {
+    throw new Error(`client assigner "${id}" uses blocked object metaprogramming features`)
+  }
+  if (name === "Date") {
+    throw new Error(`client assigner "${id}" must not use time-dependent APIs`)
+  }
+}
+
+/**
+ * AST-based validation of client assigner function source.
+ * Catches Unicode escape bypasses (e.g. `e\u0076al`) that regex misses,
+ * because acorn resolves escapes when building the AST.
+ */
+function validateFunctionSourceAst(functionSource: string, id: string): void {
+  let ast: acorn.Node
+  try {
+    ast = acorn.parse(functionSource, {
+      ecmaVersion: 2022,
+      sourceType: "script",
+    })
+  } catch {
+    throw new Error(`client assigner "${id}" contains invalid JavaScript syntax`)
+  }
+
+  let functionDeclCount = 0
+  let hasReturn = false
+
+  walkAstNode(ast, (node: any) => {
+    const forbiddenMessage = FORBIDDEN_AST_NODE_MESSAGES[node.type]
+    if (forbiddenMessage) {
+      throw new Error(`client assigner "${id}" ${forbiddenMessage}`)
+    }
+
+    if (node.type === "FunctionDeclaration" || node.type === "FunctionExpression") {
+      functionDeclCount++
+      if (node.async) {
+        throw new Error(`client assigner "${id}" contains unsupported control-flow or module syntax`)
+      }
+      if (node.generator) {
+        throw new Error(`client assigner "${id}" contains unsupported control-flow or module syntax`)
+      }
+    }
+
+    if (node.type === "ReturnStatement") {
+      hasReturn = true
+    }
+
+    if (node.type === "ThisExpression") {
+      throw new Error(`client assigner "${id}" uses blocked object metaprogramming features`)
+    }
+
+    // Identifier check — acorn resolves Unicode escapes, so e\u0076al → "eval"
+    if (node.type === "Identifier") {
+      checkForbiddenName(node.name, id)
+    }
+
+    // Computed member access with string literals: obj["eval"], obj["__proto__"]
+    if (
+      node.type === "MemberExpression"
+      && node.computed
+      && node.property?.type === "Literal"
+      && typeof node.property.value === "string"
+    ) {
+      checkForbiddenName(node.property.value, id)
+    }
+
+    // Math.random
+    if (
+      node.type === "MemberExpression"
+      && !node.computed
+      && node.object?.type === "Identifier"
+      && node.object.name === "Math"
+      && node.property?.type === "Identifier"
+      && node.property.name === "random"
+    ) {
+      throw new Error(`client assigner "${id}" must not use randomness`)
+    }
+  })
+
+  if (functionDeclCount !== 1) {
+    throw new Error(`client assigner "${id}" must contain exactly one function definition`)
+  }
+
+  if (!hasReturn) {
+    throw new Error(`client assigner "${id}" must return an object containing assigned field values`)
+  }
+}
 
 function normalizeIdentifierList(value: unknown, fieldName: string): string[] {
   if (!Array.isArray(value)) {
@@ -416,6 +563,7 @@ function parseClientAssignerFunction(source: string): ParsedClientAssignerFuncti
 }
 
 export function validateClientAssignerFunctionSource(functionSource: string, id: string): void {
+  // Fast-path: regex checks for obvious violations with clear error messages
   const matches = functionSource.match(/\bfunction\b/g) ?? []
   if (matches.length !== 1) {
     throw new Error(`client assigner "${id}" must contain exactly one function definition`)
@@ -430,6 +578,9 @@ export function validateClientAssignerFunctionSource(functionSource: string, id:
   if (!/\breturn\b/.test(functionSource)) {
     throw new Error(`client assigner "${id}" must return an object containing assigned field values`)
   }
+
+  // Authoritative: AST-based validation catches Unicode escapes and other regex bypasses
+  validateFunctionSourceAst(functionSource, id)
 }
 
 export function parseClientAssignerContent(content: string): AimdClientAssignerField {

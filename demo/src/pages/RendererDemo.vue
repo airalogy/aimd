@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, type VNode } from 'vue'
-import { renderToHtml, renderToVue, parseAndExtract } from '@airalogy/aimd-renderer'
+import { createStepCardRenderer, renderToHtml, renderToVue, parseAndExtract } from '@airalogy/aimd-renderer'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
 import { useSampleContent } from '../composables/sampleContent'
@@ -28,6 +28,10 @@ async function render() {
     const vueResult = await renderToVue(input.value, {
       locale: locale.value,
       assignerVisibility: 'collapsed',
+      groupStepBodies: true,
+      aimdRenderers: {
+        step: createStepCardRenderer(),
+      },
     })
     vueNodes.value = vueResult.nodes
 

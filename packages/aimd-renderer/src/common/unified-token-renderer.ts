@@ -16,6 +16,7 @@ import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
 import type { AimdRendererI18nOptions, AimdRendererMessages } from "../locales"
 import type { AimdComponentRenderer, ElementRenderer, ShikiHighlighter, VueRendererOptions } from "../vue/vue-renderer"
 import type { AimdRendererOptions, RenderResult } from "./processor"
+import { resolveQuizPreviewOptions, type ResolvedQuizPreviewOptions } from "./quiz-preview"
 import { h } from "vue"
 import {
   createAimdRendererMessages,
@@ -124,23 +125,6 @@ export interface UnifiedTokenRendererOptions {
  */
 function getScopeKey(scope: string): string {
   return scope === "var_table" ? "table" : scope
-}
-
-interface ResolvedQuizPreviewOptions {
-  showAnswers: boolean
-  showRubric: boolean
-}
-
-function resolveQuizPreviewOptions(
-  mode: RenderMode,
-  quizPreview?: QuizPreviewOptions,
-): ResolvedQuizPreviewOptions {
-  const normalizedMode = mode === "timeline" ? "preview" : mode
-  const defaultReveal = normalizedMode === "report"
-  return {
-    showAnswers: quizPreview?.showAnswers ?? defaultReveal,
-    showRubric: quizPreview?.showRubric ?? defaultReveal,
-  }
 }
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g

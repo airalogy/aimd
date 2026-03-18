@@ -58,6 +58,17 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## 校验辅助函数
+
+```ts
+import {
+  validateClientAssignerFunctionSource,
+  validateVarDefaultType,
+} from "@airalogy/aimd-core/parser"
+```
+
+如果宿主工具需要在保存或执行前预检 fenced `assigner runtime=client` 函数，可使用 `validateClientAssignerFunctionSource()`。如果你想在作者填写 AIMD var 默认值时提示类型不匹配警告，可使用 `validateVarDefaultType()`。
+
 ## 文档
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-core>

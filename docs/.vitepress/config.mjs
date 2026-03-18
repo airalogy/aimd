@@ -42,21 +42,48 @@ const legacyDemoHashRedirectScript = `(() => {
   window.location.replace(${JSON.stringify(base)} + 'demo/' + search + route)
 })()`
 
+const enGuideSidebarItems = [
+  { text: 'Integration Guide', link: '/en/integration' },
+  { text: 'API Reference', link: '/en/api-reference' },
+  { text: 'Troubleshooting / FAQ', link: '/en/troubleshooting' },
+]
+
+const zhGuideSidebarItems = [
+  { text: '集成指南', link: '/zh/integration' },
+  { text: 'API 参考', link: '/zh/api-reference' },
+  { text: '故障排查 / FAQ', link: '/zh/troubleshooting' },
+]
+
+const enPackageSidebarItems = enPackagesSidebar.find(group => group.text === 'Packages')?.items ?? []
+const zhPackageSidebarItems = zhPackagesSidebar.find(group => group.text === '包文档')?.items ?? []
+
 const enRootSidebar = [
+  {
+    text: 'Guides',
+    link: '/en/integration',
+    collapsed: false,
+    items: enGuideSidebarItems,
+  },
   {
     text: 'Packages',
     link: '/en/packages/',
     collapsed: false,
-    items: enPackagesSidebar.flatMap(group => group.items ?? []),
+    items: enPackageSidebarItems,
   },
 ]
 
 const zhRootSidebar = [
   {
+    text: '指南',
+    link: '/zh/integration',
+    collapsed: false,
+    items: zhGuideSidebarItems,
+  },
+  {
     text: '包文档',
     link: '/zh/packages/',
     collapsed: false,
-    items: zhPackagesSidebar.flatMap(group => group.items ?? []),
+    items: zhPackageSidebarItems,
   },
 ]
 
@@ -89,6 +116,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Home', link: '/en/' },
+          { text: 'Guides', link: '/en/integration' },
           { text: 'Packages', link: '/en/packages/' },
           { text: 'Demo', link: '/en/demo' },
         ],
@@ -102,6 +130,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '首页', link: '/zh/' },
+          { text: '指南', link: '/zh/integration' },
           { text: '包文档', link: '/zh/packages/' },
           { text: '演示', link: '/zh/demo' },
         ],

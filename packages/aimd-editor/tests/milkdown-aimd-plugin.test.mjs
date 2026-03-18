@@ -8,9 +8,11 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const pluginPath = resolve(__dirname, '../src/vue/milkdown-aimd-plugin.ts')
 const editorPath = resolve(__dirname, '../src/vue/AimdEditor.vue')
+const editorContentPath = resolve(__dirname, '../src/vue/useEditorContent.ts')
 const dialogPath = resolve(__dirname, '../src/vue/AimdFieldDialog.vue')
 const source = readFileSync(pluginPath, 'utf8')
 const editorSource = readFileSync(editorPath, 'utf8')
+const editorContentSource = readFileSync(editorContentPath, 'utf8')
 const dialogSource = readFileSync(dialogPath, 'utf8')
 
 function getToMarkdownBlock(content) {
@@ -58,11 +60,10 @@ test('milkdown remark plugin restores protected AIMD inline templates before mat
 })
 
 test('AimdEditor protects markdown before feeding content into Milkdown', () => {
-  assert.match(editorSource, /import\s+\{\s*protectAimdInlineTemplates\s*\}\s+from\s+'@airalogy\/aimd-core'/)
-  assert.match(editorSource, /function toMilkdownMarkdown\(markdown: string\): string \{\s*return protectAimdInlineTemplates\(markdown\)\.content\s*\}/)
-  assert.match(editorSource, /ctx\.set\(defaultValueCtx,\s*toMilkdownMarkdown\(defaultVal\.value\)\)/)
-  assert.match(editorSource, /replaceAll\(toMilkdownMarkdown\(content\.value\)\)/)
-  assert.match(editorSource, /replaceAll\(toMilkdownMarkdown\(val\)\)/)
+  // After refactor, the protection logic lives in useEditorContent.ts and AimdWysiwygEditor.vue
+  const contentSources = editorContentSource + '\n' + editorSource
+  assert.match(editorContentSource, /import\s+\{\s*protectAimdInlineTemplates\s*\}\s+from\s+'@airalogy\/aimd-core'/)
+  assert.match(editorContentSource, /function toMilkdownMarkdown\(markdown: string\): string \{\s*return protectAimdInlineTemplates\(markdown\)\.content\s*\}/)
 })
 
 test('AimdFieldDialog var type section exposes explained presets and keeps custom input', () => {

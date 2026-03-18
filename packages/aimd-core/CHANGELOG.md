@@ -4,6 +4,16 @@ All notable changes to `@airalogy/aimd-core` will be documented in this file.
 
 Earlier historical releases were not backfilled yet. This changelog currently starts from the `2.x` release line.
 
+## [2.2.0] - 2026-03-19
+
+### Added
+
+- Exported `validateVarDefaultType` from the parser entry so downstream tools can reuse AIMD var-default validation without reaching into internal modules.
+
+### Changed
+
+- Hardened `client_assigner` validation by parsing function bodies with `acorn`, closing Unicode-escape and computed-property bypasses that simple regex-only checks could miss.
+
 ## [2.1.0] - 2026-03-13
 
 ### Added

@@ -104,6 +104,24 @@ recorderRef.value?.runClientAssigner("calculate_total_liquid_ml")
 recorderRef.value?.runManualClientAssigners()
 ```
 
+## Host Field Adapters
+
+```ts
+import { h } from "vue"
+
+const fieldAdapters = {
+  step: ({ node, defaultVNode }) =>
+    h("step-card", {
+      "step-id": node.id,
+      "step-number": node.step,
+      title: node.title || node.id,
+      level: String(node.level),
+    }, () => [defaultVNode]),
+}
+```
+
+Pass `fieldAdapters` to `AimdRecorder` when the host app needs to replace or wrap built-in recorder field UIs while still using AIMD parsing and record-state management.
+
 ### Quiz Recorder Only
 
 ```vue

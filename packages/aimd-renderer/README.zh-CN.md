@@ -49,6 +49,48 @@ const { html } = await renderToHtml(content, {
 })
 ```
 
+## 宿主自定义元素
+
+```ts
+import {
+  createCustomElementAimdRenderer,
+  renderToHtml,
+} from "@airalogy/aimd-renderer"
+
+const { html } = await renderToHtml("{{step|verify, 2, title='Verify Output', check=True}}", {
+  groupStepBodies: true,
+  aimdElementRenderers: {
+    step: createCustomElementAimdRenderer("step-card", (node) => ({
+      "step-id": node.id,
+      "step-number": (node as any).step,
+      title: (node as any).title,
+      level: String((node as any).level),
+      "has-check": (node as any).check ? "true" : undefined,
+    }), {
+      container: true,
+      stripDefaultChildren: true,
+    }),
+  },
+})
+```
+
+当宿主应用已经有自己的预览组件时，可以用这种方式把 AIMD HTML 输出直接映射到自定义元素。若希望步骤节点把后续块级正文一起吸收到 body / slot 中，请启用 `groupStepBodies`。
+
+## 可复用 Step Card UI
+
+```ts
+import { createStepCardRenderer, renderToVue } from "@airalogy/aimd-renderer"
+
+const { nodes } = await renderToVue(content, {
+  groupStepBodies: true,
+  aimdRenderers: {
+    step: createStepCardRenderer(),
+  },
+})
+```
+
+当你想直接得到现成的 Vue 步骤卡片渲染，而不是先把 AIMD 节点映射到自定义元素时，可以使用这组 API。
+
 在浏览器环境中调用异步渲染 API（`renderToHtml` / `renderToVue`）时，会自动加载公式样式。  
 只有在你希望手动预加载样式时，才需要引入 `@airalogy/aimd-renderer/styles`。
 

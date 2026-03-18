@@ -9,6 +9,14 @@
     "docs:build": "pnpm --dir docs install --ignore-workspace && DEMO_BASE=\"${BASE_PATH%/}/demo/\" pnpm --filter @airalogy/aimd-demo build && pnpm -C docs docs:build && rm -rf docs/.vitepress/dist/demo && mkdir -p docs/.vitepress/dist/demo && cp -R demo/dist/. docs/.vitepress/dist/demo/ && node ./scripts/create-demo-route-shims.mjs",
     "docs:preview": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:preview",
     "test": "pnpm -r --if-present test",
+    "test:vitest": "vitest run",
+    "test:vitest:watch": "vitest",
+    "test:vitest:coverage": "vitest run --coverage",
     "type-check": "pnpm -r type-check"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
+    "happy-dom": "^20.8.4",
+    "vitest": "^4.1.0"
   }
 }

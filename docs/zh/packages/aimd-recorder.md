@@ -94,6 +94,35 @@ recorderRef.value?.runClientAssigner("calculate_total_liquid_ml")
 recorderRef.value?.runManualClientAssigners()
 ```
 
+## 宿主字段适配器
+
+当宿主应用希望用自己的组件替换或包裹 recorder 的内建字段，但仍保留 AIMD 解析和记录状态管理时，可以使用 `fieldAdapters`：
+
+```vue
+<script setup lang="ts">
+import { h } from "vue"
+import { AimdRecorder } from "@airalogy/aimd-recorder"
+</script>
+
+<template>
+  <AimdRecorder
+    :content="content"
+    :model-value="record"
+    :field-adapters="{
+      step: ({ node, defaultVNode }) =>
+        h('step-card', {
+          'step-id': node.id,
+          'step-number': node.step,
+          title: node.title || node.id,
+          level: String(node.level),
+        }, () => [defaultVNode]),
+    }"
+  />
+</template>
+```
+
+每个 adapter 都会拿到解析后的 AIMD 节点、当前字段值、完整 record 快照、内建本地化消息，以及 recorder 默认生成的 vnode。`wrapField` 会在 adapter 解析之后继续执行，因此宿主应用仍然可以保留统一的校验外壳或 assigner UI 包裹层。
+
 ## 语言
 
 `DNASequence` 会渲染专用 DNA 录入控件，支持：

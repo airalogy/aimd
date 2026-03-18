@@ -11,6 +11,12 @@ Interactive demo:
 
 - [`Embedded Demo`](/en/demo)
 
+Guides and reference:
+
+- [`Integration Guide`](/en/integration)
+- [`API Reference`](/en/api-reference)
+- [`Troubleshooting / FAQ`](/en/troubleshooting)
+
 ## Monorepo Structure
 
 ```text
