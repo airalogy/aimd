@@ -389,6 +389,157 @@
   color: #d1d5db;
 }
 
+/* ========================================
+   Check Pill
+   ======================================== */
+
+.aimd-check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px 14px;
+  margin: 4px 4px 4px 0;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  vertical-align: middle;
+}
+
+.aimd-check-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(22, 114, 79, 0.22);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.07);
+}
+
+.aimd-check-pill--checked {
+  border-color: rgba(22, 114, 79, 0.2);
+  background: rgba(247, 254, 250, 0.96);
+}
+
+.aimd-check-pill__input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aimd-check-pill__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: transparent;
+  transition: all 0.18s ease;
+}
+
+.aimd-check-pill__box svg {
+  width: 11px;
+  height: 11px;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.aimd-check-pill--checked .aimd-check-pill__box {
+  background: #16724f;
+  border-color: #16724f;
+}
+
+.aimd-check-pill--checked .aimd-check-pill__box svg {
+  opacity: 1;
+}
+
+.aimd-check-pill__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  overflow: hidden;
+}
+
+.aimd-check-pill__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.3;
+  transition: color 0.18s ease;
+}
+
+.aimd-check-pill:hover .aimd-check-pill__label {
+  color: #0e5139;
+}
+
+.aimd-check-pill--checked .aimd-check-pill__label {
+  color: #6b7280;
+}
+
+.aimd-check-pill__msg {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(22, 114, 79, 0.1);
+  color: #0e5139;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: aimd-pill-fade-in 0.2s ease-out;
+}
+
+@keyframes aimd-pill-fade-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.aimd-check-pill__annotation {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.04);
+}
+
+.aimd-check-pill__annotation-input {
+  border: none;
+  background: transparent;
+  border-bottom: 1px dashed #d1d5db;
+  font-size: 12px;
+  padding: 0 4px;
+  width: 0;
+  max-width: 0;
+  outline: none;
+  color: #374151;
+  opacity: 0;
+  transition: width 0.2s ease, max-width 0.2s ease, opacity 0.2s ease;
+}
+
+.aimd-check-pill:hover .aimd-check-pill__annotation-input,
+.aimd-check-pill__annotation-input:focus {
+  width: 100px;
+  max-width: 100px;
+  opacity: 1;
+}
+
+.aimd-check-pill__annotation-input::placeholder {
+  color: #d1d5db;
+}
+
 /* Checkpoint field */
 .aimd-field--check {
   display: inline-flex;
