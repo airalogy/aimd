@@ -500,6 +500,9 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
   return applyFieldAdapter("var_table", fieldKey, node, rows, vnode)
 }
 
+// Map from step id → body setter, populated during renderInlineStep
+const stepBodySetters = new Map<string, (nodes: VNodeChild[]) => void>()
+
 function renderInlineStep(node: AimdStepNode): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
@@ -511,6 +514,8 @@ function renderInlineStep(node: AimdStepNode): VNode {
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
   const bodyChildren = shallowRef<VNodeChild[]>([])
+
+  stepBodySetters.set(id, (nodes) => { bodyChildren.value = nodes })
 
   const headerVnode = h(AimdStepField, {
     node,
@@ -547,11 +552,6 @@ function renderInlineStep(node: AimdStepNode): VNode {
       ? h("div", { class: "aimd-step-card-block__body" }, bodyChildren.value)
       : null,
   ])
-
-  // attach setter so paragraph renderer can inject body content
-  ;(cardVnode as any).__setStepBody = (nodes: VNodeChild[]) => {
-    bodyChildren.value = nodes
-  }
 
   return applyFieldAdapter("step", fieldKey, node, state, cardVnode)
 }
@@ -639,6 +639,7 @@ async function rebuildInlineNodes(
   expectedInlineRequestId?: number,
 ) {
   recordInitializedDuringRender = false
+  stepBodySetters.clear()
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     context: {
@@ -656,18 +657,12 @@ async function rebuildInlineNodes(
     },
     elementRenderers: {
       p: (_node, children) => {
-        // Find step card vnodes and collect subsequent siblings as body
         const result: VNodeChild[] = []
         let i = 0
         while (i < children.length) {
           const child = children[i] as any
-          const setBody = child?.__setStepBody
-            ?? child?.el?.__setStepBody
-            ?? (child?.type === 'div' ? child?.props?.['data-aimd-step-card'] ? child : null : null)?.__setStepBody
-          // detect via props
-          const isStepCard = child?.props?.['data-aimd-step-card'] !== undefined
-          if (isStepCard) {
-            // collect all following non-step siblings as body
+          const stepId = child?.props?.['data-aimd-step-card']
+          if (stepId !== undefined) {
             const body: VNodeChild[] = []
             let j = i + 1
             while (j < children.length) {
@@ -676,9 +671,14 @@ async function rebuildInlineNodes(
               body.push(children[j])
               j++
             }
-            if (body.length > 0 && child.__setStepBody) {
-              child.__setStepBody(body)
-              i = j // skip consumed children
+            if (body.length > 0) {
+              const setter = stepBodySetters.get(String(stepId))
+              if (setter) {
+                setter(body)
+                i = j
+              } else {
+                i++
+              }
             } else {
               i++
             }
@@ -688,7 +688,6 @@ async function rebuildInlineNodes(
             i++
           }
         }
-        // if paragraph only contains step cards, render as fragment without <p>
         const hasOnlyStepCards = result.every((c: any) => c?.props?.['data-aimd-step-card'] !== undefined)
         if (hasOnlyStepCards) {
           return h(Fragment, null, result)
