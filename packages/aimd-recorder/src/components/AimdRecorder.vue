@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Fragment, computed, defineComponent, h, nextTick, reactive, ref, shallowRef, watch, type PropType, type VNode, type VNodeChild } from "vue"
+import { computed, defineComponent, h, nextTick, reactive, ref, watch, type PropType, type VNode, type VNodeChild } from "vue"
 import type {
   AimdCheckNode,
   AimdClientAssignerField,
@@ -500,10 +500,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
   return applyFieldAdapter("var_table", fieldKey, node, rows, vnode)
 }
 
-// Map from step id → body setter, populated during renderInlineStep
-const stepBodySetters = new Map<string, (nodes: VNodeChild[]) => void>()
-
-function renderInlineStep(node: AimdStepNode): VNode {
+function renderInlineStep(node: AimdStepNode, children?: VNodeChild[]): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
   if (!(id in localRecord.step)) {
@@ -513,9 +510,6 @@ function renderInlineStep(node: AimdStepNode): VNode {
   const state = localRecord.step[id]
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
-  const bodyChildren = shallowRef<VNodeChild[]>([])
-
-  stepBodySetters.set(id, (nodes) => { bodyChildren.value = nodes })
 
   const headerVnode = h(AimdStepField, {
     node,
@@ -545,11 +539,10 @@ function renderInlineStep(node: AimdStepNode): VNode {
       Boolean(state.checked) ? "aimd-step-card-block--checked" : "",
     ],
     "data-aimd-step-card": id,
-    "data-aimd-step-level": String(node.level || 1),
-  }, () => [
+  }, [
     h("div", { class: "aimd-step-card-block__header" }, [headerVnode]),
-    bodyChildren.value.length > 0
-      ? h("div", { class: "aimd-step-card-block__body" }, bodyChildren.value)
+    children && children.length > 0
+      ? h("div", { class: "aimd-step-card-block__body" }, children)
       : null,
   ])
 
@@ -639,7 +632,6 @@ async function rebuildInlineNodes(
   expectedInlineRequestId?: number,
 ) {
   recordInitializedDuringRender = false
-  stepBodySetters.clear()
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     context: {
@@ -648,52 +640,13 @@ async function rebuildInlineNodes(
       value: localRecord as Record<string, Record<string, unknown>>,
     },
     blockVarTypes: ["AiralogyMarkdown"],
+    groupStepBodies: true,
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
-      step: (node) => renderInlineStep(node as AimdStepNode),
+      step: (node, _ctx, children) => renderInlineStep(node as AimdStepNode, children),
       check: node => renderInlineCheck(node as AimdCheckNode),
       quiz: node => renderInlineQuiz(node as AimdQuizNode),
-    },
-    elementRenderers: {
-      p: (_node, children) => {
-        const result: VNodeChild[] = []
-        let i = 0
-        while (i < children.length) {
-          const child = children[i] as any
-          const stepId = child?.props?.['data-aimd-step-card']
-          if (stepId !== undefined) {
-            const body: VNodeChild[] = []
-            let j = i + 1
-            while (j < children.length) {
-              const next = children[j] as any
-              if (next?.props?.['data-aimd-step-card'] !== undefined) break
-              body.push(children[j])
-              j++
-            }
-            if (body.length > 0) {
-              const setter = stepBodySetters.get(String(stepId))
-              if (setter) {
-                setter(body)
-                i = j
-              } else {
-                i++
-              }
-            } else {
-              i++
-            }
-            result.push(child)
-          } else {
-            result.push(child)
-            i++
-          }
-        }
-        const hasOnlyStepCards = result.every((c: any) => c?.props?.['data-aimd-step-card'] !== undefined)
-        if (hasOnlyStepCards) {
-          return h(Fragment, null, result)
-        }
-        return h('p', result)
-      },
     },
   })
 
