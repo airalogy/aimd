@@ -500,7 +500,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
   return applyFieldAdapter("var_table", fieldKey, node, rows, vnode)
 }
 
-function renderInlineStep(node: AimdStepNode): VNode {
+function renderInlineStep(node: AimdStepNode, children?: VNodeChild[]): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
   if (!(id in localRecord.step)) {
@@ -511,7 +511,7 @@ function renderInlineStep(node: AimdStepNode): VNode {
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
 
-  const vnode = h(AimdStepField, {
+  const headerVnode = h(AimdStepField, {
     node,
     state,
     disabled,
@@ -532,7 +532,21 @@ function renderInlineStep(node: AimdStepNode): VNode {
     },
   })
 
-  return applyFieldAdapter("step", fieldKey, node, state, vnode)
+  const cardVnode = h("div", {
+    class: [
+      "aimd-step-card-block",
+      `aimd-step-card-block--level-${node.level || 1}`,
+      Boolean(state.checked) ? "aimd-step-card-block--checked" : "",
+    ],
+    "data-step-id": id,
+  }, [
+    h("div", { class: "aimd-step-card-block__header" }, [headerVnode]),
+    children && children.length > 0
+      ? h("div", { class: "aimd-step-card-block__body" }, children)
+      : null,
+  ])
+
+  return applyFieldAdapter("step", fieldKey, node, state, cardVnode)
 }
 
 function renderInlineCheck(node: AimdCheckNode): VNode {
@@ -629,7 +643,7 @@ async function rebuildInlineNodes(
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
-      step: node => renderInlineStep(node as AimdStepNode),
+      step: (node, _ctx, children) => renderInlineStep(node as AimdStepNode, children),
       check: node => renderInlineCheck(node as AimdCheckNode),
       quiz: node => renderInlineQuiz(node as AimdQuizNode),
     },
@@ -938,6 +952,39 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) { gap: 8px; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--quiz) { display: block; margin: 12px 0; padding: 0; border: none; background: transparent; }
+
+/* ── Step card block ────────────────────────────────────────────────────── */
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block) {
+  display: block;
+  margin: 12px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.18s ease;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block--level-2) { margin-left: 24px; }
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block--level-3) { margin-left: 48px; }
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block--checked) {
+  border-color: rgba(22, 114, 79, 0.2);
+  background: rgba(247, 254, 250, 0.96);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block__header) {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block--checked .aimd-step-card-block__header) {
+  background: rgba(240, 253, 244, 0.8);
+  border-bottom-color: rgba(22, 114, 79, 0.1);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-card-block__body) {
+  padding: 14px 18px;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.7;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--quiz.aimd-field--quiz) { border-radius: 12px; border-color: #f6ddb0; background: #fffdf6; padding: 10px 12px; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__check-wrap) { display: inline-flex; align-items: center; gap: 6px; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__step-num) { font-weight: 600; color: #9a5800; }
