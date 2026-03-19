@@ -53,6 +53,13 @@ export default defineComponent({
         emit("blur", { id })
       }
 
+      function syncCompactControlLayout(control: HTMLInputElement | HTMLTextAreaElement) {
+        applyVarStackWidth(control, inputKind)
+        if (typeof HTMLTextAreaElement !== "undefined" && control instanceof HTMLTextAreaElement) {
+          syncAutoWrapTextareaHeight(control)
+        }
+      }
+
       // Enum select (from fieldMeta override)
       const enumOptions = meta?.enumOptions ?? []
       if (enumOptions.length) {
@@ -135,19 +142,16 @@ export default defineComponent({
             value: displayValue,
             onVnodeMounted: (vnode: any) => {
               const el = vnode.el as HTMLTextAreaElement
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
+              syncCompactControlLayout(el)
             },
             onVnodeUpdated: (vnode: any) => {
               const el = vnode.el as HTMLTextAreaElement
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
+              syncCompactControlLayout(el)
             },
             onInput: (event: Event) => {
               const el = event.target as HTMLTextAreaElement
+              syncCompactControlLayout(el)
               onVarChange(el.value)
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
             },
             onBlur: onVarBlur,
           }),
@@ -171,9 +175,13 @@ export default defineComponent({
             ? (isIntegerInput ? "1" : undefined)
             : (inputKind === "time" ? "1" : undefined),
           value: displayValue,
-          onVnodeMounted: (vnode: any) => applyVarStackWidth(vnode.el as HTMLElement, inputKind),
-          onVnodeUpdated: (vnode: any) => applyVarStackWidth(vnode.el as HTMLElement, inputKind),
-          onInput: (event: Event) => onVarChange((event.target as HTMLInputElement).value),
+          onVnodeMounted: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
+          onVnodeUpdated: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
+          onInput: (event: Event) => {
+            const el = event.target as HTMLInputElement
+            syncCompactControlLayout(el)
+            onVarChange(el.value)
+          },
           onBlur: onVarBlur,
         }),
       )

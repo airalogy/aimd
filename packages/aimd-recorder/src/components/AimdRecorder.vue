@@ -857,6 +857,25 @@ defineExpose({
   padding: 8px 10px;
   background: #fff;
 }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked-text) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--rec-var-control-height);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: var(--rec-var-text-wrap-line-height);
+  border: 0 none;
+  border-top: 1px solid var(--aimd-border-color, #90caf9);
+  border-radius: 0 0 6px 6px;
+  margin: 0;
+  box-shadow: none;
+  padding: 5px 10px;
+  background: #fff;
+  box-sizing: border-box;
+  resize: none;
+  overflow: hidden;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:focus) { border-color: var(--aimd-border-color, #90caf9); box-shadow: none; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row) {
   display: flex;

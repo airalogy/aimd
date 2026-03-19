@@ -2,6 +2,12 @@
 
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Refined compact recorder var input sizing so `str` fields behave like autosizing inline text inputs that expand horizontally, then wrap and grow in height at the available width limit, while `number` fields now also resize with typed content without switching to multiline editing.
+
 ## [1.9.0] - 2026-03-19
 
 ### Changed

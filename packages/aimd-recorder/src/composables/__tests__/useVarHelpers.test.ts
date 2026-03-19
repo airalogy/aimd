@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   normalizeVarTypeName,
@@ -12,6 +12,7 @@ import {
   getVarInputDisplayValue,
   parseVarInputValue,
   calculateVarStackWidth,
+  syncAutoWrapTextareaHeight,
 } from '../useVarHelpers'
 
 // ---------------------------------------------------------------------------
@@ -350,5 +351,58 @@ describe('calculateVarStackWidth', () => {
     const result = calculateVarStackWidth('x', 'dna')
     const px = parseInt(result)
     expect(px).toBeGreaterThanOrEqual(160)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// syncAutoWrapTextareaHeight
+// ---------------------------------------------------------------------------
+
+describe('syncAutoWrapTextareaHeight', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  it('keeps compact textareas at the single-line control height when empty', () => {
+    const textarea = document.createElement('textarea')
+    textarea.className = 'aimd-rec-inline__textarea--stacked-text'
+    document.body.appendChild(textarea)
+
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(() => ({
+      getPropertyValue: (name: string) => (name === '--rec-var-control-height' ? '30px' : ''),
+      height: '30px',
+      minHeight: '0px',
+      borderTopWidth: '1px',
+      borderBottomWidth: '1px',
+    } as CSSStyleDeclaration))
+
+    syncAutoWrapTextareaHeight(textarea)
+
+    expect(textarea.style.height).toBe('30px')
+  })
+
+  it('grows compact textareas as wrapped content needs more height', () => {
+    const textarea = document.createElement('textarea')
+    textarea.className = 'aimd-rec-inline__textarea--stacked-text'
+    textarea.value = 'sample name that should wrap onto another visual line'
+    document.body.appendChild(textarea)
+
+    Object.defineProperty(textarea, 'scrollHeight', {
+      configurable: true,
+      get: () => 64,
+    })
+
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(() => ({
+      getPropertyValue: (name: string) => (name === '--rec-var-control-height' ? '30px' : ''),
+      height: '30px',
+      minHeight: '0px',
+      borderTopWidth: '1px',
+      borderBottomWidth: '1px',
+    } as CSSStyleDeclaration))
+
+    syncAutoWrapTextareaHeight(textarea)
+
+    expect(textarea.style.height).toBe('66px')
   })
 })
