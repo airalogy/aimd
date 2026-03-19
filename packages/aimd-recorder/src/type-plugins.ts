@@ -1,10 +1,15 @@
 import { defineAsyncComponent, h } from 'vue'
+import { BUILT_IN_CODE_STR_TYPES } from './code-types'
 import { normalizeDnaSequenceValue } from './composables/useDnaSequence'
 import { normalizeAimdTypeName } from './type-utils'
 import type { AimdTypePlugin } from './types'
 
 const AimdDnaSequenceField = defineAsyncComponent(() => import('./components/AimdDnaSequenceField.vue'))
 const AimdMarkdownField = defineAsyncComponent(() => import('./components/AimdMarkdownField.vue'))
+const BUILT_IN_CODE_STR_TYPE_PLUGINS: AimdTypePlugin[] = BUILT_IN_CODE_STR_TYPES.map(type => ({
+  type,
+  inputKind: 'code' as const,
+}))
 
 function pad2(value: number): string {
   return String(value).padStart(2, '0')
@@ -44,6 +49,7 @@ function resolveNowDate(now: Date | string | number | undefined): Date {
 }
 
 export const BUILT_IN_AIMD_TYPE_PLUGINS: AimdTypePlugin[] = [
+  ...BUILT_IN_CODE_STR_TYPE_PLUGINS,
   {
     type: 'CurrentTime',
     inputKind: 'datetime',

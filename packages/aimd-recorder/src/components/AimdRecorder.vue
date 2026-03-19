@@ -307,6 +307,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
   const typePlugin = fieldRendering.getTypePlugin(fieldKey, type)
   const inputKind = getVarInputKind(type, {
     inputType: meta?.inputType,
+    codeLanguage: meta?.codeLanguage,
     typePlugin,
   })
   const placeholder = meta?.placeholder ?? fieldRendering.getVarPlaceholder(node)
@@ -820,6 +821,13 @@ defineExpose({
   align-items: stretch;
   gap: 0;
   width: min(100%, 1040px);
+  max-width: 100%;
+  margin: 12px 0;
+  vertical-align: top;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked--code) {
+  width: min(100%, 980px);
+  min-width: min(420px, 100%);
   max-width: 100%;
   margin: 12px 0;
   vertical-align: top;

@@ -4,6 +4,13 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-03-19
+
+### Added
+
+- Added built-in recorder support for Airalogy code-string types (`CodeStr`, `PyStr`, `JsStr`, `TsStr`, `JsonStr`, `TomlStr`, `YamlStr`), rendering them in a Monaco-based code editor with language-appropriate highlighting where available.
+- Added `fieldMeta.codeLanguage` plus code-aware `fieldMeta.inputType` overrides so host apps can force a recorder var field into a code editor and choose the Monaco language explicitly for custom string types.
+
 ### Fixed
 
 - Refined compact recorder var input sizing so `str` fields behave like autosizing inline text inputs that expand horizontally, then wrap and grow in height at the available width limit, while `number` fields now also resize with typed content without switching to multiline editing.

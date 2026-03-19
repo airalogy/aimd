@@ -122,6 +122,7 @@ export function useFieldRendering(options: FieldRenderingOptions) {
     if (
       getVarInputKind(type, {
         inputType: options.fieldMeta()?.[fieldKey]?.inputType,
+        codeLanguage: options.fieldMeta()?.[fieldKey]?.codeLanguage,
         typePlugin: getTypePlugin(fieldKey, type),
       }) !== "number"
       || typeof node.definition?.default !== "number"
@@ -194,6 +195,7 @@ export function useFieldRendering(options: FieldRenderingOptions) {
     }
     const inputKind = getVarInputKind(type, {
       inputType: options.fieldMeta()?.[fieldKey]?.inputType,
+      codeLanguage: options.fieldMeta()?.[fieldKey]?.codeLanguage,
       typePlugin,
     })
     if (inputKind === "checkbox") return false

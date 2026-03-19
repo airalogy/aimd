@@ -13,6 +13,14 @@ describe('type-plugins', () => {
     const markdownPlugin = resolveAimdTypePlugin('AiralogyMarkdown', BUILT_IN_AIMD_TYPE_PLUGINS)
     expect(markdownPlugin?.type).toBe('AiralogyMarkdown')
     expect(markdownPlugin?.inputKind).toBe('textarea')
+
+    const pythonCodePlugin = resolveAimdTypePlugin('PyStr', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(pythonCodePlugin?.type).toBe('PyStr')
+    expect(pythonCodePlugin?.inputKind).toBe('code')
+
+    const genericCodePlugin = resolveAimdTypePlugin('CodeStr', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(genericCodePlugin?.type).toBe('CodeStr')
+    expect(genericCodePlugin?.inputKind).toBe('code')
   })
 
   it('uses a dedicated recorder widget for AiralogyMarkdown', () => {

@@ -1,9 +1,10 @@
 <script lang="ts">
-import { defineComponent, h, type PropType, type VNode } from "vue"
+import { defineAsyncComponent, defineComponent, h, type PropType, type VNode } from "vue"
 import type { AimdVarNode } from "@airalogy/aimd-core/types"
 import type { AimdFieldMeta, AimdTypePlugin, AimdVarInputKind } from "../types"
 import type { AimdRecorderMessages } from "../locales"
 import { getAimdRecorderScopeLabel } from "../locales"
+import { resolveAimdCodeEditorLanguage } from "../code-types"
 import {
   normalizeVarTypeName,
   parseVarInputValue,
@@ -11,6 +12,8 @@ import {
   syncAutoWrapTextareaHeight,
   toBooleanValue,
 } from "../composables/useVarHelpers"
+
+const AimdCodeField = defineAsyncComponent(() => import("./AimdCodeField.vue"))
 
 export default defineComponent({
   name: "AimdVarField",
@@ -41,6 +44,7 @@ export default defineComponent({
       const extraClasses = props.extraClasses
       const placeholder = meta?.placeholder ?? getVarPlaceholder(node)
       const displayValue = props.displayValue
+      const codeLanguage = resolveAimdCodeEditorLanguage(type, meta) ?? "plaintext"
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -128,6 +132,19 @@ export default defineComponent({
             onBlur: onVarBlur,
           }),
           inputKind === "dna" ? "aimd-rec-inline--var-stacked--dna" : "aimd-rec-inline--var-stacked--textarea",
+        )
+      }
+
+      if (inputKind === "code") {
+        return renderStackedVar(
+          h(AimdCodeField, {
+            modelValue: typeof displayValue === "number" ? String(displayValue) : displayValue,
+            language: codeLanguage,
+            disabled,
+            "onUpdate:modelValue": (nextValue: string) => onVarChange(nextValue),
+            onBlur: onVarBlur,
+          }),
+          "aimd-rec-inline--var-stacked--code",
         )
       }
 

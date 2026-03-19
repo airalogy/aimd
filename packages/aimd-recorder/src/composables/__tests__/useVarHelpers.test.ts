@@ -92,6 +92,22 @@ describe('getVarInputKind', () => {
     expect(getVarInputKind('markdown')).toBe('textarea')
     expect(getVarInputKind('airalogymarkdown')).toBe('textarea')
   })
+
+  it('returns "code" for built-in CodeStr aliases', () => {
+    expect(getVarInputKind('PyStr')).toBe('code')
+    expect(getVarInputKind('JsStr')).toBe('code')
+    expect(getVarInputKind('TsStr')).toBe('code')
+    expect(getVarInputKind('JsonStr')).toBe('code')
+    expect(getVarInputKind('YamlStr')).toBe('code')
+    expect(getVarInputKind('TomlStr')).toBe('code')
+    expect(getVarInputKind('CodeStr')).toBe('code')
+  })
+
+  it('returns "code" when field metadata forces a code editor language', () => {
+    expect(getVarInputKind('str', { inputType: 'code', codeLanguage: 'python' })).toBe('code')
+    expect(getVarInputKind('str', { inputType: 'yaml' })).toBe('code')
+    expect(getVarInputKind('str', { codeLanguage: 'sql' })).toBe('code')
+  })
 })
 
 // ---------------------------------------------------------------------------

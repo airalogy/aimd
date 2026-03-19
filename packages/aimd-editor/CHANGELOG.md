@@ -2,6 +2,14 @@
 
 All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
+## [Unreleased]
+
+## [1.6.0] - 2026-03-19
+
+### Added
+
+- Added built-in insertion-dialog var type presets for Airalogy code-string types (`CodeStr`, `PyStr`, `JsStr`, `TsStr`, `JsonStr`, `TomlStr`, `YamlStr`) so the editor can surface the same code-oriented types that the recorder now renders with dedicated code editors.
+
 ## [1.5.0] - 2026-03-19
 
 ### Added

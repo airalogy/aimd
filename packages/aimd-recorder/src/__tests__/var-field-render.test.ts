@@ -16,4 +16,11 @@ describe('AimdVarField render behavior', () => {
   it('resizes single-line inputs while the user types', () => {
     expect(source).toMatch(/onInput: \(event: Event\) => \{\s*const el = event\.target as HTMLInputElement\s*syncCompactControlLayout\(el\)\s*onVarChange\(el\.value\)\s*\}/)
   })
+
+  it('renders code-like vars with the dedicated code editor field', () => {
+    expect(source).toMatch(/const AimdCodeField = defineAsyncComponent\(\(\) => import\("\.\/AimdCodeField\.vue"\)\)/)
+    expect(source).toMatch(/if \(inputKind === "code"\)/)
+    expect(source).toMatch(/language: codeLanguage/)
+    expect(source).toMatch(/"aimd-rec-inline--var-stacked--code"/)
+  })
 })

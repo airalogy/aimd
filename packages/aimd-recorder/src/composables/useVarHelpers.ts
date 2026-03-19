@@ -6,6 +6,7 @@
  */
 
 import { resolveAimdTypePlugin } from '../type-plugins'
+import { isAimdCodeEditorType } from '../code-types'
 import { normalizeAimdTypeName } from '../type-utils'
 import type { AimdTypePlugin, AimdTypePluginParseContext, AimdTypePluginValueContext, AimdVarInputKind } from '../types'
 
@@ -17,6 +18,7 @@ export type VarInputKind = AimdVarInputKind
 
 export interface VarInputKindOptions {
   inputType?: string
+  codeLanguage?: string
   typePlugin?: AimdTypePlugin
   typePlugins?: AimdTypePlugin[]
 }
@@ -27,7 +29,11 @@ export interface VarInputValueOptions extends VarInputKindOptions {
   fieldMeta?: Record<string, unknown>
 }
 
-function resolveOverrideInputKind(inputType: string | undefined): VarInputKind | undefined {
+function resolveOverrideInputKind(inputType: string | undefined, codeLanguage: string | undefined): VarInputKind | undefined {
+  if (isAimdCodeEditorType(undefined, { inputType, codeLanguage })) {
+    return 'code'
+  }
+
   const normalized = normalizeAimdTypeName(inputType)
 
   if (!normalized) {
@@ -82,7 +88,7 @@ export function normalizeVarTypeName(type: string | undefined): string {
 }
 
 export function getVarInputKind(type: string | undefined, options: VarInputKindOptions = {}): VarInputKind {
-  const override = resolveOverrideInputKind(options.inputType)
+  const override = resolveOverrideInputKind(options.inputType, options.codeLanguage)
   if (override) {
     return override
   }
@@ -120,6 +126,10 @@ export function getVarInputKind(type: string | undefined, options: VarInputKindO
 
   if (normalized === "md" || normalized === "markdown" || normalized === "airalogymarkdown") {
     return "textarea"
+  }
+
+  if (isAimdCodeEditorType(type, { codeLanguage: options.codeLanguage })) {
+    return 'code'
   }
 
   return "text"
@@ -369,6 +379,7 @@ function getVarControlMinWidth(inputKind: VarInputKind): number {
   switch (inputKind) {
     case "textarea":
     case "dna":
+    case "code":
       return 160
     default:
       return 0
