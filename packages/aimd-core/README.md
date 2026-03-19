@@ -75,3 +75,19 @@ Use `validateClientAssignerFunctionSource()` when host tooling needs to prefligh
 - 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-core>
 - Parsed output and the `name` -> `id` migration notes are documented in the package docs.
 - Source docs: `aimd/docs/en/packages/aimd-core/`, `aimd/docs/zh/packages/aimd-core/`
+
+## Citation
+
+If `@airalogy/aimd-core` is useful in your work, please cite the Airalogy paper:
+
+```bibtex
+@misc{yang2025airalogyaiempowereduniversaldata,
+      title={Airalogy: AI-empowered universal data digitization for research automation},
+      author={Zijie Yang and Qiji Zhou and Fang Guo and Sijie Zhang and Yexun Xi and Jinglei Nie and Yudian Zhu and Liping Huang and Chou Wu and Yonghe Xia and Xiaoyu Ma and Yingming Pu and Panzhong Lu and Junshu Pan and Mingtao Chen and Tiannan Guo and Yanmei Dou and Hongyu Chen and Anping Zeng and Jiaxing Huang and Tian Xu and Yue Zhang},
+      year={2025},
+      eprint={2506.18586},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2506.18586},
+}
+```
