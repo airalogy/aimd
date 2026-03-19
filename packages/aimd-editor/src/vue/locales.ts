@@ -47,6 +47,13 @@ export interface AimdEditorMessages {
     date: { label: string, desc: string }
     datetime: { label: string, desc: string }
     time: { label: string, desc: string }
+    codeStr: { label: string, desc: string }
+    pyStr: { label: string, desc: string }
+    jsStr: { label: string, desc: string }
+    tsStr: { label: string, desc: string }
+    jsonStr: { label: string, desc: string }
+    tomlStr: { label: string, desc: string }
+    yamlStr: { label: string, desc: string }
     dnaSequence: { label: string, desc: string }
     currentTime: { label: string, desc: string }
     userName: { label: string, desc: string }
@@ -254,6 +261,13 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     date: { label: 'date', desc: 'Calendar date picker' },
     datetime: { label: 'datetime', desc: 'Date and time picker' },
     time: { label: 'time', desc: 'Time-only picker' },
+    codeStr: { label: 'CodeStr', desc: 'Plain code editor without language-specific highlighting' },
+    pyStr: { label: 'PyStr', desc: 'Python code editor with syntax highlighting' },
+    jsStr: { label: 'JsStr', desc: 'JavaScript code editor with syntax highlighting' },
+    tsStr: { label: 'TsStr', desc: 'TypeScript code editor with syntax highlighting' },
+    jsonStr: { label: 'JsonStr', desc: 'JSON editor with syntax highlighting' },
+    tomlStr: { label: 'TomlStr', desc: 'TOML-like code editor with syntax highlighting' },
+    yamlStr: { label: 'YamlStr', desc: 'YAML editor with syntax highlighting' },
     dnaSequence: { label: 'DNASequence', desc: 'Editable DNA sequence with annotations' },
     currentTime: { label: 'CurrentTime', desc: 'Auto-fill the current time' },
     userName: { label: 'UserName', desc: 'Auto-fill the current user name' },
@@ -443,6 +457,13 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     date: { label: 'date', desc: '日期选择器' },
     datetime: { label: 'datetime', desc: '日期时间选择器' },
     time: { label: 'time', desc: '时间选择器' },
+    codeStr: { label: 'CodeStr', desc: '通用代码编辑器，不指定语言高亮' },
+    pyStr: { label: 'PyStr', desc: '带 Python 语法高亮的代码编辑器' },
+    jsStr: { label: 'JsStr', desc: '带 JavaScript 语法高亮的代码编辑器' },
+    tsStr: { label: 'TsStr', desc: '带 TypeScript 语法高亮的代码编辑器' },
+    jsonStr: { label: 'JsonStr', desc: '带 JSON 语法高亮的编辑器' },
+    tomlStr: { label: 'TomlStr', desc: '带 TOML 风格语法高亮的编辑器' },
+    yamlStr: { label: 'YamlStr', desc: '带 YAML 语法高亮的编辑器' },
     dnaSequence: { label: 'DNASequence', desc: '可编辑的 DNA 序列与注释' },
     currentTime: { label: 'CurrentTime', desc: '自动填入当前时间' },
     userName: { label: 'UserName', desc: '自动填入当前用户名' },

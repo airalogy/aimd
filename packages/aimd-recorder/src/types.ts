@@ -50,7 +50,7 @@ export interface AimdProtocolRecordData {
   quiz: Record<string, unknown>
 }
 
-export type AimdVarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna"
+export type AimdVarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna" | "code"
 
 export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
   return {
@@ -68,6 +68,7 @@ export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
 /** Field metadata — app passes via prop to describe extra field info */
 export interface AimdFieldMeta {
   inputType?: string           // override built-in input kind or a host-defined custom type mapping
+  codeLanguage?: string        // Monaco language id for code-like fields (e.g. "python", "json")
   required?: boolean
   pattern?: string             // regex validation
   enumOptions?: Array<{ label: string; value: unknown }>

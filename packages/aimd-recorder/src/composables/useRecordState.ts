@@ -17,6 +17,25 @@ export function cloneRecordData(value: AimdProtocolRecordData): AimdProtocolReco
   return JSON.parse(JSON.stringify(value))
 }
 
+function stableSerialize(value: unknown): string {
+  if (value == null || typeof value !== "object") {
+    return JSON.stringify(value)
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(item => stableSerialize(item)).join(",")}]`
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+
+  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableSerialize(item)}`).join(",")}}`
+}
+
+export function getRecordDataSignature(value: Partial<AimdProtocolRecordData> | undefined): string {
+  return stableSerialize(normalizeIncomingRecord(value))
+}
+
 // ---------------------------------------------------------------------------
 // Step / check normalisation
 // ---------------------------------------------------------------------------
@@ -244,6 +263,88 @@ export function normalizeVarTableRows(raw: unknown, columns: string[]): Record<s
   }
 
   return rows
+}
+
+export interface VarTablePastedCell {
+  rowIndex: number
+  column: string
+  value: string
+}
+
+export interface ApplyVarTablePasteResult {
+  rowsAdded: number
+  changedCells: VarTablePastedCell[]
+}
+
+export function parsePastedVarTableText(text: string): string[][] {
+  if (text === "") {
+    return []
+  }
+
+  const normalized = text.replace(/\r\n?/g, "\n")
+  const lines = normalized.split("\n")
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop()
+  }
+
+  return lines.map(line => line.split("\t"))
+}
+
+export function applyPastedVarTableGrid(
+  rows: Record<string, string>[],
+  columns: string[],
+  startRowIndex: number,
+  startColumnIndex: number,
+  pastedGrid: string[][],
+  options?: { disabledColumns?: string[] },
+): ApplyVarTablePasteResult {
+  const changedCells: VarTablePastedCell[] = []
+  if (
+    columns.length === 0
+    || pastedGrid.length === 0
+    || startRowIndex < 0
+    || startColumnIndex < 0
+  ) {
+    return { rowsAdded: 0, changedCells }
+  }
+
+  const disabledColumns = new Set(options?.disabledColumns ?? [])
+  let rowsAdded = 0
+
+  for (const [rowOffset, pastedRow] of pastedGrid.entries()) {
+    const targetRowIndex = startRowIndex + rowOffset
+    const writableCells = pastedRow
+      .map((value, columnOffset) => ({
+        value,
+        columnIndex: startColumnIndex + columnOffset,
+      }))
+      .filter(({ columnIndex }) => columnIndex >= 0 && columnIndex < columns.length)
+      .map(({ value, columnIndex }) => ({
+        value,
+        column: columns[columnIndex],
+      }))
+      .filter(({ column }) => !disabledColumns.has(column))
+
+    if (writableCells.length === 0) {
+      continue
+    }
+
+    while (targetRowIndex >= rows.length) {
+      rows.push(createEmptyVarTableRow(columns))
+      rowsAdded += 1
+    }
+
+    const targetRow = rows[targetRowIndex]
+    for (const { column, value } of writableCells) {
+      if (targetRow[column] === value) {
+        continue
+      }
+      targetRow[column] = value
+      changedCells.push({ rowIndex: targetRowIndex, column, value })
+    }
+  }
+
+  return { rowsAdded, changedCells }
 }
 
 // ---------------------------------------------------------------------------

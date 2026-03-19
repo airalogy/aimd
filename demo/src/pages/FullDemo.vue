@@ -2,7 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { renderToHtml, parseAndExtract } from '@airalogy/aimd-renderer'
 import {
-  AimdProtocolRecorder,
+  AimdRecorder,
   createEmptyProtocolRecordData,
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
@@ -121,7 +121,7 @@ function resetForm() {
           </div>
 
           <div class="form-content">
-            <AimdProtocolRecorder v-model="recordData" :content="content" :locale="locale" />
+            <AimdRecorder v-model="recordData" :content="content" :locale="locale" />
           </div>
         </div>
 

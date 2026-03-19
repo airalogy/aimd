@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-recorder",
   "type": "module",
-  "version": "1.8.0",
+  "version": "1.10.0",
   "description": "AIMD editor Vue components and UI",
   "keywords": [
     "aimd",
@@ -46,8 +46,10 @@
     "vue": "^3.5.17"
   },
   "dependencies": {
+    "@airalogy/aimd-editor": "workspace:*",
     "@airalogy/aimd-core": "workspace:*",
     "@airalogy/aimd-renderer": "workspace:*",
+    "monaco-editor": "^0.52.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "seqviz": "^3.10.18"

@@ -254,8 +254,22 @@ onBeforeUnmount(() => {
   monacoEditorInstance?.dispose()
 })
 
+watch(() => props.content, (content) => {
+  if (!monacoEditorInstance || content === monacoEditorInstance.getValue()) {
+    return
+  }
+
+  isSyncing = true
+  monacoEditorInstance.setValue(content)
+  isSyncing = false
+})
+
 watch(() => props.theme, (theme) => {
   if (monacoModule) monacoModule.editor.setTheme(theme)
+})
+
+watch(() => props.readonly, (readonly) => {
+  monacoEditorInstance?.updateOptions({ readOnly: readonly })
 })
 
 // Expose internal references for parent to set values, etc.

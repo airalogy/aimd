@@ -52,6 +52,7 @@ export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nO
   assignerVisibility?: AimdAssignerVisibility
   aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
   groupStepBodies?: boolean
+  blockVarTypes?: string[]
 }
 
 export interface CustomElementAimdRendererOptions {
@@ -103,6 +104,12 @@ function isWhitespaceTextNode(node: unknown): node is HastText {
     && node !== null
     && (node as HastText).type === "text"
     && !String((node as HastText).value || "").trim()
+}
+
+function isElementNode(node: unknown): node is Element {
+  return typeof node === "object"
+    && node !== null
+    && (node as Element).type === "element"
 }
 
 function toCamelCaseKey(value: string): string {
@@ -222,6 +229,192 @@ function groupStepBodiesInParent(parent: HastRoot | Element): void {
 
 function groupStepBodies(tree: HastRoot): void {
   groupStepBodiesInParent(tree)
+}
+
+function normalizeAimdTypeToken(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : ""
+}
+
+function getAimdNodeFromElement(element: Element): AimdNode | null {
+  const fromData = (element as any).data?.aimd
+  if (fromData) {
+    return fromData as AimdNode
+  }
+
+  const rawJson = getPropertyValue(element.properties, "data-aimd-json")
+  if (!rawJson) {
+    return null
+  }
+
+  try {
+    return JSON.parse(rawJson) as AimdNode
+  } catch {
+    return null
+  }
+}
+
+function isBlockVarElement(node: unknown, blockVarTypes: Set<string>): node is Element {
+  if (typeof node !== "object" || node === null || (node as Element).type !== "element") {
+    return false
+  }
+
+  const aimdNode = getAimdNodeFromElement(node as Element)
+  if (!aimdNode || aimdNode.fieldType !== "var") {
+    return false
+  }
+
+  return blockVarTypes.has(normalizeAimdTypeToken((aimdNode as any).definition?.type))
+}
+
+function promoteBlockVarElement(element: Element): Element {
+  const aimdNode = getAimdNodeFromElement(element)
+  const className = Array.isArray(element.properties.className)
+    ? [...element.properties.className]
+    : element.properties.className
+      ? [element.properties.className]
+      : []
+
+  const promoted = {
+    ...element,
+    tagName: "div",
+    properties: {
+      ...element.properties,
+      className: [...className, "aimd-block-var"],
+    },
+  } as Element
+
+  return aimdNode ? assignAimdNodeData(promoted, aimdNode) : promoted
+}
+
+function cloneParagraphWithChildren(paragraph: Element, children: Array<Element | HastText>): Element {
+  return {
+    ...paragraph,
+    children,
+  } as Element
+}
+
+function createInlineParagraph(children: Array<Element | HastText>): Element {
+  return {
+    type: "element",
+    tagName: "p",
+    properties: {},
+    children,
+  }
+}
+
+function liftBlockVarParagraph(paragraph: Element, blockVarTypes: Set<string>): Array<Element | HastText> {
+  const nextNodes: Array<Element | HastText> = []
+  let inlineRun: Array<Element | HastText> = []
+
+  const flushInlineRun = () => {
+    if (!inlineRun.some((child) => !isWhitespaceTextNode(child))) {
+      inlineRun = []
+      return
+    }
+
+    nextNodes.push(cloneParagraphWithChildren(paragraph, inlineRun))
+    inlineRun = []
+  }
+
+  for (const child of (paragraph.children || []) as Array<Element | HastText>) {
+    if (isBlockVarElement(child, blockVarTypes)) {
+      flushInlineRun()
+      nextNodes.push(promoteBlockVarElement(child))
+      continue
+    }
+
+    inlineRun.push(child)
+  }
+
+  flushInlineRun()
+  return nextNodes.length > 0 ? nextNodes : [paragraph]
+}
+
+function liftBlockVarListItem(listItem: Element, blockVarTypes: Set<string>): Element {
+  const originalChildren = (listItem.children || []) as Array<Element | HastText>
+  const nextChildren: Array<Element | HastText> = []
+  let inlineRun: Array<Element | HastText> = []
+  let foundDirectBlockVar = false
+
+  const flushInlineRun = () => {
+    if (!inlineRun.some((child) => !isWhitespaceTextNode(child))) {
+      inlineRun = []
+      return
+    }
+
+    nextChildren.push(createInlineParagraph(inlineRun))
+    inlineRun = []
+  }
+
+  for (const child of originalChildren) {
+    if (isBlockVarElement(child, blockVarTypes)) {
+      foundDirectBlockVar = true
+      flushInlineRun()
+      nextChildren.push(promoteBlockVarElement(child))
+      continue
+    }
+
+    if (isElementNode(child)) {
+      flushInlineRun()
+      nextChildren.push(child)
+      continue
+    }
+
+    inlineRun.push(child)
+  }
+
+  flushInlineRun()
+
+  return foundDirectBlockVar
+    ? {
+        ...listItem,
+        children: nextChildren,
+      } as Element
+    : listItem
+}
+
+function liftBlockVarElementsInParent(parent: HastRoot | Element, blockVarTypes: Set<string>): void {
+  const nextChildren: Array<Element | HastText> = []
+
+  for (const child of (parent.children || []) as Array<Element | HastText>) {
+    if (typeof child !== "object" || child === null || child.type !== "element") {
+      nextChildren.push(child)
+      continue
+    }
+
+    const clonedChild = { ...child } as Element
+    if (clonedChild.children?.length) {
+      liftBlockVarElementsInParent(clonedChild, blockVarTypes)
+    }
+
+    if (clonedChild.tagName === "p") {
+      nextChildren.push(...liftBlockVarParagraph(clonedChild, blockVarTypes))
+      continue
+    }
+
+    if (clonedChild.tagName === "li") {
+      nextChildren.push(liftBlockVarListItem(clonedChild, blockVarTypes))
+      continue
+    }
+
+    nextChildren.push(clonedChild)
+  }
+
+  ;(parent as HastRoot | Element).children = nextChildren as any
+}
+
+function liftBlockVarElements(tree: HastRoot, blockVarTypes?: string[]): void {
+  const normalizedTypes = new Set(
+    (blockVarTypes ?? [])
+      .map(type => normalizeAimdTypeToken(type))
+      .filter(Boolean),
+  )
+
+  if (normalizedTypes.size === 0) {
+    return
+  }
+
+  liftBlockVarElementsInParent(tree, normalizedTypes)
 }
 
 // ---------------------------------------------------------------------------
@@ -994,6 +1187,7 @@ export async function renderToHtml(
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
   assignFigureSequenceNumbers(hastTree, fields)
+  liftBlockVarElements(hastTree, options.blockVarTypes)
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
   }
@@ -1020,6 +1214,7 @@ export async function renderToVue(
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
   assignFigureSequenceNumbers(hastTree, fields)
+  liftBlockVarElements(hastTree, options.blockVarTypes)
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
   }
@@ -1061,6 +1256,7 @@ export function renderToHtmlSync(
   const fields = getExtractedFields(file)
   annotateStepReferenceSequence(hastTree, fields, options)
   assignFigureSequenceNumbers(hastTree, fields)
+  liftBlockVarElements(hastTree, options.blockVarTypes)
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
   }

@@ -12,6 +12,16 @@ Experiment summary: {{var|summary: AiralogyMarkdown}}
 
 Plasmid sequence: {{var|plasmid_sequence: DNASequence}}
 
+Python analysis snippet: {{var|python_code: PyStr, title = "Python analysis helper"}}
+
+JavaScript formatter: {{var|javascript_code: JsStr, title = "JavaScript formatter"}}
+
+JSON config: {{var|json_config: JsonStr, title = "Structured JSON config"}}
+
+YAML workflow: {{var|yaml_workflow: YamlStr, title = "YAML workflow definition"}}
+
+Generic code block: {{var|generic_code: CodeStr, title = "Language-agnostic code"}}
+
 Temperature setting: {{var|temperature: float = 25.0}}
 
 Concentration setting: {{var|concentration: float = 1.0, title = "Concentration (M)"}}

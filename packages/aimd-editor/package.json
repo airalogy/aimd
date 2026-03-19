@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-editor",
   "type": "module",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "AIMD editor with Monaco source mode and Milkdown WYSIWYG mode",
   "keywords": [
     "aimd",
@@ -24,6 +24,14 @@
     "./vue": {
       "types": "./src/vue/index.ts",
       "import": "./src/vue/index.ts"
+    },
+    "./embedded": {
+      "types": "./src/embedded.ts",
+      "import": "./src/embedded.ts"
+    },
+    "./wysiwyg": {
+      "types": "./src/wysiwyg.ts",
+      "import": "./src/wysiwyg.ts"
     }
   },
   "main": "./src/index.ts",

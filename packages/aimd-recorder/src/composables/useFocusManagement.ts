@@ -11,6 +11,51 @@ export interface FocusSnapshot {
   selectionStart?: number | null
   selectionEnd?: number | null
   selectionDirection?: HTMLInputElement["selectionDirection"]
+  scrollTargets?: Array<{
+    element: HTMLElement
+    top: number
+    left: number
+  }>
+  windowScrollX?: number
+  windowScrollY?: number
+}
+
+function isScrollableElement(element: HTMLElement): boolean {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  const style = window.getComputedStyle(element)
+  const overflowY = style.overflowY || style.overflow
+  const overflowX = style.overflowX || style.overflow
+  const canScrollY = /(auto|scroll|overlay)/.test(overflowY) && element.scrollHeight > element.clientHeight
+  const canScrollX = /(auto|scroll|overlay)/.test(overflowX) && element.scrollWidth > element.clientWidth
+  return canScrollY || canScrollX
+}
+
+function collectScrollTargets(contentRoot: HTMLElement, activeElement: HTMLElement): FocusSnapshot["scrollTargets"] {
+  const targets: FocusSnapshot["scrollTargets"] = []
+  const seen = new Set<HTMLElement>()
+
+  const collectFrom = (start: HTMLElement | null) => {
+    let current = start
+    while (current && current !== document.body) {
+      if (!seen.has(current) && isScrollableElement(current)) {
+        seen.add(current)
+        targets.push({
+          element: current,
+          top: current.scrollTop,
+          left: current.scrollLeft,
+        })
+      }
+      current = current.parentElement
+    }
+  }
+
+  collectFrom(activeElement)
+  collectFrom(contentRoot)
+
+  return targets.length ? targets : undefined
 }
 
 /**
@@ -38,6 +83,9 @@ export function captureFocusSnapshot(contentRoot: HTMLElement | null): FocusSnap
     snapshot.selectionEnd = activeElement.selectionEnd
     snapshot.selectionDirection = activeElement.selectionDirection
   }
+  snapshot.scrollTargets = collectScrollTargets(contentRoot, activeElement)
+  snapshot.windowScrollX = window.scrollX
+  snapshot.windowScrollY = window.scrollY
 
   return snapshot
 }
@@ -63,7 +111,11 @@ export function restoreFocusSnapshot(contentRoot: HTMLElement | null, snapshot: 
     return
   }
 
-  target.focus()
+  try {
+    target.focus({ preventScroll: true })
+  } catch {
+    target.focus()
+  }
 
   if (
     (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
@@ -79,5 +131,14 @@ export function restoreFocusSnapshot(contentRoot: HTMLElement | null, snapshot: 
     } catch {
       // Some input types (e.g. number, date) don't support setSelectionRange
     }
+  }
+
+  for (const scrollTarget of snapshot.scrollTargets ?? []) {
+    scrollTarget.element.scrollTop = scrollTarget.top
+    scrollTarget.element.scrollLeft = scrollTarget.left
+  }
+
+  if (typeof window !== "undefined") {
+    window.scrollTo(snapshot.windowScrollX ?? window.scrollX, snapshot.windowScrollY ?? window.scrollY)
   }
 }

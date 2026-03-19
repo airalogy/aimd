@@ -25,6 +25,7 @@ const emit = defineEmits<{
     <!-- Mode switch (inside toolbar) -->
     <div v-if="showTopBar" class="aimd-editor-mode-switch">
       <button
+        type="button"
         :class="['aimd-editor-mode-btn', { active: editorMode === 'source' }]"
         @click="emit('switch-mode', 'source')"
         :title="resolvedMessages.mode.sourceTitle"
@@ -33,6 +34,7 @@ const emit = defineEmits<{
         <span>{{ resolvedMessages.mode.source }}</span>
       </button>
       <button
+        type="button"
         :class="['aimd-editor-mode-btn', { active: editorMode === 'wysiwyg' }]"
         @click="emit('switch-mode', 'wysiwyg')"
         :title="resolvedMessages.mode.wysiwygTitle"
@@ -50,6 +52,7 @@ const emit = defineEmits<{
         <div v-if="item.action.startsWith('sep')" class="aimd-editor-toolbar-sep" />
         <button
           v-else
+          type="button"
           class="aimd-editor-fmt-btn"
           :title="item.title"
           @click="emit('md-action', item.action)"
@@ -65,6 +68,7 @@ const emit = defineEmits<{
       <button
         v-for="ft in localizedFieldTypes"
         :key="ft.type"
+        type="button"
         class="aimd-editor-fmt-btn aimd-editor-aimd-btn"
         :title="ft.desc"
         :style="{ '--aimd-color': ft.color }"

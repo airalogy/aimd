@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  AimdProtocolRecorder,
+  AimdRecorder,
   createEmptyProtocolRecordData,
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
@@ -40,7 +40,7 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
         </div>
 
         <div class="form-content">
-          <AimdProtocolRecorder v-model="recordData" :content="input" :locale="locale" />
+          <AimdRecorder v-model="recordData" :content="input" :locale="locale" />
         </div>
       </div>
     </div>

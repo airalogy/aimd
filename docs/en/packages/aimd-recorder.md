@@ -16,6 +16,7 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - Inline protocol recorder component: `AimdRecorder` (render + input in-place).
 - Reusable quiz answer component: `AimdQuizRecorder`.
 - Built-in var input handling for `CurrentTime`, `UserName`, `AiralogyMarkdown`, `DNASequence`.
+- `AiralogyMarkdown` uses a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG`; when authored mid-sentence, recorder lifts it into its own block row instead of leaving it as a plain textarea-sized inline control.
 - Input handling for `choice`, `blank`, and `open` quiz types.
 - In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 - Frontend-only `assigner runtime=client` blocks run locally for pure var computations.
@@ -96,6 +97,8 @@ recorderRef.value?.runManualClientAssigners()
 
 ## Locale
 
+`AiralogyMarkdown` renders a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, and still supports switching to `WYSIWYG`. Even when the field is authored in the middle of a sentence, recorder lifts it into its own block row so long-form content still gets a proper editing surface.
+
 `DNASequence` uses a dedicated recorder widget with:
 
 - a default `Interactive` mode focused on the visual viewer
@@ -126,6 +129,8 @@ Both `AimdRecorder` and `AimdQuizRecorder` accept `locale` to switch built-in re
 Use `typePlugins` when a host app needs per-type behavior rather than whole-field replacement.
 
 Type plugins can define a custom initial value, normalization logic, display/parsing hooks, and even a fully custom recorder widget for one AIMD type token.
+
+The built-in `AiralogyMarkdown` widget is implemented through this same path, so host apps can still override it with their own renderer if they need a different source/WYSIWYG workflow.
 
 For the architecture and an end-to-end example, see:
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, reactive, ref, watch, type VNode } from "vue"
+import { computed, defineComponent, h, nextTick, reactive, ref, watch, type PropType, type VNode } from "vue"
 import type {
   AimdCheckNode,
   AimdClientAssignerField,
@@ -29,9 +29,12 @@ import type {
 import { createEmptyProtocolRecordData } from "../types"
 import {
   applyIncomingRecord,
+  applyPastedVarTableGrid,
   cloneRecordData,
   ensureDefaultsFromFields,
+  getRecordDataSignature,
   getQuizDefaultValue,
+  parsePastedVarTableText,
 } from "../composables/useRecordState"
 import {
   getVarInputKind,
@@ -177,6 +180,19 @@ const resolvedLocale = computed(() => resolveAimdRecorderLocale(props.locale))
 const resolvedMessages = computed(() => createAimdRecorderMessages(resolvedLocale.value, props.messages))
 const resolvedTypePlugins = computed(() => createAimdTypePlugins(props.typePlugins))
 
+const InlineNodesOutlet = defineComponent({
+  name: "AimdRecorderInlineNodesOutlet",
+  props: {
+    nodes: {
+      type: Array as PropType<VNode[]>,
+      required: true,
+    },
+  },
+  setup(outletProps) {
+    return () => outletProps.nodes
+  },
+})
+
 function applyFieldAdapter<TFieldType extends "var" | "var_table" | "step" | "check" | "quiz">(
   fieldType: TFieldType,
   fieldKey: string,
@@ -293,6 +309,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
   const typePlugin = fieldRendering.getTypePlugin(fieldKey, type)
   const inputKind = getVarInputKind(type, {
     inputType: meta?.inputType,
+    codeLanguage: meta?.codeLanguage,
     typePlugin,
   })
   const placeholder = meta?.placeholder ?? fieldRendering.getVarPlaceholder(node)
@@ -402,6 +419,7 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
   const columns = getVarTableColumns(node)
   const rows = tableDragDrop.ensureVarTableRows(tableName, columns)
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
+  const disabledColumns = columns.filter(column => !!props.fieldMeta?.[`var_table:${tableName}:${column}`]?.disabled)
 
   const vnode = h(AimdVarTableField, {
     node,
@@ -421,6 +439,40 @@ function renderInlineVarTable(node: AimdVarTableNode): VNode {
         fieldKey: `${payload.tableName}:${payload.column}`,
         value: payload.value,
       })
+    },
+    onCellPaste: (payload: { tableName: string, column: string, rowIndex: number, text: string }) => {
+      const startColumnIndex = columns.indexOf(payload.column)
+      if (startColumnIndex < 0) {
+        return
+      }
+
+      const pastedGrid = parsePastedVarTableText(payload.text)
+      const result = applyPastedVarTableGrid(
+        rows,
+        columns,
+        payload.rowIndex,
+        startColumnIndex,
+        pastedGrid,
+        { disabledColumns },
+      )
+
+      if (result.rowsAdded === 0 && result.changedCells.length === 0) {
+        return
+      }
+
+      // Var tables are rendered through rebuilt inline VNodes, so pasted updates
+      // need a refresh even when they only overwrite existing cells.
+      markRecordChanged({ rebuild: true, runClientAssigners: true })
+      for (let index = 0; index < result.rowsAdded; index += 1) {
+        emit("table-add-row", { tableName: payload.tableName, columns })
+      }
+      for (const cell of result.changedCells) {
+        emit("field-change", {
+          section: "var_table",
+          fieldKey: `${payload.tableName}:${cell.column}`,
+          value: cell.value,
+        })
+      }
     },
     onCellBlur: (payload: { tableName: string, column: string }) => {
       emit("field-blur", { section: "var_table", fieldKey: `${payload.tableName}:${payload.column}` })
@@ -573,6 +625,7 @@ async function rebuildInlineNodes(
       readonly: props.readonly,
       value: localRecord as Record<string, Record<string, unknown>>,
     },
+    blockVarTypes: ["AiralogyMarkdown"],
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
@@ -634,13 +687,20 @@ async function parseAndBuild() {
 watch(
   () => props.modelValue,
   (value) => {
+    const shouldRebuild = getRecordDataSignature(value) !== getRecordDataSignature(localRecord)
+    if (!shouldRebuild) {
+      return
+    }
     syncingFromExternal = true
     applyIncomingRecord(localRecord, value)
     syncingFromExternal = false
-    if (assignerRunner.applyCurrentClientAssigners()) {
+    const assignerChanged = assignerRunner.applyCurrentClientAssigners()
+    if (assignerChanged) {
       emitRecordUpdate()
     }
-    scheduleInlineRebuild()
+    if (shouldRebuild || assignerChanged) {
+      scheduleInlineRebuild()
+    }
   },
   { deep: true, immediate: true },
 )
@@ -668,7 +728,7 @@ defineExpose({
     <div v-if="renderError" class="aimd-protocol-recorder__error">{{ renderError }}</div>
 
     <div v-else-if="inlineNodes.length" ref="contentRoot" class="aimd-protocol-recorder__content">
-      <component :is="() => inlineNodes" />
+      <InlineNodesOutlet :nodes="inlineNodes" />
     </div>
 
     <div v-else class="aimd-protocol-recorder__empty">{{ resolvedMessages.common.emptyContent }}</div>
@@ -792,6 +852,23 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field--no-style.aimd-field__label) { min-height: 30px; border-radius: 6px 6px 0 0; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field__scope) { align-self: center; height: 22px; margin-left: 3px; padding: 0 7px; border-radius: 6px; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field__id) { display: flex; flex: 1; align-items: center; padding: 0 10px 0 6px; font-size: 13px; font-weight: 500; color: #1565c0; white-space: nowrap; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-markdown) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  width: min(100%, 1040px);
+  max-width: 100%;
+  margin: 12px 0;
+  vertical-align: top;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked--code) {
+  width: min(100%, 980px);
+  min-width: min(420px, 100%);
+  max-width: 100%;
+  margin: 12px 0;
+  vertical-align: top;
+}
 
 /* ── Stacked input controls ─────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked) {
@@ -824,6 +901,25 @@ defineExpose({
   box-shadow: none;
   padding: 8px 10px;
   background: #fff;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked-text) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--rec-var-control-height);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: var(--rec-var-text-wrap-line-height);
+  border: 0 none;
+  border-top: 1px solid var(--aimd-border-color, #90caf9);
+  border-radius: 0 0 6px 6px;
+  margin: 0;
+  box-shadow: none;
+  padding: 5px 10px;
+  background: #fff;
+  box-sizing: border-box;
+  resize: none;
+  overflow: hidden;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:focus) { border-color: var(--aimd-border-color, #90caf9); box-shadow: none; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row) {

@@ -10,6 +10,8 @@ export default defineConfig({
         index: resolve(__dirname, 'src/index.ts'),
         monaco: resolve(__dirname, 'src/monaco.ts'),
         vue: resolve(__dirname, 'src/vue/index.ts'),
+        embedded: resolve(__dirname, 'src/embedded.ts'),
+        wysiwyg: resolve(__dirname, 'src/wysiwyg.ts'),
       },
       formats: ['es'],
     },

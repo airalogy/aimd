@@ -1,9 +1,10 @@
 <script lang="ts">
-import { defineComponent, h, type PropType, type VNode } from "vue"
+import { defineAsyncComponent, defineComponent, h, type PropType, type VNode } from "vue"
 import type { AimdVarNode } from "@airalogy/aimd-core/types"
 import type { AimdFieldMeta, AimdTypePlugin, AimdVarInputKind } from "../types"
 import type { AimdRecorderMessages } from "../locales"
 import { getAimdRecorderScopeLabel } from "../locales"
+import { resolveAimdCodeEditorLanguage } from "../code-types"
 import {
   normalizeVarTypeName,
   parseVarInputValue,
@@ -11,6 +12,8 @@ import {
   syncAutoWrapTextareaHeight,
   toBooleanValue,
 } from "../composables/useVarHelpers"
+
+const AimdCodeField = defineAsyncComponent(() => import("./AimdCodeField.vue"))
 
 export default defineComponent({
   name: "AimdVarField",
@@ -41,6 +44,7 @@ export default defineComponent({
       const extraClasses = props.extraClasses
       const placeholder = meta?.placeholder ?? getVarPlaceholder(node)
       const displayValue = props.displayValue
+      const codeLanguage = resolveAimdCodeEditorLanguage(type, meta) ?? "plaintext"
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -51,6 +55,13 @@ export default defineComponent({
 
       function onVarBlur() {
         emit("blur", { id })
+      }
+
+      function syncCompactControlLayout(control: HTMLInputElement | HTMLTextAreaElement) {
+        applyVarStackWidth(control, inputKind)
+        if (typeof HTMLTextAreaElement !== "undefined" && control instanceof HTMLTextAreaElement) {
+          syncAutoWrapTextareaHeight(control)
+        }
       }
 
       // Enum select (from fieldMeta override)
@@ -124,6 +135,19 @@ export default defineComponent({
         )
       }
 
+      if (inputKind === "code") {
+        return renderStackedVar(
+          h(AimdCodeField, {
+            modelValue: typeof displayValue === "number" ? String(displayValue) : displayValue,
+            language: codeLanguage,
+            disabled,
+            "onUpdate:modelValue": (nextValue: string) => onVarChange(nextValue),
+            onBlur: onVarBlur,
+          }),
+          "aimd-rec-inline--var-stacked--code",
+        )
+      }
+
       if (inputKind === "text") {
         return renderStackedVar(
           h("textarea", {
@@ -135,19 +159,16 @@ export default defineComponent({
             value: displayValue,
             onVnodeMounted: (vnode: any) => {
               const el = vnode.el as HTMLTextAreaElement
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
+              syncCompactControlLayout(el)
             },
             onVnodeUpdated: (vnode: any) => {
               const el = vnode.el as HTMLTextAreaElement
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
+              syncCompactControlLayout(el)
             },
             onInput: (event: Event) => {
               const el = event.target as HTMLTextAreaElement
+              syncCompactControlLayout(el)
               onVarChange(el.value)
-              applyVarStackWidth(el, inputKind)
-              syncAutoWrapTextareaHeight(el)
             },
             onBlur: onVarBlur,
           }),
@@ -171,9 +192,13 @@ export default defineComponent({
             ? (isIntegerInput ? "1" : undefined)
             : (inputKind === "time" ? "1" : undefined),
           value: displayValue,
-          onVnodeMounted: (vnode: any) => applyVarStackWidth(vnode.el as HTMLElement, inputKind),
-          onVnodeUpdated: (vnode: any) => applyVarStackWidth(vnode.el as HTMLElement, inputKind),
-          onInput: (event: Event) => onVarChange((event.target as HTMLInputElement).value),
+          onVnodeMounted: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
+          onVnodeUpdated: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
+          onInput: (event: Event) => {
+            const el = event.target as HTMLInputElement
+            syncCompactControlLayout(el)
+            onVarChange(el.value)
+          },
           onBlur: onVarBlur,
         }),
       )

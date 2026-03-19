@@ -6,9 +6,27 @@ import type { AimdTypePlugin } from '../types'
 
 describe('type-plugins', () => {
   it('includes built-in recorder plugins for official interactive types', () => {
-    const plugin = resolveAimdTypePlugin('DNASequence', BUILT_IN_AIMD_TYPE_PLUGINS)
-    expect(plugin?.type).toBe('DNASequence')
-    expect(plugin?.inputKind).toBe('dna')
+    const dnaPlugin = resolveAimdTypePlugin('DNASequence', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(dnaPlugin?.type).toBe('DNASequence')
+    expect(dnaPlugin?.inputKind).toBe('dna')
+
+    const markdownPlugin = resolveAimdTypePlugin('AiralogyMarkdown', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(markdownPlugin?.type).toBe('AiralogyMarkdown')
+    expect(markdownPlugin?.inputKind).toBe('textarea')
+
+    const pythonCodePlugin = resolveAimdTypePlugin('PyStr', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(pythonCodePlugin?.type).toBe('PyStr')
+    expect(pythonCodePlugin?.inputKind).toBe('code')
+
+    const genericCodePlugin = resolveAimdTypePlugin('CodeStr', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(genericCodePlugin?.type).toBe('CodeStr')
+    expect(genericCodePlugin?.inputKind).toBe('code')
+  })
+
+  it('uses a dedicated recorder widget for AiralogyMarkdown', () => {
+    const plugin = resolveAimdTypePlugin('AiralogyMarkdown', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(plugin?.type).toBe('AiralogyMarkdown')
+    expect(typeof plugin?.renderField).toBe('function')
   })
 
   it('lets host plugins override built-in type behavior', () => {

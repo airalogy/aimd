@@ -59,6 +59,8 @@ export interface AimdEditorProps {
   enableBlockHandle?: boolean
   /** Whether to enable the slash menu (type / to insert) */
   enableSlashMenu?: boolean
+  /** Whether inactive source / WYSIWYG panes stay mounted in the DOM */
+  keepInactiveEditorsMounted?: boolean
   /** Minimum height of the editor area in px */
   minHeight?: number
   /** Whether the editor is read-only */
@@ -157,6 +159,13 @@ export function createAimdVarTypePresets(
     { key: 'date', value: 'date', ...messages.varTypePresets.date },
     { key: 'datetime', value: 'datetime', ...messages.varTypePresets.datetime },
     { key: 'time', value: 'time', ...messages.varTypePresets.time },
+    { key: 'codeStr', value: 'CodeStr', ...messages.varTypePresets.codeStr },
+    { key: 'pyStr', value: 'PyStr', ...messages.varTypePresets.pyStr },
+    { key: 'jsStr', value: 'JsStr', ...messages.varTypePresets.jsStr },
+    { key: 'tsStr', value: 'TsStr', ...messages.varTypePresets.tsStr },
+    { key: 'jsonStr', value: 'JsonStr', ...messages.varTypePresets.jsonStr },
+    { key: 'tomlStr', value: 'TomlStr', ...messages.varTypePresets.tomlStr },
+    { key: 'yamlStr', value: 'YamlStr', ...messages.varTypePresets.yamlStr },
     { key: 'dnaSequence', value: 'DNASequence', ...messages.varTypePresets.dnaSequence },
     { key: 'currentTime', value: 'CurrentTime', ...messages.varTypePresets.currentTime },
     { key: 'userName', value: 'UserName', ...messages.varTypePresets.userName },

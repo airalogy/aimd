@@ -17,6 +17,7 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
   在 Markdown 渲染位置直接插入 `var / var_table / step / check / quiz` 的记录控件。
 - 提供可复用题目控件 `AimdQuizRecorder`（单独使用 quiz 输入时可复用）。
 - 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown`、`DNASequence`。
+- `AiralogyMarkdown` 在 recorder 中会以横铺内嵌编辑器呈现，默认进入 `源码` 模式，保留完整顶部工具栏，并支持切换到 `所见即所得`；如果它写在一行文字中间，recorder 会自动把它提升成下一行的块级编辑区，而不是普通 textarea。
 - 在 recorder/edit 模式下，`ref_var` 如果已经有记录值，会优先以只读内联内容显示该值。
 - 前端受限的 `assigner runtime=client` 代码块会在 recorder 中本地执行，用于纯 `var` 计算。
 
@@ -125,6 +126,8 @@ import { AimdRecorder } from "@airalogy/aimd-recorder"
 
 ## 语言
 
+`AiralogyMarkdown` 在 recorder 中会渲染一个横铺内嵌的 AIMD/Markdown 编辑器，默认进入 `源码` 模式，并支持切换到 `所见即所得`；即使字段写在一行文字中间，recorder 也会把它提升成下一行的块级编辑区，因此普通用户和偏源码工作的用户都可以直接在协议上下文里编辑长文本内容。
+
 `DNASequence` 会渲染专用 DNA 录入控件，支持：
 
 - 默认以 `交互式` 模式提供可视化编辑
@@ -155,6 +158,8 @@ import { AimdRecorder } from "@airalogy/aimd-recorder"
 如果宿主应用需要的是“某个 type 的专用行为”，而不是整体替换整类字段 UI，那么应该使用 `typePlugins`。
 
 type plugin 可以为单个 AIMD 类型定义初始值、归一化逻辑、显示/解析钩子，甚至完整的自定义 recorder widget。
+
+内建的 `AiralogyMarkdown` widget 也是沿用这条 type plugin 路径实现的，所以如果宿主应用需要不同的源码/所见即所得工作流，仍然可以覆盖官方默认实现。
 
 完整架构说明和端到端示例请参考：
 

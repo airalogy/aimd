@@ -21,6 +21,7 @@ export default defineComponent({
   },
   emits: [
     "cell-input",
+    "cell-paste",
     "cell-blur",
     "add-row",
     "remove-row",
@@ -97,6 +98,19 @@ export default defineComponent({
                         rowIndex,
                         value: (event.target as HTMLInputElement).value,
                         row,
+                      })
+                    },
+                    onPaste: (event: ClipboardEvent) => {
+                      const text = event.clipboardData?.getData("text/plain") ?? ""
+                      if (!text || (!text.includes("\t") && !/[\r\n]/.test(text))) {
+                        return
+                      }
+                      event.preventDefault()
+                      emit("cell-paste", {
+                        tableName,
+                        column,
+                        rowIndex,
+                        text,
                       })
                     },
                     onBlur: () => emit("cell-blur", { tableName, column }),

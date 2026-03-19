@@ -2,6 +2,24 @@
 
 All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
+## [Unreleased]
+
+## [1.6.0] - 2026-03-19
+
+### Added
+
+- Added built-in insertion-dialog var type presets for Airalogy code-string types (`CodeStr`, `PyStr`, `JsStr`, `TsStr`, `JsonStr`, `TomlStr`, `YamlStr`) so the editor can surface the same code-oriented types that the recorder now renders with dedicated code editors.
+
+## [1.5.0] - 2026-03-19
+
+### Added
+
+- Exported lightweight `@airalogy/aimd-editor/wysiwyg` and `@airalogy/aimd-editor/embedded` entries so host packages can embed WYSIWYG-only or source/WYSIWYG field editors without routing everything through the full `AimdEditor`.
+
+### Changed
+
+- Added host-facing support for unmounting inactive source / WYSIWYG panes in embedded editor scenarios, reducing hidden-editor focus and scroll interference inside recorder-style integrations.
+
 ## [1.4.0] - 2026-03-19
 
 ### Added

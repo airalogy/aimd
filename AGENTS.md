@@ -24,6 +24,11 @@
 - When adding a new built-in var type, recorder widget, or other user-visible field experience, add a minimal example to `demo/src/composables/sampleContent.aimd` unless the user explicitly asks not to.
 - Prefer one clear example per built-in type in the sample so users can discover it directly from the demo UI.
 
+## Vue Rendering Stability
+
+- Do not use unstable dynamic component factories in templates such as `:is="() => nodes"` for recorder/editor output. They can force unnecessary unmount/remount cycles and cause focus or scroll jumps while typing.
+- When syncing `v-model` state back into local reactive state, short-circuit echo updates if the semantic content has not changed. Avoid rebuilding recorder/editor subtrees for no-op parent round-trips.
+
 ## Versioning Policy For AI Agents
 
 - When a change affects a package's **published behavior**, update that package version in its `package.json`.

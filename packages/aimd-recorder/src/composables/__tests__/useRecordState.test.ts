@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   cloneRecordData,
+  getRecordDataSignature,
   normalizeStepLike,
   normalizeIncomingRecord,
   replaceSection,
@@ -15,6 +16,8 @@ import {
   ensureDefaultsFromFields,
   createEmptyVarTableRow,
   normalizeVarTableRows,
+  parsePastedVarTableText,
+  applyPastedVarTableGrid,
 } from '../useRecordState'
 import { createEmptyProtocolRecordData } from '../../types'
 
@@ -42,6 +45,39 @@ describe('cloneRecordData', () => {
 
     ;(cloned.var.data as any).nested.push(4)
     expect((original.var.data as any).nested).toEqual([1, 2, 3])
+  })
+})
+
+describe('getRecordDataSignature', () => {
+  it('returns the same signature for semantically equal records with different key order', () => {
+    const left = {
+      var: {
+        summary: { blocks: [{ text: 'A', id: 2 }, { id: 1, text: 'B' }] },
+        temperature: 25,
+      },
+      step: {
+        s1: { annotation: 'done', checked: true },
+      },
+    }
+
+    const right = {
+      step: {
+        s1: { checked: true, annotation: 'done' },
+      },
+      var: {
+        temperature: 25,
+        summary: { blocks: [{ id: 2, text: 'A' }, { text: 'B', id: 1 }] },
+      },
+    }
+
+    expect(getRecordDataSignature(left)).toBe(getRecordDataSignature(right))
+  })
+
+  it('returns a different signature when record content changes', () => {
+    const left = { var: { summary: 'alpha' } }
+    const right = { var: { summary: 'beta' } }
+
+    expect(getRecordDataSignature(left)).not.toBe(getRecordDataSignature(right))
   })
 })
 
@@ -404,6 +440,68 @@ describe('normalizeVarTableRows', () => {
   it('replaces invalid row items with empty rows', () => {
     const rows = normalizeVarTableRows([null, 'bad', { x: 'ok' }], ['x'])
     expect(rows).toEqual([{ x: '' }, { x: '' }, { x: 'ok' }])
+  })
+})
+
+describe('parsePastedVarTableText', () => {
+  it('parses spreadsheet-style tabular text', () => {
+    expect(parsePastedVarTableText('A\tB\r\n1\t2\r\n')).toEqual([
+      ['A', 'B'],
+      ['1', '2'],
+    ])
+  })
+
+  it('keeps single-column multiline text as one column per row', () => {
+    expect(parsePastedVarTableText('alpha\nbeta')).toEqual([
+      ['alpha'],
+      ['beta'],
+    ])
+  })
+})
+
+describe('applyPastedVarTableGrid', () => {
+  it('applies pasted cells from the current cell and appends rows as needed', () => {
+    const rows = [{ sample: 'S1', value: '' }]
+    const result = applyPastedVarTableGrid(
+      rows,
+      ['sample', 'value'],
+      0,
+      1,
+      [['10'], ['20']],
+    )
+
+    expect(rows).toEqual([
+      { sample: 'S1', value: '10' },
+      { sample: '', value: '20' },
+    ])
+    expect(result).toEqual({
+      rowsAdded: 1,
+      changedCells: [
+        { rowIndex: 0, column: 'value', value: '10' },
+        { rowIndex: 1, column: 'value', value: '20' },
+      ],
+    })
+  })
+
+  it('skips disabled columns and ignores cells outside the table width', () => {
+    const rows = [{ a: '', b: '', c: '' }]
+    const result = applyPastedVarTableGrid(
+      rows,
+      ['a', 'b', 'c'],
+      0,
+      0,
+      [['x', 'y', 'z', 'overflow']],
+      { disabledColumns: ['b'] },
+    )
+
+    expect(rows).toEqual([{ a: 'x', b: '', c: 'z' }])
+    expect(result).toEqual({
+      rowsAdded: 0,
+      changedCells: [
+        { rowIndex: 0, column: 'a', value: 'x' },
+        { rowIndex: 0, column: 'c', value: 'z' },
+      ],
+    })
   })
 })
 

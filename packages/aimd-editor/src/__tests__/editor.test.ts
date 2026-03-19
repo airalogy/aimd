@@ -15,6 +15,7 @@ import {
   buildAimdSyntax,
   createAimdFieldTypes,
   createMdToolbarItems,
+  createAimdVarTypePresets,
   AIMD_FIELD_TYPE_DEFINITIONS,
   MD_TOOLBAR_ITEM_DEFINITIONS,
 } from '../vue/types'
@@ -275,5 +276,21 @@ describe('MD toolbar item definitions', () => {
     expect(items.length).toBe(MD_TOOLBAR_ITEM_DEFINITIONS.length)
     const nonSeparator = items.find(i => !i.action.startsWith('sep'))
     expect(nonSeparator).toHaveProperty('title')
+  })
+})
+
+describe('AIMD var type presets', () => {
+  it('includes built-in recorder-aware code string presets', () => {
+    const messages = createAimdEditorMessages('en-US')
+    const presets = createAimdVarTypePresets(messages)
+    const presetValues = presets.map(preset => preset.value)
+
+    expect(presetValues).toContain('CodeStr')
+    expect(presetValues).toContain('PyStr')
+    expect(presetValues).toContain('JsStr')
+    expect(presetValues).toContain('TsStr')
+    expect(presetValues).toContain('JsonStr')
+    expect(presetValues).toContain('TomlStr')
+    expect(presetValues).toContain('YamlStr')
   })
 })

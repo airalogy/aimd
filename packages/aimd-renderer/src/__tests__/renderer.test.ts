@@ -251,6 +251,27 @@ describe('renderToHtmlSync', () => {
     expect(html.indexOf('Body one.')).toBeLessThan(html.indexOf('<hr>'))
     expect(html.indexOf('<hr>')).toBeLessThan(html.indexOf('step-id="step2"'))
   })
+
+  it('can lift block-style var types out of inline paragraphs', () => {
+    const { html } = renderToHtmlSync(
+      'Experiment summary: {{var|summary: AiralogyMarkdown}}',
+      { blockVarTypes: ['AiralogyMarkdown'] },
+    )
+
+    expect(html).toContain('<p>Experiment summary: </p>')
+    expect(html).toContain('<div class="aimd-field aimd-field--var aimd-block-var"')
+    expect(html).not.toContain('<p>Experiment summary: <span')
+  })
+
+  it('can lift block-style var types out of tight list items', () => {
+    const { html } = renderToHtmlSync(
+      '- Experiment summary: {{var|summary: AiralogyMarkdown}}',
+      { blockVarTypes: ['AiralogyMarkdown'] },
+    )
+
+    expect(html).toContain('<li><p>Experiment summary: </p><div class="aimd-field aimd-field--var aimd-block-var"')
+    expect(html).not.toContain('<li>Experiment summary: <span')
+  })
 })
 
 describe('renderToVue', () => {

@@ -3,6 +3,7 @@
 Reusable recording UI for AIMD, including inline protocol recorder, quiz answer components, and styles.
 
 Built-in variable input types include `CurrentTime`, `UserName`, `AiralogyMarkdown`, and `DNASequence`.
+`AiralogyMarkdown` now uses a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG` instead of a plain textarea.
 In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 Frontend-only `assigner runtime=client` blocks are executed locally for pure var computations.
 
@@ -46,6 +47,8 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   />
 </template>
 ```
+
+`AiralogyMarkdown` fields render a full-width embedded AIMD/Markdown editor with the full top toolbar, default to `Source` mode, and still support switching to `WYSIWYG`. Even when the field is authored mid-sentence, recorder lifts it into its own block row instead of keeping it as a tiny inline control.
 
 `DNASequence` fields render a dedicated DNA editor with:
 
@@ -123,6 +126,8 @@ const fieldAdapters = {
 Pass `fieldAdapters` to `AimdRecorder` when the host app needs to replace or wrap built-in recorder field UIs while still using AIMD parsing and record-state management.
 
 If the host app needs per-type behavior instead, use `typePlugins`. A type plugin can define the initial value, normalization, display/parsing hooks, and even a dedicated widget for one specific AIMD type token.
+
+The built-in `AiralogyMarkdown` editor uses this same extension path, so a host plugin can still replace it if needed.
 
 See:
 
