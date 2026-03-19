@@ -59,8 +59,6 @@ export interface AimdEditorProps {
   enableBlockHandle?: boolean
   /** Whether to enable the slash menu (type / to insert) */
   enableSlashMenu?: boolean
-  /** Whether inactive source / WYSIWYG panes stay mounted in the DOM */
-  keepInactiveEditorsMounted?: boolean
   /** Minimum height of the editor area in px */
   minHeight?: number
   /** Whether the editor is read-only */

@@ -37,7 +37,6 @@ const props = withDefaults(defineProps<AimdEditorProps>(), {
   minHeight: 500,
   readonly: false,
   monacoOptions: () => ({}),
-  keepInactiveEditorsMounted: true,
 })
 
 const emit = defineEmits<{
@@ -92,8 +91,6 @@ const shouldMountWysiwygEditor = computed(() => props.keepInactiveEditorsMounted
 // --- Computed toolbar items ---
 const localizedFieldTypes = computed(() => createAimdFieldTypes(resolvedMessages.value))
 const localizedMdToolbarItems = computed(() => createMdToolbarItems(resolvedMessages.value))
-const shouldMountSourceEditor = computed(() => props.keepInactiveEditorsMounted || editorMode.value === 'source')
-const shouldMountWysiwygEditor = computed(() => props.keepInactiveEditorsMounted || editorMode.value === 'wysiwyg')
 
 // --- AIMD Dialog ---
 const showAimdDialog = ref(false)
