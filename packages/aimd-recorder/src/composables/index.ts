@@ -3,6 +3,7 @@ export type { FocusSnapshot } from './useFocusManagement'
 
 export {
   cloneRecordData,
+  normalizeCheckLike,
   normalizeStepLike,
   normalizeIncomingRecord,
   replaceSection,
@@ -17,6 +18,25 @@ export {
   createEmptyVarTableRow,
   normalizeVarTableRows,
 } from './useRecordState'
+
+export {
+  createEmptyCheckRecordItem,
+  createEmptyStepRecordItem,
+  normalizeStepTimerState,
+  isStepTimerRunning,
+  getStepElapsedMs,
+  startStepTimer,
+  pauseStepTimer,
+  resetStepTimer,
+  setStepChecked,
+  formatStepDuration,
+  resolveStepTimerMode,
+  getStepRemainingMs,
+  isStepTimerWarning,
+  getProtocolEstimatedDurationMs,
+  getProtocolRecordedDurationMs,
+  hasRecordedStepDuration,
+} from './useStepTimers'
 
 export {
   normalizeVarTypeName,

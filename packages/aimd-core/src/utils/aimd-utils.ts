@@ -92,20 +92,22 @@ export function toTemplateEnv(fields: ExtractedAimdFields): AimdTemplateEnv {
   const byId: Record<string, unknown> = {}
   const byLevel: Record<number, unknown[]> = {}
 
-  if (fields.stepHierarchy) {
-    for (const step of fields.stepHierarchy) {
+  if (fields.step_hierarchy) {
+    for (const step of fields.step_hierarchy) {
       const stepId = step.id
-      const parentId = step.parentId
-      const prevId = step.prevId
+      const parentId = step.parent_id
+      const prevId = step.prev_id
       const node = {
         id: stepId,
         scope: "step",
         level: step.level ?? 0,
         step: step.step,
+        estimated_duration_ms: step.estimated_duration_ms,
+        timer_mode: step.timer_mode,
         parent: parentId ? byId[parentId] : null,
         prev: prevId ? byId[prevId] : null,
-        hasChildren: false,
-        hasContent: true,
+        has_children: false,
+        has_content: true,
         siblings: [],
         next: null,
       }

@@ -5,6 +5,8 @@
  * All AIMD-related code should use these types to ensure consistency.
  */
 
+import type { AimdStepTimerMode } from "./nodes"
+
 // ===== Base Types for Compatibility =====
 
 /**
@@ -317,15 +319,19 @@ export interface AimdStepField {
   /** Sequence within the same level */
   sequence?: number
   /** Has check checkbox */
-  hasCheck?: boolean
+  has_check?: boolean
+  /** Expected duration for the step in milliseconds. */
+  estimated_duration_ms?: number
+  /** Timer display mode for recorder UIs. */
+  timer_mode?: AimdStepTimerMode
   /** Whether this step has children */
-  hasChildren?: boolean
+  has_children?: boolean
   /** Parent step id */
-  parentId?: string
+  parent_id?: string
   /** Previous step id */
-  prevId?: string
+  prev_id?: string
   /** Next step id */
-  nextId?: string
+  next_id?: string
 }
 
 /**
@@ -414,7 +420,7 @@ export interface ExtractedAimdFields {
   /** Figures with full definitions */
   fig?: AimdFigField[]
   /** Step hierarchy for nested steps */
-  stepHierarchy?: AimdStepField[]
+  step_hierarchy?: AimdStepField[]
 }
 
 /**

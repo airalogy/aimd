@@ -6,8 +6,17 @@
  */
 
 import type { AimdQuizField, AimdVarTableField } from "@airalogy/aimd-core/types"
-import type { AimdProtocolRecordData, AimdStepOrCheckRecordItem } from "../types"
+import type {
+  AimdCheckRecordItem,
+  AimdProtocolRecordData,
+  AimdStepRecordItem,
+} from "../types"
 import { createEmptyProtocolRecordData } from "../types"
+import {
+  createEmptyCheckRecordItem,
+  createEmptyStepRecordItem,
+  normalizeStepTimerState,
+} from "./useStepTimers"
 
 // ---------------------------------------------------------------------------
 // Deep clone
@@ -40,15 +49,28 @@ export function getRecordDataSignature(value: Partial<AimdProtocolRecordData> | 
 // Step / check normalisation
 // ---------------------------------------------------------------------------
 
-export function normalizeStepLike(value: unknown): AimdStepOrCheckRecordItem {
+export function normalizeCheckLike(value: unknown): AimdCheckRecordItem {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { checked: false, annotation: "" }
+    return createEmptyCheckRecordItem()
   }
 
   const obj = value as Record<string, unknown>
   return {
     checked: Boolean(obj.checked),
     annotation: typeof obj.annotation === "string" ? obj.annotation : "",
+  }
+}
+
+export function normalizeStepLike(value: unknown): AimdStepRecordItem {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return createEmptyStepRecordItem()
+  }
+
+  const obj = value as Record<string, unknown>
+  return {
+    checked: Boolean(obj.checked),
+    annotation: typeof obj.annotation === "string" ? obj.annotation : "",
+    ...normalizeStepTimerState(obj),
   }
 }
 
@@ -75,7 +97,7 @@ export function normalizeIncomingRecord(value: Partial<AimdProtocolRecordData> |
   }
   if (value.check && typeof value.check === "object") {
     for (const [key, item] of Object.entries(value.check)) {
-      normalized.check[key] = normalizeStepLike(item)
+      normalized.check[key] = normalizeCheckLike(item)
     }
   }
 
@@ -368,14 +390,14 @@ export function ensureDefaultsFromFields(localRecord: AimdProtocolRecordData, fi
 
   for (const step of normalizeStepFields(fields.step)) {
     if (!(step.name in localRecord.step)) {
-      localRecord.step[step.name] = { checked: false, annotation: "" }
+      localRecord.step[step.name] = createEmptyStepRecordItem()
       changed = true
     }
   }
 
   for (const check of normalizeCheckFields(fields.check)) {
     if (!(check.name in localRecord.check)) {
-      localRecord.check[check.name] = { checked: false, annotation: "" }
+      localRecord.check[check.name] = createEmptyCheckRecordItem()
       changed = true
     }
   }

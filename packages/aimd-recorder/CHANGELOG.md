@@ -4,6 +4,20 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-03-19
+
+### Added
+
+- Added built-in step timing support driven by AIMD `duration`, including protocol-level estimated duration summaries, per-step elapsed timers, and persisted recorder-side timing fields (`elapsed_ms`, `timer_started_at_ms`, `started_at_ms`, `ended_at_ms`).
+- Added countdown-aware step timer modes from AIMD `timer="elapsed|countdown|both"`, including remaining-time display, overtime display after zero, and warning styling as the countdown approaches completion.
+- Added an embedded AiralogyMarkdown editor for step annotations so step notes can store longer formatted markdown content instead of being limited to a single-line plain-text input.
+- Added `stepDetailDisplay: "auto" | "always"` on `AimdRecorder` so hosts can keep step timer and note details progressively disclosed by default or force them permanently expanded.
+
+### Changed
+
+- Reworked built-in step rendering into a compact primary row plus on-demand detail area so empty notes and unused timer controls no longer occupy space by default, while existing notes and active timers stay visible.
+- Normalized recorder-facing AIMD step metadata and persisted step-timer state to snake_case so recorder JSON matches the rest of the AIMD / Airalogy data model.
+
 ## [1.10.0] - 2026-03-19
 
 ### Added

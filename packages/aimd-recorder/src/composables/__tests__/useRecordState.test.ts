@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   cloneRecordData,
+  normalizeCheckLike,
   getRecordDataSignature,
   normalizeStepLike,
   normalizeIncomingRecord,
@@ -20,6 +21,7 @@ import {
   applyPastedVarTableGrid,
 } from '../useRecordState'
 import { createEmptyProtocolRecordData } from '../../types'
+import { createEmptyCheckRecordItem, createEmptyStepRecordItem } from '../useStepTimers'
 
 // ---------------------------------------------------------------------------
 // cloneRecordData
@@ -29,7 +31,7 @@ describe('cloneRecordData', () => {
   it('produces a deep copy', () => {
     const original = createEmptyProtocolRecordData()
     original.var.temperature = 36.5
-    original.step.step1 = { checked: true, annotation: 'done' }
+    original.step.step1 = { ...createEmptyStepRecordItem(), checked: true, annotation: 'done' }
     const cloned = cloneRecordData(original)
 
     expect(cloned).toEqual(original)
@@ -58,7 +60,7 @@ describe('getRecordDataSignature', () => {
       step: {
         s1: { annotation: 'done', checked: true },
       },
-    }
+    } as unknown as Partial<ReturnType<typeof createEmptyProtocolRecordData>>
 
     const right = {
       step: {
@@ -68,7 +70,7 @@ describe('getRecordDataSignature', () => {
         temperature: 25,
         summary: { blocks: [{ id: 2, text: 'A' }, { text: 'B', id: 1 }] },
       },
-    }
+    } as unknown as Partial<ReturnType<typeof createEmptyProtocolRecordData>>
 
     expect(getRecordDataSignature(left)).toBe(getRecordDataSignature(right))
   })
@@ -87,37 +89,66 @@ describe('getRecordDataSignature', () => {
 
 describe('normalizeStepLike', () => {
   it('returns default for null', () => {
-    expect(normalizeStepLike(null)).toEqual({ checked: false, annotation: '' })
+    expect(normalizeStepLike(null)).toEqual(createEmptyStepRecordItem())
   })
 
   it('returns default for undefined', () => {
-    expect(normalizeStepLike(undefined)).toEqual({ checked: false, annotation: '' })
+    expect(normalizeStepLike(undefined)).toEqual(createEmptyStepRecordItem())
   })
 
   it('returns default for arrays', () => {
-    expect(normalizeStepLike([1, 2])).toEqual({ checked: false, annotation: '' })
+    expect(normalizeStepLike([1, 2])).toEqual(createEmptyStepRecordItem())
   })
 
   it('returns default for primitives', () => {
-    expect(normalizeStepLike('hello')).toEqual({ checked: false, annotation: '' })
-    expect(normalizeStepLike(42)).toEqual({ checked: false, annotation: '' })
+    expect(normalizeStepLike('hello')).toEqual(createEmptyStepRecordItem())
+    expect(normalizeStepLike(42)).toEqual(createEmptyStepRecordItem())
   })
 
   it('normalizes valid object', () => {
     expect(normalizeStepLike({ checked: true, annotation: 'note' }))
-      .toEqual({ checked: true, annotation: 'note' })
+      .toEqual({ ...createEmptyStepRecordItem(), checked: true, annotation: 'note' })
   })
 
   it('coerces checked to boolean', () => {
     expect(normalizeStepLike({ checked: 1, annotation: '' }))
-      .toEqual({ checked: true, annotation: '' })
+      .toEqual({ ...createEmptyStepRecordItem(), checked: true, annotation: '' })
     expect(normalizeStepLike({ checked: 0, annotation: '' }))
-      .toEqual({ checked: false, annotation: '' })
+      .toEqual(createEmptyStepRecordItem())
   })
 
   it('replaces non-string annotation with empty string', () => {
     expect(normalizeStepLike({ checked: false, annotation: 123 }))
-      .toEqual({ checked: false, annotation: '' })
+      .toEqual(createEmptyStepRecordItem())
+  })
+
+  it('normalizes timer fields when present', () => {
+    expect(normalizeStepLike({
+      checked: true,
+      annotation: 'timed',
+      elapsed_ms: '2500',
+      timer_started_at_ms: 5000,
+      started_at_ms: 4000,
+      ended_at_ms: null,
+    })).toEqual({
+      checked: true,
+      annotation: 'timed',
+      elapsed_ms: 2500,
+      timer_started_at_ms: 5000,
+      started_at_ms: 4000,
+      ended_at_ms: null,
+    })
+  })
+})
+
+describe('normalizeCheckLike', () => {
+  it('normalizes check items without timer fields', () => {
+    expect(normalizeCheckLike({ checked: 1, annotation: 'ok', elapsed_ms: 500 }))
+      .toEqual({ checked: true, annotation: 'ok' })
+  })
+
+  it('falls back to the empty check record shape', () => {
+    expect(normalizeCheckLike(null)).toEqual(createEmptyCheckRecordItem())
   })
 })
 
@@ -143,16 +174,16 @@ describe('normalizeIncomingRecord', () => {
 
   it('normalizes step items', () => {
     const result = normalizeIncomingRecord({
-      step: { s1: { checked: true, annotation: 'ok' } },
+      step: { s1: { checked: true, annotation: 'ok' } as any },
     })
-    expect(result.step.s1).toEqual({ checked: true, annotation: 'ok' })
+    expect(result.step.s1).toEqual({ ...createEmptyStepRecordItem(), checked: true, annotation: 'ok' })
   })
 
   it('normalizes check items', () => {
     const result = normalizeIncomingRecord({
       check: { c1: { checked: false, annotation: '' } as any },
     })
-    expect(result.check.c1).toEqual({ checked: false, annotation: '' })
+    expect(result.check.c1).toEqual(createEmptyCheckRecordItem())
   })
 
   it('preserves quiz data', () => {
@@ -195,11 +226,11 @@ describe('applyNormalizedRecord', () => {
 
     const normalized = createEmptyProtocolRecordData()
     normalized.var.new_var = 'new'
-    normalized.step.s1 = { checked: true, annotation: '' }
+    normalized.step.s1 = { ...createEmptyStepRecordItem(), checked: true }
 
     applyNormalizedRecord(local, normalized)
     expect(local.var).toEqual({ new_var: 'new' })
-    expect(local.step).toEqual({ s1: { checked: true, annotation: '' } })
+    expect(local.step).toEqual({ s1: { ...createEmptyStepRecordItem(), checked: true } })
   })
 })
 
@@ -515,16 +546,17 @@ describe('ensureDefaultsFromFields', () => {
     const fields = { step: [{ name: 's1' }], check: [], quiz: [], var: [], var_table: [], subvar: [], assigner: [], ref: [], fig: [], cite: [] }
     const changed = ensureDefaultsFromFields(record, fields as any)
     expect(changed).toBe(true)
-    expect(record.step.s1).toEqual({ checked: false, annotation: '' })
+    expect(record.step.s1).toEqual(createEmptyStepRecordItem())
   })
 
   it('does not overwrite existing step', () => {
     const record = createEmptyProtocolRecordData()
-    record.step.s1 = { checked: true, annotation: 'existing' }
+    record.step.s1 = { ...createEmptyStepRecordItem(), checked: true, annotation: 'existing', elapsed_ms: 1500 }
     const fields = { step: [{ name: 's1' }], check: [], quiz: [], var: [], var_table: [], subvar: [], assigner: [], ref: [], fig: [], cite: [] }
     const changed = ensureDefaultsFromFields(record, fields as any)
     expect(changed).toBe(false)
     expect(record.step.s1.annotation).toBe('existing')
+    expect(record.step.s1.elapsed_ms).toBe(1500)
   })
 
   it('adds missing check defaults', () => {
@@ -532,7 +564,7 @@ describe('ensureDefaultsFromFields', () => {
     const fields = { step: [], check: [{ name: 'c1' }], quiz: [], var: [], var_table: [], subvar: [], assigner: [], ref: [], fig: [], cite: [] }
     const changed = ensureDefaultsFromFields(record, fields as any)
     expect(changed).toBe(true)
-    expect(record.check.c1).toEqual({ checked: false, annotation: '' })
+    expect(record.check.c1).toEqual(createEmptyCheckRecordItem())
   })
 
   it('adds missing quiz defaults', () => {

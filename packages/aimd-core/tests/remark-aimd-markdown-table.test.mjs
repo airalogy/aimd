@@ -123,12 +123,12 @@ test('extracted fields expose canonical id properties only', () => {
   assert.equal(fields.var_table[0]?.id, 'samples')
   assert.equal(fields.var_table[0]?.subvars?.[0]?.id, 'sample_id')
 
-  assert.equal(fields.stepHierarchy?.[0]?.id, 'sample_preparation')
-  assert.equal(fields.stepHierarchy?.[0]?.step, '1')
-  assert.equal(fields.stepHierarchy?.[1]?.id, 'buffer_setup')
-  assert.equal(fields.stepHierarchy?.[1]?.step, '1.1')
-  assert.equal(fields.stepHierarchy?.[2]?.id, 'data_analysis')
-  assert.equal(fields.stepHierarchy?.[2]?.prevId, 'sample_preparation')
+  assert.equal(fields.step_hierarchy?.[0]?.id, 'sample_preparation')
+  assert.equal(fields.step_hierarchy?.[0]?.step, '1')
+  assert.equal(fields.step_hierarchy?.[1]?.id, 'buffer_setup')
+  assert.equal(fields.step_hierarchy?.[1]?.step, '1.1')
+  assert.equal(fields.step_hierarchy?.[2]?.id, 'data_analysis')
+  assert.equal(fields.step_hierarchy?.[2]?.prev_id, 'sample_preparation')
 })
 
 test('client assigner blocks are extracted and hidden from the markdown tree', () => {

@@ -5,7 +5,7 @@
 export { default as remarkAimd } from './remark-aimd'
 export { default as rehypeAimd } from './rehype-aimd'
 export { validateClientAssignerFunctionSource } from './client-assigner-syntax'
-export { validateVarDefaultType } from './field-parsers'
+export { parseDurationToMs, parseStepTimerMode, validateVarDefaultType } from './field-parsers'
 export {
   protectAimdInlineTemplates,
   restoreAimdInlineTemplates,
