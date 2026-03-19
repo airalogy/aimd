@@ -193,15 +193,19 @@ export function parseCheckContent(content: string): {
   const parts = trimmed.split(/,\s*/)
   const id = parts[0].trim()
   let checkedMessage: string | undefined
+  let label: string | undefined
 
   for (let i = 1; i < parts.length; i++) {
     const kvParams = parseKeyValueParams(parts[i])
     if ("checked_message" in kvParams) {
       checkedMessage = String(kvParams.checked_message)
     }
+    if ("label" in kvParams) {
+      label = String(kvParams.label)
+    }
   }
 
-  return { id, checkedMessage, label: id }
+  return { id, checkedMessage, label: label ?? id }
 }
 
 /**
