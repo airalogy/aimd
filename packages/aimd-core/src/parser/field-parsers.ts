@@ -1,5 +1,5 @@
 import type { AimdClientAssignerField } from "../types/aimd"
-import type { AimdStepNode, AimdVarDefinition } from "../types/nodes"
+import type { AimdStepNode, AimdStepTimerMode, AimdVarDefinition } from "../types/nodes"
 export { validateClientAssigners } from "./assigner-graph"
 import { parseClientAssignerContent as parseClientAssignerContentImpl } from "./client-assigner-syntax"
 
@@ -114,6 +114,80 @@ export function parseFenceMeta(meta: string | null | undefined): Record<string, 
   return params
 }
 
+const DURATION_PART_PATTERN = /(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)/gi
+const STEP_TIMER_MODES = new Set<AimdStepTimerMode>(["elapsed", "countdown", "both"])
+
+export function parseDurationToMs(value: unknown): number | undefined {
+  if (typeof value !== "string") {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return undefined
+  }
+
+  DURATION_PART_PATTERN.lastIndex = 0
+
+  let totalMs = 0
+  let lastIndex = 0
+  let matched = false
+  let match: RegExpExecArray | null = DURATION_PART_PATTERN.exec(trimmed)
+
+  while (match !== null) {
+    if (trimmed.slice(lastIndex, match.index).trim()) {
+      return undefined
+    }
+
+    matched = true
+    const amount = Number.parseFloat(match[1])
+    const unit = match[2].toLowerCase()
+    const multiplier = unit === "d"
+      ? 24 * 60 * 60 * 1000
+      : unit === "h"
+      ? 60 * 60 * 1000
+      : unit === "m"
+        ? 60 * 1000
+        : unit === "s"
+          ? 1000
+          : 1
+
+    totalMs += amount * multiplier
+    lastIndex = match.index + match[0].length
+    match = DURATION_PART_PATTERN.exec(trimmed)
+  }
+
+  if (!matched || trimmed.slice(lastIndex).trim()) {
+    return undefined
+  }
+
+  return Math.round(totalMs)
+}
+
+function getEstimatedStepDurationMs(props: Record<string, string | boolean | number>): number | undefined {
+  if ("duration" in props) {
+    const parsed = parseDurationToMs(props.duration)
+    if (parsed !== undefined) {
+      return parsed
+    }
+  }
+
+  return undefined
+}
+
+export function parseStepTimerMode(value: unknown): AimdStepTimerMode | undefined {
+  if (typeof value !== "string") {
+    return undefined
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (!STEP_TIMER_MODES.has(normalized as AimdStepTimerMode)) {
+    return undefined
+  }
+
+  return normalized as AimdStepTimerMode
+}
+
 /**
  * Parse step content according to AIMD spec.
  * Supports formats:
@@ -128,7 +202,9 @@ export function parseStepContent(content: string): {
   check: boolean
   title?: string
   subtitle?: string
-  checkedMessage?: string
+  checked_message?: string
+  estimated_duration_ms?: number
+  timer_mode?: AimdStepTimerMode
   result?: boolean
   props: Record<string, string | boolean | number>
 } {
@@ -139,7 +215,7 @@ export function parseStepContent(content: string): {
   let check = false
   let title: string | undefined
   let subtitle: string | undefined
-  let checkedMessage: string | undefined
+  let checked_message: string | undefined
   let result = false
 
   for (let i = 1; i < parts.length; i++) {
@@ -161,7 +237,7 @@ export function parseStepContent(content: string): {
       subtitle = String(kvParams.subtitle)
     }
     if ("checked_message" in kvParams) {
-      checkedMessage = String(kvParams.checked_message)
+      checked_message = String(kvParams.checked_message)
     }
     if ("result" in kvParams) {
       result = Boolean(kvParams.result)
@@ -174,8 +250,10 @@ export function parseStepContent(content: string): {
   level = Math.max(1, Math.min(3, level))
 
   const props = parseKeyValueParams(trimmed)
+  const estimated_duration_ms = getEstimatedStepDurationMs(props)
+  const timer_mode = parseStepTimerMode(props.timer)
 
-  return { id, level, check, title, subtitle, checkedMessage, result, props }
+  return { id, level, check, title, subtitle, checked_message, estimated_duration_ms, timer_mode, result, props }
 }
 
 /**
@@ -186,7 +264,7 @@ export function parseStepContent(content: string): {
  */
 export function parseCheckContent(content: string): {
   id: string
-  checkedMessage?: string
+  checked_message?: string
   label: string
 } {
   const trimmed = content.trim()
@@ -198,7 +276,7 @@ export function parseCheckContent(content: string): {
   for (let i = 1; i < parts.length; i++) {
     const kvParams = parseKeyValueParams(parts[i])
     if ("checked_message" in kvParams) {
-      checkedMessage = String(kvParams.checked_message)
+      checked_message = String(kvParams.checked_message)
     }
     if ("label" in kvParams) {
       label = String(kvParams.label)
@@ -221,19 +299,19 @@ export function parseClientAssignerContent(content: string): AimdClientAssignerF
  * Calculate the final step indent (e.g., "1.2.3").
  */
 function calculateStepIndent(step: AimdStepNode, context: StepContext): string {
-  const { sequence, level, parentId } = step
+  const { sequence, level, parent_id } = step
   let indent = String(sequence + 1)
 
   if (level === 1) {
     return indent
   }
 
-  let currentParentId = parentId
+  let currentParentId = parent_id
   while (currentParentId) {
     const parent = context.byId.get(currentParentId)
     if (parent) {
       indent = `${parent.sequence + 1}.${indent}`
-      currentParentId = parent.parentId
+      currentParentId = parent.parent_id
     }
     else {
       break
@@ -263,17 +341,17 @@ export function registerStep(node: AimdStepNode, context: StepContext): void {
     const parentLevel = context.byLevel.get(internalLevel - 1)
     if (parentLevel && parentLevel.length > 0) {
       const parent = parentLevel[parentLevel.length - 1]
-      node.parentId = parent.id
-      parent.hasChildren = true
+      node.parent_id = parent.id
+      parent.has_children = true
     }
   }
 
-  const siblings = levelSteps.filter(s => s.parentId === node.parentId)
+  const siblings = levelSteps.filter(s => s.parent_id === node.parent_id)
   if (siblings.length > 0) {
     const prevSibling = siblings[siblings.length - 1]
-    node.prevId = prevSibling.id
+    node.prev_id = prevSibling.id
     node.sequence = prevSibling.sequence + 1
-    prevSibling.nextId = id
+    prevSibling.next_id = id
   }
   else {
     node.sequence = 0

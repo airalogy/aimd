@@ -52,6 +52,7 @@ export type {
   AimdRefNode,
   AimdScope,
   AimdStepNode,
+  AimdStepTimerMode,
   AimdVarDefinition,
   AimdVarNode,
   AimdVarTableNode,

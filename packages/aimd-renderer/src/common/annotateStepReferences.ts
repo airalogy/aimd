@@ -11,7 +11,7 @@ import { createAimdRendererMessages } from "../locales"
 function buildStepSequenceMap(fields: ExtractedAimdFields): Map<string, string> {
   const sequenceMap = new Map<string, string>()
 
-  for (const step of fields.stepHierarchy || []) {
+  for (const step of fields.step_hierarchy || []) {
     if (typeof step.id === "string" && step.id.trim() && typeof step.step === "string" && step.step.trim()) {
       sequenceMap.set(step.id, step.step)
     }

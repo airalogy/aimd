@@ -23,6 +23,8 @@ import type {
   AimdRecorderFieldAdapters,
   AimdTypePlugin,
   AimdProtocolRecordData,
+  AimdStepDetailDisplay,
+  AimdStepRecordItem,
   FieldEventPayload,
   TableEventPayload,
 } from "../types"
@@ -50,6 +52,18 @@ import { useClientAssignerRunner } from "../composables/useClientAssignerRunner"
 import { resolveAimdRecorderFieldVNode } from "../composables/useFieldAdapters"
 import { useVarTableDragDrop, getVarTableColumns } from "../composables/useVarTableDragDrop"
 import { useFieldRendering } from "../composables/useFieldRendering"
+import {
+  createEmptyCheckRecordItem,
+  createEmptyStepRecordItem,
+  formatStepDuration,
+  getProtocolEstimatedDurationMs,
+  getProtocolRecordedDurationMs,
+  isStepTimerRunning,
+  pauseStepTimer,
+  resetStepTimer,
+  setStepChecked,
+  startStepTimer,
+} from "../composables/useStepTimers"
 import { createAimdTypePlugins } from "../type-plugins"
 import AimdVarField from "./AimdVarField.vue"
 import AimdVarTableField from "./AimdVarTableField.vue"
@@ -72,6 +86,8 @@ const props = withDefaults(defineProps<{
   now?: Date | string | number
   locale?: string
   messages?: AimdRecorderMessagesInput
+  /** Controls whether step timer / note details stay expanded */
+  stepDetailDisplay?: AimdStepDetailDisplay
 
   // ── Extension props ──────────────────────────────────────────────────────
 
@@ -124,6 +140,7 @@ const props = withDefaults(defineProps<{
   now: undefined,
   locale: undefined,
   messages: undefined,
+  stepDetailDisplay: "auto",
   fieldMeta: undefined,
   fieldState: undefined,
   wrapField: undefined,
@@ -175,6 +192,8 @@ let renderScheduled = false
 let recordInitializedDuringRender = false
 let pendingFocusSnapshot: FocusSnapshot | null = null
 let pendingInlineBuildRequestId: number | null = null
+const timerNowMs = ref(Date.now())
+let protocolTimerTicker: ReturnType<typeof setInterval> | null = null
 
 const resolvedLocale = computed(() => resolveAimdRecorderLocale(props.locale))
 const resolvedMessages = computed(() => createAimdRecorderMessages(resolvedLocale.value, props.messages))
@@ -226,7 +245,38 @@ const EMPTY_FIELDS: ExtractedAimdFields = {
   fig: [],
 }
 
+const extractedFields = ref<ExtractedAimdFields>(EMPTY_FIELDS)
 const clientAssigners = ref<AimdClientAssignerField[]>([])
+const protocolEstimatedDurationMs = computed(() => getProtocolEstimatedDurationMs(extractedFields.value.step_hierarchy ?? []))
+const protocolRecordedDurationMs = computed(() => getProtocolRecordedDurationMs(localRecord.step, timerNowMs.value))
+const showProtocolTimingSummary = computed(() => protocolEstimatedDurationMs.value > 0 || protocolRecordedDurationMs.value > 0)
+const protocolEstimatedDurationLabel = computed(() => formatStepDuration(protocolEstimatedDurationMs.value, resolvedLocale.value))
+const protocolRecordedDurationLabel = computed(() => formatStepDuration(protocolRecordedDurationMs.value, resolvedLocale.value))
+const hasRunningStepTimer = computed(() => Object.values(localRecord.step).some(step => isStepTimerRunning(step)))
+
+function syncProtocolTimerTicker() {
+  if (protocolTimerTicker) {
+    clearInterval(protocolTimerTicker)
+    protocolTimerTicker = null
+  }
+
+  if (!hasRunningStepTimer.value) {
+    return
+  }
+
+  protocolTimerTicker = setInterval(() => {
+    timerNowMs.value = Date.now()
+  }, 1000)
+}
+
+function getStepTimerPayload(step: AimdStepRecordItem) {
+  return {
+    elapsed_ms: step.elapsed_ms,
+    timer_started_at_ms: step.timer_started_at_ms,
+    started_at_ms: step.started_at_ms,
+    ended_at_ms: step.ended_at_ms,
+  }
+}
 
 function emitRecordUpdate() {
   if (syncingFromExternal) return
@@ -504,28 +554,62 @@ function renderInlineStep(node: AimdStepNode, children?: VNodeChild[]): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
   if (!(id in localRecord.step)) {
-    localRecord.step[id] = { checked: false, annotation: "" }
+    localRecord.step[id] = createEmptyStepRecordItem()
+    recordInitializedDuringRender = true
   }
 
   const state = localRecord.step[id]
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
+  const normalizedBodyNodes = normalizeStepBodyNodes(bodyNodes)
 
   const headerVnode = h(AimdStepField, {
     node,
     state,
+    bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
+    detailDisplay: props.stepDetailDisplay,
+    locale: resolvedLocale.value,
     messages: resolvedMessages.value,
     onCheckChange: (payload: { id: string, value: boolean }) => {
-      state.checked = payload.value
+      const wasRunning = isStepTimerRunning(state)
+      setStepChecked(state, payload.value, Date.now())
+      timerNowMs.value = Date.now()
       markRecordChanged()
       emit("field-change", { section: "step", fieldKey: payload.id, value: payload.value })
+      if (wasRunning) {
+        emit("field-change", { section: "step", fieldKey: `${payload.id}:timer`, value: getStepTimerPayload(state) })
+      }
     },
     onAnnotationChange: (payload: { id: string, value: string }) => {
       state.annotation = payload.value
       markRecordChanged()
       emit("field-change", { section: "step", fieldKey: `${payload.id}:annotation`, value: payload.value })
+    },
+    onTimerStart: (payload: { id: string }) => {
+      if (!startStepTimer(state, Date.now())) {
+        return
+      }
+      timerNowMs.value = Date.now()
+      markRecordChanged()
+      emit("field-change", { section: "step", fieldKey: `${payload.id}:timer`, value: getStepTimerPayload(state) })
+    },
+    onTimerPause: (payload: { id: string }) => {
+      if (!pauseStepTimer(state, Date.now())) {
+        return
+      }
+      timerNowMs.value = Date.now()
+      markRecordChanged()
+      emit("field-change", { section: "step", fieldKey: `${payload.id}:timer`, value: getStepTimerPayload(state) })
+    },
+    onTimerReset: (payload: { id: string }) => {
+      if (!resetStepTimer(state)) {
+        return
+      }
+      timerNowMs.value = Date.now()
+      markRecordChanged()
+      emit("field-change", { section: "step", fieldKey: `${payload.id}:timer`, value: getStepTimerPayload(state) })
     },
     onBlur: (payload: { id: string }) => {
       emit("field-blur", { section: "step", fieldKey: payload.id })
@@ -553,7 +637,8 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
   const id = node.id
   const fieldKey = `check:${id}`
   if (!(id in localRecord.check)) {
-    localRecord.check[id] = { checked: false, annotation: "" }
+    localRecord.check[id] = createEmptyCheckRecordItem()
+    recordInitializedDuringRender = true
   }
 
   const state = localRecord.check[id]
@@ -634,6 +719,7 @@ async function rebuildInlineNodes(
   recordInitializedDuringRender = false
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
+    groupStepBodies: true,
     context: {
       mode: "edit",
       readonly: props.readonly,
@@ -672,6 +758,7 @@ async function parseAndBuild() {
     const extracted = parseAndExtract(props.content || "")
     if (currentRequestId !== buildRequestId) return
 
+    extractedFields.value = extracted
     clientAssigners.value = extracted.client_assigner || []
     emit("fields-change", extracted)
 
@@ -689,6 +776,7 @@ async function parseAndBuild() {
     const message = error instanceof Error ? error.message : String(error)
     renderError.value = message
     inlineNodes.value = []
+    extractedFields.value = EMPTY_FIELDS
     clientAssigners.value = []
     emit("fields-change", EMPTY_FIELDS)
     emit("error", message)
@@ -720,6 +808,11 @@ watch(
   { deep: true, immediate: true },
 )
 
+watch(hasRunningStepTimer, () => {
+  timerNowMs.value = Date.now()
+  syncProtocolTimerTicker()
+}, { immediate: true })
+
 watch(
   () => ({
     content: props.content,
@@ -732,6 +825,12 @@ watch(
   { immediate: true, deep: true },
 )
 
+onBeforeUnmount(() => {
+  if (protocolTimerTicker) {
+    clearInterval(protocolTimerTicker)
+  }
+})
+
 defineExpose({
   runClientAssigner: assignerRunner.triggerClientAssigner,
   runManualClientAssigners: assignerRunner.triggerManualClientAssigners,
@@ -742,11 +841,28 @@ defineExpose({
   <div class="aimd-protocol-recorder">
     <div v-if="renderError" class="aimd-protocol-recorder__error">{{ renderError }}</div>
 
-    <div v-else-if="inlineNodes.length" ref="contentRoot" class="aimd-protocol-recorder__content">
-      <InlineNodesOutlet :nodes="inlineNodes" />
-    </div>
+    <template v-else>
+      <div v-if="showProtocolTimingSummary" class="aimd-protocol-recorder__timing">
+        <span
+          v-if="protocolEstimatedDurationMs > 0"
+          class="aimd-protocol-recorder__timing-pill aimd-protocol-recorder__timing-pill--estimate"
+        >
+          {{ resolvedMessages.step.protocolEstimatedTotal(protocolEstimatedDurationLabel) }}
+        </span>
+        <span
+          v-if="protocolRecordedDurationMs > 0"
+          class="aimd-protocol-recorder__timing-pill"
+        >
+          {{ resolvedMessages.step.protocolRecordedTotal(protocolRecordedDurationLabel) }}
+        </span>
+      </div>
 
-    <div v-else class="aimd-protocol-recorder__empty">{{ resolvedMessages.common.emptyContent }}</div>
+      <div v-if="inlineNodes.length" ref="contentRoot" class="aimd-protocol-recorder__content">
+        <InlineNodesOutlet :nodes="inlineNodes" />
+      </div>
+
+      <div v-else class="aimd-protocol-recorder__empty">{{ resolvedMessages.common.emptyContent }}</div>
+    </template>
   </div>
 </template>
 
@@ -770,6 +886,32 @@ defineExpose({
   background: #fff3f6;
   color: #b4234d;
   font-size: 13px;
+}
+
+.aimd-protocol-recorder__timing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.aimd-protocol-recorder__timing-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid #d5dde8;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aimd-protocol-recorder__timing-pill--estimate {
+  border-color: #f1d39a;
+  background: #fff8ea;
+  color: #9a5800;
 }
 
 .aimd-protocol-recorder__content {
@@ -823,7 +965,7 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-field--var) { background: #f3f8ff; border-color: #c9dcff; color: #1c4e90; }
 .aimd-protocol-recorder__content :deep(.aimd-field--var .aimd-field__scope) { background: #dceaff; color: #255eab; }
 .aimd-protocol-recorder__content :deep(.aimd-field--step) { background: #fff9ef; border-color: #f4d9a8; color: #9a5800; }
-.aimd-protocol-recorder__content :deep(.aimd-field--step .aimd-field__scope) { background: #ffe8bf; color: #9a5800; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--step > .aimd-step-field__main .aimd-rec-inline__check-wrap > .aimd-field__scope) { background: #ffe8bf; color: #9a5800; }
 .aimd-protocol-recorder__content :deep(.aimd-field--check) { background: #f8fafc; border-color: #d8dfe8; color: #2b3443; padding: 3px 8px; }
 .aimd-protocol-recorder__content :deep(.aimd-field--check .aimd-field__scope) { background: #e7ecf3; color: #4f5f77; }
 .aimd-protocol-recorder__content :deep(.aimd-field--var-table) { background: #f3fbf3; border: 1px solid #cfe7cf; color: #276738; border-radius: 12px; padding: 10px 12px; }
@@ -952,6 +1094,77 @@ defineExpose({
 /* ── Step / check ───────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) { gap: 8px; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--step) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  width: min(100%, 1040px);
+  max-width: 100%;
+  margin: 16px 0;
+  padding: 14px 16px 16px;
+  border: 1px solid #f1d6a1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: none;
+  color: var(--rec-text);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__main) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 14px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__main-meta) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__main-actions) {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__body) {
+  min-width: 0;
+  color: var(--rec-text);
+  font-size: 15px;
+  line-height: 1.72;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__body .aimd-step-body) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__body p) {
+  margin: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__details) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(154, 88, 0, 0.12);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__detail--timer) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__detail--annotation) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--quiz) { display: block; margin: 12px 0; padding: 0; border: none; background: transparent; }
 
 /* ── Step card block ────────────────────────────────────────────────────── */
@@ -987,8 +1200,114 @@ defineExpose({
   line-height: 1.7;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--quiz.aimd-field--quiz) { border-radius: 12px; border-color: #f6ddb0; background: #fffdf6; padding: 10px 12px; }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline__check-wrap) { display: inline-flex; align-items: center; gap: 6px; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__check-wrap) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__step-num) { font-weight: 600; color: #9a5800; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--step > .aimd-step-field__main .aimd-rec-inline__check-wrap > .aimd-field__name) {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #7b4300;
+  overflow-wrap: anywhere;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__pill) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(154, 88, 0, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #8a5a12;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__pill--estimate) {
+  background: rgba(255, 244, 222, 0.95);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__pill--actual) {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.16);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__pill--running) {
+  color: #14532d;
+  border-color: rgba(22, 101, 52, 0.2);
+  background: rgba(236, 253, 245, 0.96);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__hero) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(154, 88, 0, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 247, 237, 0.96);
+  color: #9a5800;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__hero--countdown) {
+  border-color: rgba(154, 88, 0, 0.18);
+  background: rgba(255, 247, 237, 0.96);
+  color: #9a5800;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__hero--warning) {
+  border-color: rgba(180, 83, 9, 0.26);
+  background: rgba(255, 251, 235, 0.98);
+  color: #b45309;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__hero--overtime) {
+  border-color: rgba(185, 28, 28, 0.24);
+  background: rgba(254, 242, 242, 0.98);
+  color: #b91c1c;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__controls) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__btn) {
+  border: 1px solid #d1d9e6;
+  border-radius: 999px;
+  min-height: 28px;
+  padding: 0 10px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__btn:hover:not(:disabled)) {
+  border-color: #9db1cc;
+  background: #f7faff;
+  color: #1f4f8f;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__btn:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-timer__btn--ghost) {
+  background: transparent;
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__toggle) {
+  color: #8a5a12;
+  border-color: rgba(154, 88, 0, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+}
+.aimd-protocol-recorder__content :deep(.aimd-step-field__toggle:hover:not(:disabled)) {
+  border-color: rgba(154, 88, 0, 0.34);
+  background: rgba(255, 248, 235, 0.98);
+  color: #7b4300;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline input[type="checkbox"]),
 .aimd-protocol-recorder__content :deep(.aimd-checkbox) { width: 16px; height: 16px; accent-color: var(--rec-focus); }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input) {
@@ -1006,7 +1325,22 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input::placeholder) { color: #98a2b3; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input:focus) { border-color: var(--rec-focus); box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.12); }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var .aimd-rec-inline__input) { width: clamp(120px, 28vw, 280px); }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--annotation) { width: clamp(130px, 24vw, 220px); }
+.aimd-protocol-recorder__content :deep(.aimd-step-field__annotation-editor) {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .aimd-protocol-recorder__content :deep(.aimd-step-field__details) {
+    padding-top: 10px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-step-field__main) {
+    flex-direction: column;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-step-field__main-actions) {
+    justify-content: flex-start;
+  }
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input.aimd-rec-inline__input--stacked),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea.aimd-rec-inline__textarea--stacked) { font-family: inherit; outline: none; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table td) {

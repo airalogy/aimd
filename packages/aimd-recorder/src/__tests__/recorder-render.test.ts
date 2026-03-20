@@ -17,4 +17,23 @@ describe('AimdRecorder render stability', () => {
   it('skips echo-style modelValue syncs when the incoming record signature matches local state', () => {
     expect(source).toMatch(/if \(!shouldRebuild\) \{\s*return\s*\}/)
   })
+
+  it('renders protocol timing summary pills when step estimates or recorded durations exist', () => {
+    expect(source).toMatch(/showProtocolTimingSummary/)
+    expect(source).toMatch(/aimd-protocol-recorder__timing-pill--estimate/)
+    expect(source).toMatch(/protocolEstimatedDurationLabel/)
+    expect(source).toMatch(/protocolRecordedDurationLabel/)
+  })
+
+  it('defaults step detail disclosure to auto and passes it through to the step field', () => {
+    expect(source).toMatch(/stepDetailDisplay\?: AimdStepDetailDisplay/)
+    expect(source).toMatch(/stepDetailDisplay: "auto"/)
+    expect(source).toMatch(/detailDisplay: props\.stepDetailDisplay/)
+  })
+
+  it('normalizes grouped step body nodes so grouped content does not re-render the step header inside its own body', () => {
+    expect(source).toMatch(/function normalizeStepBodyNodes\(bodyNodes: VNodeChild\[] = \[]\): VNodeChild\[]/)
+    expect(source).toMatch(/const groupedBody = bodyNodes\.find\(\(child\) => isGroupedStepBodyNode\(child\)\)/)
+    expect(source).toMatch(/bodyNodes: normalizedBodyNodes/)
+  })
 })

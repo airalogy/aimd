@@ -1,26 +1,186 @@
 <script lang="ts">
-import { defineComponent, h, type PropType, type VNode } from "vue"
-import type { AimdStepNode, AimdCheckNode } from "@airalogy/aimd-core/types"
+import { computed, defineAsyncComponent, defineComponent, h, onBeforeUnmount, ref, watch, type PropType, type VNodeChild } from "vue"
+import type { AimdStepNode, AimdCheckNode, AimdStepTimerMode } from "@airalogy/aimd-core/types"
 import type { AimdRecorderMessages } from "../locales"
 import { getAimdRecorderScopeLabel } from "../locales"
-import type { AimdStepOrCheckRecordItem } from "../types"
+import type { AimdCheckRecordItem, AimdStepDetailDisplay, AimdStepRecordItem } from "../types"
+import {
+  formatStepDuration,
+  getStepElapsedMs,
+  getStepRemainingMs,
+  hasRecordedStepDuration,
+  isStepTimerWarning,
+  isStepTimerRunning,
+  resolveStepTimerMode,
+} from "../composables/useStepTimers"
+
+const AimdMarkdownNoteField = defineAsyncComponent(() => import("./AimdMarkdownNoteField.vue"))
 
 export const AimdStepField = defineComponent({
   name: "AimdStepField",
   props: {
     node: { type: Object as PropType<AimdStepNode>, required: true },
-    state: { type: Object as PropType<AimdStepOrCheckRecordItem>, required: true },
+    state: { type: Object as PropType<AimdStepRecordItem>, required: true },
+    bodyNodes: { type: Array as PropType<VNodeChild[]>, default: () => [] },
     disabled: { type: Boolean, default: false },
     extraClasses: { type: Array as PropType<string[]>, default: () => [] },
+    detailDisplay: { type: String as PropType<AimdStepDetailDisplay>, default: "auto" },
+    locale: { type: String, required: true },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },
   },
-  emits: ["check-change", "annotation-change", "blur"],
+  emits: ["check-change", "annotation-change", "timer-start", "timer-pause", "timer-reset", "blur"],
   setup(props, { emit }) {
+    const nowMs = ref(Date.now())
+    const rootEl = ref<HTMLElement | null>(null)
+    const annotationExpanded = ref(false)
+    const timerExpanded = ref(false)
+    let liveTimer: ReturnType<typeof setInterval> | null = null
+    let focusOutCheckTimer: ReturnType<typeof setTimeout> | null = null
+
+    function syncLiveTimer() {
+      if (liveTimer) {
+        clearInterval(liveTimer)
+        liveTimer = null
+      }
+
+      if (!isStepTimerRunning(props.state)) {
+        return
+      }
+
+      liveTimer = setInterval(() => {
+        nowMs.value = Date.now()
+      }, 1000)
+    }
+
+    watch(() => props.state.timer_started_at_ms, () => {
+      nowMs.value = Date.now()
+      syncLiveTimer()
+    }, { immediate: true })
+
+    onBeforeUnmount(() => {
+      if (liveTimer) {
+        clearInterval(liveTimer)
+      }
+      if (focusOutCheckTimer) {
+        clearTimeout(focusOutCheckTimer)
+      }
+    })
+
+    const alwaysShowDetails = computed(() => props.detailDisplay === "always")
+    const actualElapsedMs = computed(() => getStepElapsedMs(props.state, nowMs.value))
+    const actualDurationLabel = computed(() => formatStepDuration(actualElapsedMs.value, props.locale))
+    const estimatedDurationLabel = computed(() => (
+      typeof props.node.estimated_duration_ms === "number"
+        ? formatStepDuration(props.node.estimated_duration_ms, props.locale)
+        : ""
+    ))
+    const timerMode = computed<AimdStepTimerMode>(() => resolveStepTimerMode(props.node))
+    const timerRunning = computed(() => isStepTimerRunning(props.state))
+    const hasRecordedDuration = computed(() => hasRecordedStepDuration(props.state))
+    const hasAnnotation = computed(() => Boolean(props.state.annotation?.trim()))
+    const remainingMs = computed(() => getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value))
+    const countdownEnabled = computed(() => timerMode.value === "countdown" || timerMode.value === "both")
+    const showElapsedDetail = computed(() => timerMode.value === "elapsed" || timerMode.value === "both")
+    const countdownWarning = computed(() => (
+      (timerRunning.value || hasRecordedDuration.value)
+      && isStepTimerWarning(remainingMs.value, props.node.estimated_duration_ms)
+    ))
+    const countdownOvertime = computed(() => typeof remainingMs.value === "number" && remainingMs.value < 0)
+    const countdownLabel = computed(() => {
+      if (remainingMs.value == null) {
+        return ""
+      }
+
+      if (countdownOvertime.value) {
+        return props.messages.step.overtimeBadge(formatStepDuration(Math.abs(remainingMs.value), props.locale))
+      }
+
+      return props.messages.step.remainingBadge(formatStepDuration(Math.max(0, remainingMs.value), props.locale))
+    })
+    const countdownTitle = computed(() => {
+      if (remainingMs.value == null) {
+        return ""
+      }
+
+      if (countdownOvertime.value) {
+        return props.messages.step.overtimeDuration(formatStepDuration(Math.abs(remainingMs.value), props.locale))
+      }
+
+      return props.messages.step.remainingDuration(formatStepDuration(Math.max(0, remainingMs.value), props.locale))
+    })
+    const autoShowTimerDetails = computed(() => countdownEnabled.value)
+    const showAnnotationEditor = computed(() => (
+      alwaysShowDetails.value
+      || hasAnnotation.value
+      || annotationExpanded.value
+    ))
+    const showTimerDetails = computed(() => (
+      alwaysShowDetails.value
+      || autoShowTimerDetails.value
+      || timerRunning.value
+      || hasRecordedDuration.value
+      || timerExpanded.value
+    ))
+    const showTimerSummary = computed(() => !showTimerDetails.value && (timerRunning.value || hasRecordedDuration.value))
+    const showDetailRow = computed(() => showAnnotationEditor.value || showTimerDetails.value)
+
+    function clearPendingFocusOutCheck() {
+      if (focusOutCheckTimer) {
+        clearTimeout(focusOutCheckTimer)
+        focusOutCheckTimer = null
+      }
+    }
+
+    function collapseTransientDetails() {
+      if (!hasAnnotation.value) {
+        annotationExpanded.value = false
+      }
+      if (!autoShowTimerDetails.value && !timerRunning.value && !hasRecordedDuration.value) {
+        timerExpanded.value = false
+      }
+    }
+
+    function handleFocusIn() {
+      clearPendingFocusOutCheck()
+    }
+
+    function handleFocusOut(event: FocusEvent) {
+      const nextTarget = event.relatedTarget
+      if (nextTarget instanceof Node && rootEl.value?.contains(nextTarget)) {
+        return
+      }
+
+      clearPendingFocusOutCheck()
+      focusOutCheckTimer = setTimeout(() => {
+        focusOutCheckTimer = null
+        const activeElement = typeof document !== "undefined" ? document.activeElement : null
+        if (activeElement instanceof Node && rootEl.value?.contains(activeElement)) {
+          return
+        }
+
+        collapseTransientDetails()
+      }, 0)
+    }
+
+    function openAnnotationDetail() {
+      annotationExpanded.value = true
+    }
+
+    function openTimerDetail() {
+      timerExpanded.value = true
+      emit("timer-start", { id: props.node.id })
+    }
+
+    function preventToggleFocus(event: MouseEvent) {
+      event.preventDefault()
+    }
+
     return () => {
       const node = props.node
       const id = node.id
       const state = props.state
       const stepNumber = node.step || "?"
+      const hasCheck = Boolean(node.check)
       const disabled = props.disabled
       const extraClasses = props.extraClasses
       const isChecked = Boolean(state.checked)
@@ -81,7 +241,7 @@ export const AimdCheckField = defineComponent({
   name: "AimdCheckField",
   props: {
     node: { type: Object as PropType<AimdCheckNode>, required: true },
-    state: { type: Object as PropType<AimdStepOrCheckRecordItem>, required: true },
+    state: { type: Object as PropType<AimdCheckRecordItem>, required: true },
     disabled: { type: Boolean, default: false },
     extraClasses: { type: Array as PropType<string[]>, default: () => [] },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },

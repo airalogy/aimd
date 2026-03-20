@@ -2,6 +2,13 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.3.0] - 2026-03-19
+
+### Changed
+
+- Preserved parsed step timing metadata through renderer node serialization, including `estimated_duration_ms` and the new `timer_mode` so host renderers and recorder integrations can build countdown-aware step UIs.
+- Aligned renderer-facing extracted field metadata with the canonical snake_case AIMD schema, including `step_hierarchy`, `parent_id`, `prev_id`, and `next_id`.
+
 ## [2.2.0] - 2026-03-19
 
 ### Added

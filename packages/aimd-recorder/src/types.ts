@@ -13,6 +13,15 @@ export interface AimdStepOrCheckRecordItem {
   annotation: string
 }
 
+export interface AimdCheckRecordItem extends AimdStepOrCheckRecordItem {}
+
+export interface AimdStepRecordItem extends AimdStepOrCheckRecordItem {
+  elapsed_ms: number
+  timer_started_at_ms: number | null
+  started_at_ms: number | null
+  ended_at_ms: number | null
+}
+
 export interface AimdDnaSequenceSegment {
   start: number
   end: number
@@ -45,12 +54,13 @@ export interface AimdDnaSequenceValue {
 
 export interface AimdProtocolRecordData {
   var: Record<string, unknown>
-  step: Record<string, AimdStepOrCheckRecordItem>
-  check: Record<string, AimdStepOrCheckRecordItem>
+  step: Record<string, AimdStepRecordItem>
+  check: Record<string, AimdCheckRecordItem>
   quiz: Record<string, unknown>
 }
 
 export type AimdVarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna" | "code"
+export type AimdStepDetailDisplay = "auto" | "always"
 
 export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
   return {

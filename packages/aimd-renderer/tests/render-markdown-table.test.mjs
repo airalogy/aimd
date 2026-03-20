@@ -148,10 +148,10 @@ test('parseAndExtract exposes canonical ids for extracted field objects', () => 
 
   assert.equal(fields.var_table[0]?.id, 'samples')
   assert.equal(fields.var_table[0]?.subvars?.[0]?.id, 'sample_id')
-  assert.equal(fields.stepHierarchy?.[0]?.id, 'sample_preparation')
-  assert.equal(fields.stepHierarchy?.[1]?.id, 'buffer_setup')
-  assert.equal(fields.stepHierarchy?.[1]?.step, '1.1')
-  assert.equal(fields.stepHierarchy?.[2]?.prevId, 'sample_preparation')
+  assert.equal(fields.step_hierarchy?.[0]?.id, 'sample_preparation')
+  assert.equal(fields.step_hierarchy?.[1]?.id, 'buffer_setup')
+  assert.equal(fields.step_hierarchy?.[1]?.step, '1.1')
+  assert.equal(fields.step_hierarchy?.[2]?.prev_id, 'sample_preparation')
 })
 
 test('renderToHtml renders ref_step using localized step sequence', async () => {

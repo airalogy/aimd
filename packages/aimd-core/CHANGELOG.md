@@ -4,6 +4,17 @@ All notable changes to `@airalogy/aimd-core` will be documented in this file.
 
 Earlier historical releases were not backfilled yet. This changelog currently starts from the `2.x` release line.
 
+## [2.3.0] - 2026-03-19
+
+### Added
+
+- Added first-class `step.duration` parsing with normalized `estimated_duration_ms` metadata and `step.timer` parsing with `elapsed` / `countdown` / `both` modes in parsed AIMD step nodes and extracted `step_hierarchy`.
+
+### Changed
+
+- Extended exported AIMD step types and template-env step metadata so downstream renderers and recorders can consume timer mode information without reading raw step kwargs.
+- Normalized public step extraction metadata to snake_case, including `step_hierarchy`, `estimated_duration_ms`, `timer_mode`, `has_check`, `parent_id`, `prev_id`, `next_id`, and `has_children`.
+
 ## [2.2.0] - 2026-03-19
 
 ### Added

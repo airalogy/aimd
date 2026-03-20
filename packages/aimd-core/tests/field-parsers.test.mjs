@@ -209,7 +209,7 @@ test('step: with checked_message', () => {
   const { tree } = parseAimd("{{step|verify, check=True, checked_message='Done!'}}")
   const node = findAimdNode(tree)
   assert.equal(node?.check, true)
-  assert.equal(node?.checkedMessage, 'Done!')
+  assert.equal(node?.checked_message, 'Done!')
 })
 
 test('step: preserves title, subtitle, result, and props for host renderers', () => {
@@ -221,6 +221,26 @@ test('step: preserves title, subtitle, result, and props for host renderers', ()
   assert.equal(node?.props?.title, 'Verify Output')
   assert.equal(node?.props?.subtitle, 'Cross-check values')
   assert.equal(node?.props?.result, true)
+})
+
+test('step: parses duration strings into estimated_duration_ms', () => {
+  const { tree } = parseAimd("{{step|incubate, duration='1h30m', check=True}}")
+  const node = findAimdNode(tree)
+  assert.equal(node?.estimated_duration_ms, 5_400_000)
+  assert.equal(node?.props?.duration, '1h30m')
+})
+
+test('step: parses timer mode metadata', () => {
+  const { tree } = parseAimd("{{step|wash, duration='30s', timer='countdown'}}")
+  const node = findAimdNode(tree)
+  assert.equal(node?.timer_mode, 'countdown')
+  assert.equal(node?.props?.timer, 'countdown')
+})
+
+test('step: parses day-scale duration strings into estimated_duration_ms', () => {
+  const { tree } = parseAimd("{{step|grow, duration='2d4h'}}")
+  const node = findAimdNode(tree)
+  assert.equal(node?.estimated_duration_ms, 187_200_000)
 })
 
 test('step: level clamped to max 3', () => {
@@ -243,11 +263,22 @@ test('step hierarchy: siblings get sequential numbering', () => {
 {{step|step_b}}
 {{step|step_c}}
 `)
-  const hierarchy = fields.stepHierarchy
+  const hierarchy = fields.step_hierarchy
   assert.equal(hierarchy.length, 3)
   assert.equal(hierarchy[0].step, '1')
   assert.equal(hierarchy[1].step, '2')
   assert.equal(hierarchy[2].step, '3')
+})
+
+test('step hierarchy: preserves estimated duration metadata', () => {
+  const { fields } = parseAimd(`
+{{step|step_a, duration='45s'}}
+{{step|step_b, duration='2m 15s', timer='both'}}
+`)
+  const hierarchy = fields.step_hierarchy
+  assert.equal(hierarchy?.[0]?.estimated_duration_ms, 45_000)
+  assert.equal(hierarchy?.[1]?.estimated_duration_ms, 135_000)
+  assert.equal(hierarchy?.[1]?.timer_mode, 'both')
 })
 
 test('step hierarchy: nested steps get hierarchical numbering', () => {
@@ -256,7 +287,7 @@ test('step hierarchy: nested steps get hierarchical numbering', () => {
 {{step|sub_a, 2}}
 {{step|sub_b, 2}}
 `)
-  const hierarchy = fields.stepHierarchy
+  const hierarchy = fields.step_hierarchy
   assert.equal(hierarchy[0].step, '1')
   assert.equal(hierarchy[1].step, '1.1')
   assert.equal(hierarchy[2].step, '1.2')
@@ -268,13 +299,13 @@ test('step hierarchy: sibling links are set correctly', () => {
 {{step|step_b}}
 {{step|step_c}}
 `)
-  const hierarchy = fields.stepHierarchy
-  assert.equal(hierarchy[0].prevId, undefined)
-  assert.equal(hierarchy[0].nextId, 'step_b')
-  assert.equal(hierarchy[1].prevId, 'step_a')
-  assert.equal(hierarchy[1].nextId, 'step_c')
-  assert.equal(hierarchy[2].prevId, 'step_b')
-  assert.equal(hierarchy[2].nextId, undefined)
+  const hierarchy = fields.step_hierarchy
+  assert.equal(hierarchy[0].prev_id, undefined)
+  assert.equal(hierarchy[0].next_id, 'step_b')
+  assert.equal(hierarchy[1].prev_id, 'step_a')
+  assert.equal(hierarchy[1].next_id, 'step_c')
+  assert.equal(hierarchy[2].prev_id, 'step_b')
+  assert.equal(hierarchy[2].next_id, undefined)
 })
 
 test('step hierarchy: parent-child relationship', () => {
@@ -282,9 +313,9 @@ test('step hierarchy: parent-child relationship', () => {
 {{step|parent}}
 {{step|child, 2}}
 `)
-  const hierarchy = fields.stepHierarchy
-  assert.equal(hierarchy[0].hasChildren, true)
-  assert.equal(hierarchy[1].parentId, 'parent')
+  const hierarchy = fields.step_hierarchy
+  assert.equal(hierarchy[0].has_children, true)
+  assert.equal(hierarchy[1].parent_id, 'parent')
 })
 
 // ── check parsing ────────────────────────────────────────────────────────────
@@ -300,7 +331,7 @@ test('check: with checked_message', () => {
   const { tree } = parseAimd("{{check|verify_step, checked_message='Complete!'}}")
   const node = findAimdNode(tree)
   assert.equal(node?.id, 'verify_step')
-  assert.equal(node?.checkedMessage, 'Complete!')
+  assert.equal(node?.checked_message, 'Complete!')
 })
 
 // ── fig parsing ──────────────────────────────────────────────────────────────

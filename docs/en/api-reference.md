@@ -128,7 +128,7 @@ interface ExtractedAimdFields {
   ref_fig?: string[]
   cite?: string[]
   fig?: AimdFigField[]
-  stepHierarchy?: AimdStepField[]
+  step_hierarchy?: AimdStepField[]
 }
 
 // Variable definition (from parsed AST)

@@ -86,7 +86,7 @@ function createAimdNode(
     }
 
     case "step": {
-      const { id, level, check, title, subtitle, checkedMessage, result, props } = parseStepContent(content)
+      const { id, level, check, title, subtitle, checked_message, estimated_duration_ms, timer_mode, result, props } = parseStepContent(content)
       const stepNode: AimdStepNode = {
         type: "aimd",
         fieldType: "step",
@@ -96,7 +96,7 @@ function createAimdNode(
         level,
         sequence: 0,
         step: "1",
-        hasChildren: false,
+        has_children: false,
         check,
         props,
       }
@@ -107,8 +107,14 @@ function createAimdNode(
       if (subtitle) {
         stepNode.subtitle = subtitle
       }
-      if (checkedMessage) {
-        stepNode.checkedMessage = checkedMessage
+      if (checked_message) {
+        stepNode.checked_message = checked_message
+      }
+      if (estimated_duration_ms !== undefined) {
+        stepNode.estimated_duration_ms = estimated_duration_ms
+      }
+      if (timer_mode) {
+        stepNode.timer_mode = timer_mode
       }
       if (result) {
         stepNode.result = true
@@ -122,7 +128,7 @@ function createAimdNode(
     }
 
     case "check": {
-      const { id, checkedMessage, label } = parseCheckContent(content)
+      const { id, checked_message, label } = parseCheckContent(content)
       const checkNode: AimdCheckNode = {
         type: "aimd",
         fieldType: "check",
@@ -132,8 +138,8 @@ function createAimdNode(
         label,
       }
 
-      if (checkedMessage) {
-        ;(checkNode as any).checkedMessage = checkedMessage
+      if (checked_message) {
+        checkNode.checked_message = checked_message
       }
 
       return checkNode
@@ -460,16 +466,18 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
     })
 
     if (extractFields && stepContext.allSteps.length > 0) {
-      fields.stepHierarchy = stepContext.allSteps.map(step => ({
+      fields.step_hierarchy = stepContext.allSteps.map(step => ({
         id: step.id,
         level: step.level,
         sequence: step.sequence,
         step: step.step,
-        hasCheck: step.check,
-        parentId: step.parentId,
-        prevId: step.prevId,
-        nextId: step.nextId,
-        hasChildren: step.hasChildren,
+        estimated_duration_ms: step.estimated_duration_ms,
+        timer_mode: step.timer_mode,
+        has_check: step.check,
+        parent_id: step.parent_id,
+        prev_id: step.prev_id,
+        next_id: step.next_id,
+        has_children: step.has_children,
       }))
     }
 

@@ -617,8 +617,8 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     nodeData.label = node.label
   if ("refTarget" in node)
     nodeData.refTarget = node.refTarget
-  if ("checkedMessage" in node)
-    nodeData.checkedMessage = node.checkedMessage
+  if ("checked_message" in node)
+    nodeData.checked_message = node.checked_message
 
   // Add quiz-specific fields
   if (node.fieldType === "quiz") {
@@ -651,14 +651,16 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     nodeData.level = stepNode.level
     nodeData.sequence = stepNode.sequence
     nodeData.step = stepNode.step
-    nodeData.parentId = stepNode.parentId
-    nodeData.prevId = stepNode.prevId
-    nodeData.nextId = stepNode.nextId
-    nodeData.hasChildren = stepNode.hasChildren
+    nodeData.parent_id = stepNode.parent_id
+    nodeData.prev_id = stepNode.prev_id
+    nodeData.next_id = stepNode.next_id
+    nodeData.has_children = stepNode.has_children
     nodeData.check = stepNode.check
     nodeData.title = stepNode.title
     nodeData.subtitle = stepNode.subtitle
-    nodeData.checkedMessage = stepNode.checkedMessage
+    nodeData.checked_message = stepNode.checked_message
+    nodeData.estimated_duration_ms = stepNode.estimated_duration_ms
+    nodeData.timer_mode = stepNode.timer_mode
     nodeData.result = stepNode.result
     nodeData.props = stepNode.props
   }
@@ -1037,8 +1039,14 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     if (stepNode.subtitle) {
       properties["data-aimd-subtitle"] = stepNode.subtitle
     }
-    if (stepNode.checkedMessage) {
-      properties["data-aimd-checked-message"] = stepNode.checkedMessage
+    if (stepNode.checked_message) {
+      properties["data-aimd-checked-message"] = stepNode.checked_message
+    }
+    if (typeof stepNode.estimated_duration_ms === "number") {
+      properties["data-aimd-estimated-duration-ms"] = stepNode.estimated_duration_ms
+    }
+    if (stepNode.timer_mode) {
+      properties["data-aimd-timer-mode"] = stepNode.timer_mode
     }
     if (stepNode.result) {
       properties["data-aimd-result"] = "true"

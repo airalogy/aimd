@@ -40,6 +40,7 @@ export type AimdScope =
  */
 export type AimdQuizType = "choice" | "blank" | "open"
 export type AimdQuizMode = "single" | "multiple"
+export type AimdStepTimerMode = "elapsed" | "countdown" | "both"
 
 export interface AimdQuizOption {
   key: string
@@ -145,13 +146,13 @@ export interface AimdStepNode extends BaseNode {
   /** Final display indent (e.g., "1.2.3") */
   step: string
   /** Parent step id (if any) */
-  parentId?: string
+  parent_id?: string
   /** Previous sibling step id (if any) */
-  prevId?: string
+  prev_id?: string
   /** Next sibling step id (if any) */
-  nextId?: string
+  next_id?: string
   /** Whether this step has children */
-  hasChildren?: boolean
+  has_children?: boolean
   /** Whether this step has a checkbox (check=True in AIMD) */
   check?: boolean
   /** Explicit title declared in AIMD step kwargs. */
@@ -159,7 +160,11 @@ export interface AimdStepNode extends BaseNode {
   /** Optional subtitle declared in AIMD step kwargs. */
   subtitle?: string
   /** Message to display when step is checked */
-  checkedMessage?: string
+  checked_message?: string
+  /** Expected duration for the step in milliseconds. */
+  estimated_duration_ms?: number
+  /** Timer display mode for recorder UIs. */
+  timer_mode?: AimdStepTimerMode
   /** Whether this step should be treated as a result/output step. */
   result?: boolean
   /** Preserved step kwargs for host-side render adapters. */
@@ -176,7 +181,7 @@ export interface AimdCheckNode extends BaseNode {
   /** Display label for the checkpoint */
   label?: string
   /** Message to display when checkpoint is checked */
-  checkedMessage?: string
+  checked_message?: string
 }
 
 /**
