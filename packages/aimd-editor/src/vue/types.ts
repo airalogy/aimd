@@ -61,7 +61,7 @@ export interface AimdEditorProps {
   enableSlashMenu?: boolean
   /** Whether inactive source / WYSIWYG panes stay mounted in the DOM */
   keepInactiveEditorsMounted?: boolean
-  /** Minimum height of the editor area in px */
+  /** Minimum height of the editor area in px. Set to 0 to fill a parent with explicit height. */
   minHeight?: number
   /** Whether the editor is read-only */
   readonly?: boolean

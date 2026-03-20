@@ -34,6 +34,8 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 Use `messages` to override built-in copy per locale.
 
+Set `:min-height="0"` to make the editor fill a parent container with an explicit height. Leave `minHeight` positive to keep the default fixed editor height behavior.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>

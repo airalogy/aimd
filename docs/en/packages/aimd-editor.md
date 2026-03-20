@@ -43,6 +43,8 @@ const content = ref("")
 </template>
 ```
 
+To let the editor fill a parent with an explicit height, set `:min-height="0"`. Positive `minHeight` values keep the existing fixed editor-height behavior.
+
 ## Localization
 
 The Vue editor includes built-in `en-US` and `zh-CN` UI messages.

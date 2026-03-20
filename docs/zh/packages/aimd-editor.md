@@ -43,6 +43,8 @@ const content = ref("")
 </template>
 ```
 
+如果要让编辑器填满一个已明确高度的父容器，可以设置 `:min-height="0"`。当 `minHeight` 为正数时，会保持现有的固定最小高度行为。
+
 ## 国际化
 
 Vue 编辑器内建 `en-US` 和 `zh-CN` 两套 UI 文案。

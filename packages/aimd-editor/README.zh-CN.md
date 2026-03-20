@@ -34,6 +34,8 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 也可以通过 `messages` 覆盖内建文案。
 
+如果希望编辑器填满一个已明确高度的父容器，可以设置 `:min-height="0"`。保留正数 `minHeight` 时，编辑器仍会维持默认的固定最小高度行为。
+
 ## 文档
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>

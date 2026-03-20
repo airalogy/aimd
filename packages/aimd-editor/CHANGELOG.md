@@ -4,6 +4,12 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-03-21
+
+### Fixed
+
+- Scoped full-height editor layout to `minHeight={0}` only, so embeds inside fixed-height parents no longer regress when using the default editor height.
+
 ## [1.6.0] - 2026-03-19
 
 ### Added

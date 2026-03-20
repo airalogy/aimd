@@ -87,6 +87,9 @@ function toggleTheme() {
 
 const shouldMountSourceEditor = computed(() => props.keepInactiveEditorsMounted || editorMode.value === 'source')
 const shouldMountWysiwygEditor = computed(() => props.keepInactiveEditorsMounted || editorMode.value === 'wysiwyg')
+const isFullHeightMode = computed(() => props.minHeight === 0)
+const editorPanelStyle = computed(() => isFullHeightMode.value ? { height: '100%' } : { minHeight: props.minHeight + 'px' })
+const editorPaneStyle = computed(() => isFullHeightMode.value ? { height: '100%' } : undefined)
 
 // --- Computed toolbar items ---
 const localizedFieldTypes = computed(() => createAimdFieldTypes(resolvedMessages.value))
@@ -161,7 +164,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="aimd-editor">
+  <div class="aimd-editor" :class="{ 'aimd-editor--full-height': isFullHeightMode }">
     <!-- Unified toolbar: mode switch + markdown + aimd -->
     <AimdEditorToolbar
       v-if="showToolbar"
@@ -179,9 +182,9 @@ defineExpose({
     />
 
     <!-- Editor area -->
-      <div class="aimd-editor-panel" :style="{ minHeight: minHeight + 'px' }">
+      <div class="aimd-editor-panel" :style="editorPanelStyle">
         <!-- Source mode: Monaco -->
-      <div v-if="shouldMountSourceEditor" v-show="editorMode === 'source'">
+      <div v-if="shouldMountSourceEditor" v-show="editorMode === 'source'" class="aimd-editor-pane" :style="editorPaneStyle">
         <AimdSourceEditor
           ref="sourceEditorRef"
           :content="content"
@@ -197,7 +200,7 @@ defineExpose({
       </div>
 
       <!-- WYSIWYG mode: Milkdown -->
-      <div v-if="shouldMountWysiwygEditor" v-show="editorMode === 'wysiwyg'">
+      <div v-if="shouldMountWysiwygEditor" v-show="editorMode === 'wysiwyg'" class="aimd-editor-pane" :style="editorPaneStyle">
         <AimdWysiwygEditor
           ref="wysiwygEditorRef"
           :content="content"
@@ -234,6 +237,10 @@ defineExpose({
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.aimd-editor--full-height {
+  height: 100%;
 }
 
 /* --- Unified toolbar --- */
@@ -373,8 +380,32 @@ defineExpose({
   overflow: hidden;
 }
 
+.aimd-editor-pane {
+  min-height: 0;
+}
+
+.aimd-editor--full-height .aimd-editor-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.aimd-editor--full-height .aimd-editor-pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .aimd-editor-source-mode {
   overflow: hidden;
+}
+
+.aimd-editor--full-height .aimd-editor-source-mode,
+.aimd-editor--full-height .aimd-editor-wysiwyg-mode {
+  flex: 1;
+  min-height: 0;
 }
 
 .aimd-editor-container {

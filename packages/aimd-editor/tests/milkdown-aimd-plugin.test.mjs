@@ -131,8 +131,19 @@ test('AimdEditor can unmount inactive editor panes for embedded recorder fields'
   assert.match(editorSource, /keepInactiveEditorsMounted: true/)
   assert.match(editorSource, /const shouldMountSourceEditor = computed\(\(\) => props\.keepInactiveEditorsMounted \|\| editorMode\.value === 'source'\)/)
   assert.match(editorSource, /const shouldMountWysiwygEditor = computed\(\(\) => props\.keepInactiveEditorsMounted \|\| editorMode\.value === 'wysiwyg'\)/)
-  assert.match(editorSource, /<div v-if="shouldMountSourceEditor" v-show="editorMode === 'source'">/)
-  assert.match(editorSource, /<div v-if="shouldMountWysiwygEditor" v-show="editorMode === 'wysiwyg'">/)
+  assert.match(editorSource, /<div v-if="shouldMountSourceEditor" v-show="editorMode === 'source'" class="aimd-editor-pane" :style="editorPaneStyle">/)
+  assert.match(editorSource, /<div v-if="shouldMountWysiwygEditor" v-show="editorMode === 'wysiwyg'" class="aimd-editor-pane" :style="editorPaneStyle">/)
+})
+
+test('AimdEditor gates full-height layout to minHeight zero mode', () => {
+  assert.match(typesSource, /Set to 0 to fill a parent with explicit height/)
+  assert.match(editorSource, /const isFullHeightMode = computed\(\(\) => props\.minHeight === 0\)/)
+  assert.match(editorSource, /const editorPanelStyle = computed\(\(\) => isFullHeightMode\.value \? \{ height: '100%' } : \{ minHeight: props\.minHeight \+ 'px' }\)/)
+  assert.match(editorSource, /const editorPaneStyle = computed\(\(\) => isFullHeightMode\.value \? \{ height: '100%' } : undefined\)/)
+  assert.match(editorSource, /<div class="aimd-editor" :class="\{ 'aimd-editor--full-height': isFullHeightMode \}">/)
+  assert.match(editorSource, /<div class="aimd-editor-panel" :style="editorPanelStyle">/)
+  assert.match(sourceEditorSource, /:style="minHeight > 0 \? \{ height: minHeight \+ 'px' } : \{ height: '100%' }"/)
+  assert.match(wysiwygSource, /:style="minHeight > 0 \? \{ height: minHeight \+ 'px', overflowY: 'auto' } : \{ height: '100%', overflowY: 'auto' }"/)
 })
 
 test('AimdEditorToolbar uses non-submit buttons for host safety', () => {
