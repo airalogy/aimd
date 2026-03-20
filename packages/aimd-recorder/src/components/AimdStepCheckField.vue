@@ -180,69 +180,192 @@ export const AimdStepField = defineComponent({
       const id = node.id
       const state = props.state
       const stepNumber = node.step || "?"
+      const hasCheck = Boolean(node.check)
       const disabled = props.disabled
       const extraClasses = props.extraClasses
-      const isChecked = Boolean(state.checked)
-      const hasCheck = Boolean(node.check)
+      const canResetTimer = hasRecordedDuration.value || timerRunning.value
+      const startButtonLabel = timerRunning.value
+        ? props.messages.step.pauseTimer
+        : (hasRecordedDuration.value ? props.messages.step.resumeTimer : props.messages.step.startTimer)
+      const detailChildren = []
+      const headerMetaChildren = []
+      const headerActionChildren = []
 
-      return h("span", {
-        class: [
-          "aimd-rec-step-card",
-          hasCheck ? "aimd-rec-step-card--checkable" : "",
-          hasCheck ? "" : "aimd-rec-step-card--passive",
-          isChecked ? "aimd-rec-step-card--checked" : "aimd-rec-step-card--awaiting",
-          ...extraClasses,
-        ],
-      }, [
-        // left accent bar
-        h("span", { class: "aimd-rec-step-card__bar" }),
-        // badge
-        h("span", { class: "aimd-rec-step-card__badge-wrap" }, [
-          h("span", {
-            class: ["aimd-rec-step-card__badge", isChecked ? "aimd-rec-step-card__badge--checked" : ""],
-          }, [
-            isChecked
-              ? h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "3", width: "14", height: "14" }, [
-                  h("polyline", { points: "20 6 9 17 4 12" }),
-                ])
-              : String(stepNumber),
-          ]),
-        ]),
-        // content
-        h("span", { class: "aimd-rec-step-card__content" }, [
-          node.title ? h("span", { class: "aimd-rec-step-card__title" }, node.title) : null,
-          h("input", {
-            "data-rec-focus-key": `step:${id}:annotation`,
-            class: "aimd-rec-step-card__annotation",
-            disabled,
-            placeholder: props.messages.step.annotationPlaceholder,
-            value: state.annotation || "",
-            onInput: (event: Event) => {
-              emit("annotation-change", { id, value: (event.target as HTMLInputElement).value })
-            },
-            onBlur: () => emit("blur", { id }),
-          }),
-        ]),
-        hasCheck
-          ? h("button", {
-              "data-rec-focus-key": `step:${id}:checked`,
-              type: "button",
+      if (showTimerDetails.value) {
+        const timerDetailChildren = []
+
+        if (countdownEnabled.value && countdownLabel.value) {
+          timerDetailChildren.push(
+            h("span", {
               class: [
-                "aimd-rec-step-card__action",
-                isChecked ? "aimd-rec-step-card__action--checked" : "aimd-rec-step-card__action--awaiting",
+                "aimd-step-timer__hero",
+                countdownOvertime.value
+                  ? "aimd-step-timer__hero--overtime"
+                  : countdownWarning.value
+                    ? "aimd-step-timer__hero--warning"
+                    : "aimd-step-timer__hero--countdown",
               ],
+              title: countdownTitle.value,
+            }, countdownLabel.value),
+          )
+        }
+
+        if (showElapsedDetail.value) {
+          timerDetailChildren.push(
+            h("span", {
+              class: [
+                "aimd-step-timer__pill",
+                "aimd-step-timer__pill--actual",
+                timerRunning.value ? "aimd-step-timer__pill--running" : "",
+              ],
+              title: props.messages.step.recordedDuration(actualDurationLabel.value),
+            }, props.messages.step.recordedBadge(actualDurationLabel.value)),
+          )
+        }
+
+        detailChildren.push(
+          h("span", {
+            class: "aimd-step-field__detail aimd-step-field__detail--timer",
+          }, [
+            ...timerDetailChildren,
+            !disabled
+              ? h("span", { class: "aimd-step-timer__controls" }, [
+                h("button", {
+                  type: "button",
+                  class: "aimd-step-timer__btn",
+                  onClick: () => emit(timerRunning.value ? "timer-pause" : "timer-start", { id }),
+                }, startButtonLabel),
+                h("button", {
+                  type: "button",
+                  class: "aimd-step-timer__btn aimd-step-timer__btn--ghost",
+                  disabled: !canResetTimer,
+                  onClick: () => emit("timer-reset", { id }),
+                }, props.messages.step.resetTimer),
+              ])
+              : null,
+          ]),
+        )
+      }
+
+      if (showAnnotationEditor.value) {
+        detailChildren.push(
+          h("span", {
+            class: "aimd-step-field__detail aimd-step-field__detail--annotation",
+          }, [
+            h(AimdMarkdownNoteField, {
+              class: "aimd-step-field__annotation-editor",
               disabled,
-              "aria-pressed": isChecked ? "true" : "false",
-              onClick: () => {
-                emit("check-change", { id, value: !isChecked })
+              locale: props.locale,
+              minHeight: 220,
+              modelValue: state.annotation || "",
+              "onUpdate:modelValue": (value: string) => {
+                emit("annotation-change", {
+                  id,
+                  value,
+                })
+              },
+              onClose: () => {
+                annotationExpanded.value = false
+                emit("blur", { id })
               },
               onBlur: () => emit("blur", { id }),
-            }, [
-              h("span", { class: "aimd-rec-step-card__action-dot", "aria-hidden": "true" }),
-              h("span", { class: "aimd-rec-step-card__action-label" }, isChecked
-                ? props.messages.step.checkedAction
-                : props.messages.step.confirmAction),
-            ])
+            }),
+          ]),
+        )
+      }
+
+      headerMetaChildren.push(
+        h(hasCheck ? "label" : "span", { class: "aimd-rec-inline__check-wrap" }, [
+          hasCheck
+            ? h("input", {
+              "data-rec-focus-key": `step:${id}:checked`,
+              type: "checkbox",
+              disabled,
+              checked: Boolean(state.checked),
+              onChange: (event: Event) => {
+                emit("check-change", {
+                  id,
+                  value: (event.target as HTMLInputElement).checked,
+                })
+              },
+              onBlur: () => emit("blur", { id }),
+            })
+            : null,
+          h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", props.messages)),
+          h("span", { class: "aimd-rec-inline__step-num" }, stepNumber),
+          h("span", { class: "aimd-field__name" }, id),
+        ]),
+      )
+
+      if (estimatedDurationLabel.value) {
+        headerMetaChildren.push(
+          h("span", {
+            class: "aimd-step-timer__pill aimd-step-timer__pill--estimate",
+            title: props.messages.step.estimatedDuration(estimatedDurationLabel.value),
+          }, props.messages.step.estimatedBadge(estimatedDurationLabel.value)),
+        )
+      }
+
+      if (showTimerSummary.value) {
+        headerMetaChildren.push(
+          h("span", {
+            class: [
+              "aimd-step-timer__pill",
+              "aimd-step-timer__pill--actual",
+              timerRunning.value ? "aimd-step-timer__pill--running" : "",
+            ],
+            title: props.messages.step.recordedDuration(actualDurationLabel.value),
+          }, props.messages.step.recordedBadge(actualDurationLabel.value)),
+        )
+      }
+
+      if (!disabled && !showAnnotationEditor.value) {
+        headerActionChildren.push(
+          h("button", {
+            type: "button",
+            class: "aimd-step-timer__btn aimd-step-timer__btn--ghost aimd-step-field__toggle aimd-step-field__toggle--annotation",
+            onMousedown: preventToggleFocus,
+            onClick: openAnnotationDetail,
+          }, props.messages.step.annotationToggle),
+        )
+      }
+
+      if (!disabled && !showTimerDetails.value) {
+        headerActionChildren.push(
+          h("button", {
+            type: "button",
+            class: "aimd-step-timer__btn aimd-step-timer__btn--ghost aimd-step-field__toggle aimd-step-field__toggle--timer",
+            onMousedown: preventToggleFocus,
+            onClick: openTimerDetail,
+          }, props.messages.step.timerToggle),
+        )
+      }
+
+      const bodyChildren = props.bodyNodes.length > 0
+        ? h("div", { class: "aimd-step-field__body" }, props.bodyNodes)
+        : null
+
+      return h("div", {
+        ref: rootEl,
+        class: ["aimd-rec-inline aimd-rec-inline--step aimd-field aimd-field--step", ...extraClasses],
+        onFocusin: handleFocusIn,
+        onFocusout: handleFocusOut,
+      }, [
+        h("div", {
+          class: "aimd-step-field__main",
+        }, [
+          h("div", {
+            class: "aimd-step-field__main-meta",
+          }, headerMetaChildren),
+          headerActionChildren.length > 0
+            ? h("div", {
+              class: "aimd-step-field__main-actions",
+            }, headerActionChildren)
+            : null,
+        ]),
+        bodyChildren,
+        showDetailRow.value
+          ? h("div", { class: "aimd-step-field__details" }, detailChildren)
           : null,
       ])
     }
