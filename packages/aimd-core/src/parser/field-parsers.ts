@@ -270,7 +270,7 @@ export function parseCheckContent(content: string): {
   const trimmed = content.trim()
   const parts = trimmed.split(/,\s*/)
   const id = parts[0].trim()
-  let checkedMessage: string | undefined
+  let checked_message: string | undefined
   let label: string | undefined
 
   for (let i = 1; i < parts.length; i++) {
@@ -283,7 +283,7 @@ export function parseCheckContent(content: string): {
     }
   }
 
-  return { id, checkedMessage, label: label ?? id }
+  return { id, checked_message, label: label ?? id }
 }
 
 /**
