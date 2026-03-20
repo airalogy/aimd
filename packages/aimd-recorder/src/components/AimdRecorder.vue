@@ -999,8 +999,37 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step > .aimd-step-field__main .aimd-rec-inline__check-wrap > .aimd-field__scope) { background: #ffe8bf; color: #9a5800; }
 .aimd-protocol-recorder__content :deep(.aimd-field--check) { background: #f8fafc; border-color: #d8dfe8; color: #2b3443; padding: 3px 8px; }
 .aimd-protocol-recorder__content :deep(.aimd-field--check .aimd-field__scope) { background: #e7ecf3; color: #4f5f77; }
-.aimd-protocol-recorder__content :deep(.aimd-field--var-table) { background: #f3fbf3; border: 1px solid #cfe7cf; color: #276738; border-radius: 12px; padding: 10px 12px; }
-.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-field__scope) { background: #daf1dc; color: #2f7b40; }
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(251, 252, 251, 0.98) 100%);
+  border: 1px solid #dee7df;
+  color: #334155;
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 8px 24px rgba(15, 23, 42, 0.025);
+}
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-field__scope) {
+  background: #edf6ee;
+  color: #446a4f;
+}
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-field__name) {
+  color: #1f2937;
+}
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-field__header) {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-field__table-preview),
+.aimd-protocol-recorder__content :deep(.aimd-field--var-table .aimd-rec-card-list) {
+  width: 100%;
+  max-width: 100%;
+}
 /* ── Error & loading ────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--error) { border-color: var(--rec-error) !important; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--error:focus-within) { box-shadow: 0 0 0 2px rgba(224, 48, 80, 0.12); }
@@ -1352,19 +1381,90 @@ defineExpose({
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table th) {
   vertical-align: middle;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table) {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table col) {
+  transition: width 0.18s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__column-head) {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__column-head--compact) {
+  text-align: center;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__column-head--wide) {
+  letter-spacing: 0.06em;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-col) {
+  width: 44px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-col) {
+  width: 56px;
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-head),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-cell) {
-  width: 38px;
+  width: 34px;
   text-align: center;
   vertical-align: middle;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-head),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-cell) {
-  width: 84px;
+  width: 40px;
   text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row--alt .aimd-rec-inline-table__value-cell) {
+  background: rgba(248, 250, 252, 0.2);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell) {
+  position: relative;
+  min-width: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 6px;
+  padding-right: 6px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell--compact) {
+  text-align: center;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell:hover) {
+  background: rgba(248, 250, 252, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.26);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell:focus-within) {
+  background: rgba(239, 246, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(47, 111, 237, 0.14);
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table--dragging) {
@@ -1389,14 +1489,15 @@ defineExpose({
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__actions) {
-  margin-top: 10px;
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
 }
 
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__add-btn),
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row-btn) {
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__add-btn) {
   border: 1px solid #c8d3e1;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   background: #fff;
   color: #334155;
   font-size: 12px;
@@ -1404,17 +1505,59 @@ defineExpose({
   transition: border-color 0.2s, background-color 0.2s, color 0.2s;
 }
 
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__add-btn:hover),
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row-btn:hover:not(:disabled)) {
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__add-btn:hover) {
   border-color: #9db1cc;
   background: #f7faff;
   color: #1f4f8f;
 }
 
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row-btn:disabled),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__add-btn:disabled) {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #b0bccb;
+  cursor: pointer;
+  opacity: 0.08;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row:hover .aimd-rec-inline-table__icon-btn),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn:focus-visible) {
+  opacity: 1;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn:hover:not(:disabled)) {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn svg) {
+  width: 14px;
+  height: 14px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn:disabled) {
+  opacity: 0.36;
+  cursor: not-allowed;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__icon-btn--visible) {
+  opacity: 1;
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle) {
@@ -1422,14 +1565,15 @@ defineExpose({
   grid-template-columns: repeat(2, 3px);
   grid-auto-rows: 3px;
   gap: 3px 3px;
-  padding: 5px 7px;
+  padding: 4px 6px;
   align-items: center;
   justify-content: center;
   vertical-align: middle;
   border-radius: 999px;
-  color: #b6c2d1;
+  color: #bcc6d3;
   cursor: grab;
   user-select: none;
+  opacity: 0.35;
   transition: background-color 0.2s, color 0.2s, opacity 0.2s, transform 0.2s ease;
 }
 
@@ -1443,9 +1587,15 @@ defineExpose({
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:hover) {
-  background: rgba(47, 111, 237, 0.08);
-  color: #6f86a4;
+  background: rgba(148, 163, 184, 0.12);
+  color: #7c8ea5;
+  opacity: 1;
   transform: translateY(-1px);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row:hover .aimd-rec-inline-table__drag-handle),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:focus-visible) {
+  opacity: 0.92;
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-handle:hover .aimd-rec-inline-table__drag-dot) {
@@ -1478,19 +1628,138 @@ defineExpose({
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input) {
   width: 100%;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid #d2dbe7;
-  border-radius: 7px;
+  height: 34px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 0;
   font-size: 13px;
+  line-height: 1.35;
   outline: none;
   box-sizing: border-box;
   color: var(--rec-text);
+  background: transparent;
+  box-shadow: none;
+  min-width: 8ch;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell--compact .aimd-rec-table-cell-input) {
+  min-width: 6ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__value-cell--wide .aimd-rec-table-cell-input) {
+  min-width: 14ch;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__drag-head),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__action-head) {
+  color: transparent;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row:hover .aimd-rec-inline-table__drag-cell),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__row:hover .aimd-rec-inline-table__action-cell) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input--compact) {
+  font-variant-numeric: tabular-nums;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input--wide) {
+  line-height: 1.42;
 }
 
 .aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input:focus) {
+  box-shadow: none;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-table-cell-input::placeholder) {
+  color: #94a3b8;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card-list) {
+  display: grid;
+  gap: 12px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card) {
+  position: relative;
+  padding: 10px 12px 12px;
+  border: 1px solid #dbe4ec;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__toolbar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__field) {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid #eef2f7;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__field--title) {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__body) {
+  display: grid;
+  gap: 0;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__label) {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__input) {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d7e0ea;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--rec-text);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__input:hover) {
+  background: #ffffff;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__input:focus) {
   border-color: var(--rec-focus);
   box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.1);
+  background: #ffffff;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__input::placeholder) {
+  color: #94a3b8;
+}
+
+.aimd-protocol-recorder__content :deep(.aimd-rec-card__input--error) {
+  border-color: var(--rec-error);
 }
 
 @keyframes aimd-rec-inline-table-row-settle {
