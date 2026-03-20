@@ -3,6 +3,9 @@
 All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 ## [Unreleased]
+ 
+- Scoped full-height editor layout to `minHeight={0}` only, so embeds inside fixed-height parents no longer regress when using the default editor height.
+- Routed Monaco language-service workers using both `moduleId` and `label`, and initialized `MonacoEnvironment` before loading `monaco-editor`, so source/code editor requests no longer fall through to the generic `editor.worker`.
 
 ## [1.7.0] - 2026-03-26
 

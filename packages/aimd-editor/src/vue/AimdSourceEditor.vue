@@ -325,7 +325,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="aimd-editor-source-mode" :style="{ height: minHeight + 'px' }">
+  <div class="aimd-editor-source-mode" :style="minHeight > 0 ? { height: minHeight + 'px' } : { height: '100%' }">
     <div v-if="loading" class="aimd-editor-loading">{{ resolvedMessages.common.loadingEditor }}</div>
     <div ref="editorContainer" class="aimd-editor-container" />
   </div>

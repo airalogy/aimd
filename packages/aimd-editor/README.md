@@ -36,6 +36,8 @@ Use `messages` to override built-in copy per locale.
 
 For advanced embedding, the low-level `AimdWysiwygEditor` now accepts a custom Milkdown plugin chain, and `AimdFieldDialog` can be limited to a focused subset of AIMD field kinds with `allowedTypes`.
 
+Set `:min-height="0"` to make the editor fill a parent container with an explicit height. Leave `minHeight` positive to keep the default fixed editor height behavior.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>
