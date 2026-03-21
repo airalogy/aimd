@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { AimdEditorMessages } from './locales'
+import { ensureMonacoEnvironment } from './monaco-environment'
 
 const props = defineProps<{
   content: string
@@ -241,6 +242,7 @@ function createEditor(monaco: any) {
 onMounted(async () => {
   try {
     loading.value = true
+    ensureMonacoEnvironment()
     const monaco = await import('monaco-editor')
     monacoModule = monaco
     registerAimdLanguage(monaco)

@@ -23,6 +23,46 @@ const contributionLoaders: Record<string, () => Promise<unknown>> = {
 
 const loadedContributionPromises = new Map<string, Promise<void>>()
 
+function resolveWorkerKind(moduleId: string, label: string): 'json' | 'css' | 'html' | 'ts' | 'editor' {
+  const normalizedLabel = (label || '').toLowerCase()
+  const normalizedModuleId = (moduleId || '').toLowerCase()
+  const hint = `${normalizedModuleId} ${normalizedLabel}`
+
+  if (normalizedLabel === 'json' || hint.includes('/json/')) {
+    return 'json'
+  }
+
+  if (
+    normalizedLabel === 'css'
+    || normalizedLabel === 'scss'
+    || normalizedLabel === 'less'
+    || hint.includes('/css/')
+  ) {
+    return 'css'
+  }
+
+  if (
+    normalizedLabel === 'html'
+    || normalizedLabel === 'handlebars'
+    || normalizedLabel === 'razor'
+    || hint.includes('/html/')
+  ) {
+    return 'html'
+  }
+
+  if (
+    normalizedLabel === 'typescript'
+    || normalizedLabel === 'javascript'
+    || hint.includes('/typescript/')
+    || hint.includes('/javascript/')
+    || hint.includes('/tsworker')
+  ) {
+    return 'ts'
+  }
+
+  return 'editor'
+}
+
 export function ensureMonacoEnvironment() {
   if (typeof globalThis === 'undefined') {
     return
@@ -36,20 +76,22 @@ export function ensureMonacoEnvironment() {
   ;(globalThis as {
     MonacoEnvironment?: { getWorker: (moduleId: string, label: string) => Worker }
   }).MonacoEnvironment = {
-    getWorker(_: string, label: string) {
-      if (label === 'json') {
+    getWorker(moduleId: string, label: string) {
+      const workerKind = resolveWorkerKind(moduleId, label)
+
+      if (workerKind === 'json') {
         return new jsonWorker()
       }
 
-      if (label === 'css' || label === 'scss' || label === 'less') {
+      if (workerKind === 'css') {
         return new cssWorker()
       }
 
-      if (label === 'html' || label === 'handlebars' || label === 'razor') {
+      if (workerKind === 'html') {
         return new htmlWorker()
       }
 
-      if (label === 'typescript' || label === 'javascript') {
+      if (workerKind === 'ts') {
         return new tsWorker()
       }
 
