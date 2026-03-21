@@ -68,6 +68,26 @@ describe('AimdStepField', () => {
     expect(wrapper.find('input[type="checkbox"]').exists()).toBe(true)
   })
 
+  it('hides timer UI entirely for an untimed step', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          estimated_duration_ms: undefined,
+          timer_mode: undefined,
+          check: false,
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('ETA')
+    expect(wrapper.text()).not.toContain('Timer')
+    expect(wrapper.find('.aimd-step-field__toggle--timer').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__detail--timer').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-timer__pill--actual').exists()).toBe(false)
+  })
+
   it('shows the annotation detail when a note already exists in auto mode', () => {
     const state = reactive({
       ...createEmptyStepRecordItem(),
@@ -205,5 +225,37 @@ describe('AimdStepField', () => {
     expect(wrapper.find('.aimd-step-field__details').exists()).toBe(true)
     expect(wrapper.text()).toContain('Remain 1m')
     expect(wrapper.text()).toContain('Timer 0s')
+  })
+
+  it('prefers the step title in the visible header label', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_tube_label',
+          title: 'Verify Tube Label',
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__name').text()).toBe('Verify Tube Label')
+    expect(wrapper.text()).toContain('Verify Tube Label')
+    expect(wrapper.find('.aimd-field__name').text()).not.toBe('verify_tube_label')
+  })
+
+  it('falls back to the step id when no title is provided', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_tube_label',
+          title: undefined,
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__name').text()).toBe('verify_tube_label')
   })
 })

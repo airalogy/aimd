@@ -8,6 +8,7 @@ import {
   formatStepDuration,
   getStepElapsedMs,
   getStepRemainingMs,
+  hasStepTimerConfig,
   hasRecordedStepDuration,
   isStepTimerWarning,
   isStepTimerRunning,
@@ -67,18 +68,24 @@ export const AimdStepField = defineComponent({
     })
 
     const alwaysShowDetails = computed(() => props.detailDisplay === "always")
+    const stepDisplayLabel = computed(() => props.node.title?.trim() || props.node.id)
+    const timerAvailable = computed(() => hasStepTimerConfig(props.node))
     const actualElapsedMs = computed(() => getStepElapsedMs(props.state, nowMs.value))
     const actualDurationLabel = computed(() => formatStepDuration(actualElapsedMs.value, props.locale))
     const estimatedDurationLabel = computed(() => (
-      typeof props.node.estimated_duration_ms === "number"
+      timerAvailable.value && typeof props.node.estimated_duration_ms === "number"
         ? formatStepDuration(props.node.estimated_duration_ms, props.locale)
         : ""
     ))
-    const timerMode = computed<AimdStepTimerMode>(() => resolveStepTimerMode(props.node))
+    const timerMode = computed<AimdStepTimerMode | null>(() => resolveStepTimerMode(props.node))
     const timerRunning = computed(() => isStepTimerRunning(props.state))
     const hasRecordedDuration = computed(() => hasRecordedStepDuration(props.state))
     const hasAnnotation = computed(() => Boolean(props.state.annotation?.trim()))
-    const remainingMs = computed(() => getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value))
+    const remainingMs = computed(() => (
+      timerAvailable.value
+        ? getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value)
+        : undefined
+    ))
     const countdownEnabled = computed(() => timerMode.value === "countdown" || timerMode.value === "both")
     const showElapsedDetail = computed(() => timerMode.value === "elapsed" || timerMode.value === "both")
     const countdownWarning = computed(() => (
@@ -115,13 +122,19 @@ export const AimdStepField = defineComponent({
       || annotationExpanded.value
     ))
     const showTimerDetails = computed(() => (
-      alwaysShowDetails.value
-      || autoShowTimerDetails.value
-      || timerRunning.value
-      || hasRecordedDuration.value
-      || timerExpanded.value
+      timerAvailable.value && (
+        alwaysShowDetails.value
+        || autoShowTimerDetails.value
+        || timerRunning.value
+        || hasRecordedDuration.value
+        || timerExpanded.value
+      )
     ))
-    const showTimerSummary = computed(() => !showTimerDetails.value && (timerRunning.value || hasRecordedDuration.value))
+    const showTimerSummary = computed(() => (
+      timerAvailable.value
+      && !showTimerDetails.value
+      && (timerRunning.value || hasRecordedDuration.value)
+    ))
     const showDetailRow = computed(() => showAnnotationEditor.value || showTimerDetails.value)
 
     function clearPendingFocusOutCheck() {
@@ -167,6 +180,9 @@ export const AimdStepField = defineComponent({
     }
 
     function openTimerDetail() {
+      if (!timerAvailable.value) {
+        return
+      }
       timerExpanded.value = true
       emit("timer-start", { id: props.node.id })
     }
@@ -293,7 +309,7 @@ export const AimdStepField = defineComponent({
             : null,
           h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", props.messages)),
           h("span", { class: "aimd-rec-inline__step-num" }, stepNumber),
-          h("span", { class: "aimd-field__name" }, id),
+          h("span", { class: "aimd-field__name" }, stepDisplayLabel.value),
         ]),
       )
 
@@ -330,7 +346,7 @@ export const AimdStepField = defineComponent({
         )
       }
 
-      if (!disabled && !showTimerDetails.value) {
+      if (!disabled && timerAvailable.value && !showTimerDetails.value) {
         headerActionChildren.push(
           h("button", {
             type: "button",
