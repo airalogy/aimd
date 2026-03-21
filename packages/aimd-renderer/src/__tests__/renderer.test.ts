@@ -300,6 +300,29 @@ describe('renderToVue', () => {
     expect(body.props.class).toContain('aimd-step-card__body')
     expect(collectVNodeText(body)).toContain('Step body content.')
   })
+
+  it('groups inline check body copy into the check renderer when enabled', async () => {
+    const { nodes } = await renderToVue(
+      '{{check|measurement_complete, checked_message="量子测量完成"}} 确认所有孔位的量子共振值已记录完毕。',
+      {
+        groupCheckBodies: true,
+        aimdRenderers: {
+          check: (node, _ctx, children) => ({
+            type: 'section',
+            props: { 'data-test-check-id': node.id },
+            children,
+          }) as any,
+        },
+      },
+    )
+
+    expect(nodes).toHaveLength(1)
+    const card = findVNodeByType(nodes[0], 'section') as any
+    expect(card).toBeTruthy()
+    expect(card.props['data-test-check-id']).toBe('measurement_complete')
+    expect(collectVNodeText(card)).toContain('确认所有孔位的量子共振值已记录完毕')
+    expect(collectVNodeText(card)).not.toContain('measurement_complete')
+  })
 })
 
 // ---------------------------------------------------------------------------

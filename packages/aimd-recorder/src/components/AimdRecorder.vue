@@ -597,6 +597,52 @@ function normalizeStepBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
   return [groupedChildren as VNodeChild]
 }
 
+function isGroupedCheckBodyNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object" || !("props" in node)) {
+    return false
+  }
+
+  const props = (node as VNode).props as Record<string, unknown> | null | undefined
+  if (!props) {
+    return false
+  }
+
+  const classValue = props.class
+  const classNames = Array.isArray(classValue)
+    ? classValue
+    : typeof classValue === "string"
+      ? [classValue]
+      : []
+
+  return props["data-aimd-check-body"] === "true"
+    || props["data-aimd-check-body"] === true
+    || props.dataAimdCheckBody === "true"
+    || props.dataAimdCheckBody === true
+    || classNames.some((className) => typeof className === "string" && className.includes("aimd-check-body"))
+}
+
+function normalizeCheckBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
+  if (bodyNodes.length === 0) {
+    return []
+  }
+
+  const groupedBody = bodyNodes.find((child) => isGroupedCheckBodyNode(child))
+  if (!groupedBody || typeof groupedBody !== "object" || groupedBody === null) {
+    return bodyNodes
+  }
+
+  const groupedChildren = (groupedBody as VNode).children
+  if (Array.isArray(groupedChildren)) {
+    return groupedChildren as VNodeChild[]
+  }
+
+  if (groupedChildren == null) {
+    return []
+  }
+
+  return [groupedChildren as VNodeChild]
+}
+
 function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
@@ -677,11 +723,12 @@ function renderInlineCheck(node: AimdCheckNode, bodyNodes: VNodeChild[] = []): V
   const state = localRecord.check[id]
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
+  const normalizedBodyNodes = normalizeCheckBodyNodes(bodyNodes)
 
   const vnode = h(AimdCheckField, {
     node,
     state,
-    bodyNodes,
+    bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
     messages: resolvedMessages.value,
@@ -814,6 +861,7 @@ async function rebuildInlineNodes(
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     groupStepBodies: true,
+    groupCheckBodies: true,
     context: {
       mode: "edit",
       readonly: props.readonly,
