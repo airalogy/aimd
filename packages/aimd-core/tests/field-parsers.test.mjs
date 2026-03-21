@@ -176,6 +176,44 @@ test('var_table: subvars with defaults', () => {
   assert.equal(node?.definition?.subvars?.name?.default, '')
 })
 
+test('var_table: multiline nested var() subvars keep full child definitions', () => {
+  const { tree, fields } = parseAimd(`{{var|inhibition_results,
+    title="时空抑制率计算结果表",
+    description="各能量等级下的细胞抑制率",
+    subvars=[
+        var(energy_level: float = 0.0, title="能量等级 (TeV)", description="测试能量浓度"),
+        var(treatment_qr_mean: float = 0.0, title="处理组QR均值", description="该能量等级处理组的量子共振平均值"),
+        var(inhibition_rate: float = 0.0, title="抑制率 (%)", description="计算得到的抑制百分比"),
+        var(dimension_correction: float = 1.0, title="维度校正系数", description="跨维度误差校正"),
+        var(confidence_level: str = "高", title="置信度", description="结果可信度评估"),
+        var(notes: str = "", title="备注", description="异常现象记录")
+    ]
+}}`)
+
+  const node = findAimdNode(tree)
+  assert.equal(node?.fieldType, 'var_table')
+  assert.deepEqual(node?.columns, [
+    'energy_level',
+    'treatment_qr_mean',
+    'inhibition_rate',
+    'dimension_correction',
+    'confidence_level',
+    'notes',
+  ])
+  assert.equal(node?.definition?.kwargs?.title, '时空抑制率计算结果表')
+  assert.equal(node?.definition?.kwargs?.description, '各能量等级下的细胞抑制率')
+  assert.equal(node?.definition?.subvars?.energy_level?.type, 'float')
+  assert.equal(node?.definition?.subvars?.energy_level?.default, 0)
+  assert.equal(node?.definition?.subvars?.energy_level?.kwargs?.title, '能量等级 (TeV)')
+  assert.equal(node?.definition?.subvars?.energy_level?.kwargs?.description, '测试能量浓度')
+  assert.equal(node?.definition?.subvars?.confidence_level?.default, '高')
+  assert.equal(node?.definition?.subvars?.notes?.default, '')
+  assert.equal(node?.definition?.subvars?.energy_level?.kwargs?.float, undefined)
+  assert.equal(fields.var_table[0]?.subvars[0]?.id, 'energy_level')
+  assert.equal(fields.var_table[0]?.subvars[0]?.title, '能量等级 (TeV)')
+  assert.equal(fields.var_table[0]?.subvars[0]?.description, '测试能量浓度')
+})
+
 test('var auto-detection: subvars= triggers var_table', () => {
   const { tree } = parseAimd('{{var|data, subvars=[a, b]}}')
   const node = findAimdNode(tree)
