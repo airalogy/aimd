@@ -145,6 +145,22 @@ export function useEditorContent(options: UseEditorContentOptions) {
 
   function handleMdAction(action: string) {
     const snippets = resolvedMessages.value.snippets
+    const clientAssignerSnippet = [
+      '```assigner runtime=client',
+      'assigner(',
+      '  {',
+      '    mode: "auto",',
+      '    dependent_fields: ["input_field"],',
+      '    assigned_fields: ["output_field"],',
+      '  },',
+      '  function calculate_output({ input_field }) {',
+      '    return {',
+      '      output_field: input_field,',
+      '    };',
+      '  }',
+      ');',
+      '```',
+    ].join('\n')
     switch (action) {
       case 'h1': insertLine('# ', snippets.heading); break
       case 'h2': insertLine('## ', snippets.heading); break
@@ -157,6 +173,7 @@ export function useEditorContent(options: UseEditorContentOptions) {
       case 'blockquote': insertLine('> ', snippets.quote); break
       case 'code': insertAtCursor('`', '`', snippets.code); break
       case 'codeblock': insertAtCursor('```\n', '\n```', snippets.codeBlock); break
+      case 'assignerClient': insertTextIntoActiveEditor(clientAssignerSnippet); break
       case 'link': insertAtCursor('[', '](url)', snippets.linkText); break
       case 'image': insertAtCursor('![', '](url)', snippets.altText); break
       case 'hr': insertLine('---'); break
