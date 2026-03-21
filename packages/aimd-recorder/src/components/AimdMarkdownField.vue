@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor/vue'
-import type { AimdRecorderMessages } from '../locales'
-import { getAimdRecorderScopeLabel } from '../locales'
 
 const props = withDefaults(defineProps<{
   modelValue?: unknown
   varId: string
   disabled?: boolean
   locale?: string
-  messages: Pick<AimdRecorderMessages, 'scope'>
 }>(), {
   modelValue: undefined,
   disabled: false,
@@ -72,13 +69,6 @@ watch(() => props.modelValue, (value) => {
     :class="{ 'aimd-markdown-field--disabled': disabled }"
     @focusout="emitBlurIfLeavingField"
   >
-    <span class="aimd-field aimd-field--no-style aimd-field__label">
-      <span class="aimd-field__scope aimd-field__scope--var">
-        {{ getAimdRecorderScopeLabel('var', messages) }}
-      </span>
-      <span class="aimd-field__id">{{ varId }}</span>
-    </span>
-
     <div class="aimd-markdown-field__editor-shell">
       <AimdEditor
         class="aimd-markdown-field__editor"
@@ -111,7 +101,10 @@ watch(() => props.modelValue, (value) => {
 .aimd-markdown-field__editor-shell {
   width: 100%;
   min-width: 0;
+  border: 1px solid #d9e6fb;
+  border-radius: 10px;
   background: #fff;
+  overflow: hidden;
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor) {

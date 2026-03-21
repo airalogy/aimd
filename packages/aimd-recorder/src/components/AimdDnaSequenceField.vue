@@ -443,12 +443,9 @@ watch(() => value.value.sequence, seq => {
 </script>
 
 <template>
-  <span class="aimd-rec-inline aimd-rec-inline--var-dna aimd-field-wrapper aimd-field-wrapper--dna">
-    <span class="aimd-field aimd-field--no-style aimd-field__label">
-      <span class="aimd-field__scope aimd-field__scope--var">{{ props.messages.scope.var }}</span>
-      <span class="aimd-field__id">{{ props.varId }}</span>
-    </span>
-
+  <span
+    class="aimd-rec-inline aimd-rec-inline--var-dna aimd-rec-inline--var-stacked aimd-field-wrapper aimd-field-wrapper--dna"
+  >
     <span class="aimd-dna-field">
       <DnaSequenceToolbar
         :editor-mode="editorMode"
@@ -579,38 +576,6 @@ watch(() => value.value.sequence, seq => {
   box-shadow: 0 0 0 2px rgba(65, 129, 253, 0.14);
 }
 
-.aimd-rec-inline--var-dna > .aimd-field--no-style.aimd-field__label {
-  align-self: stretch;
-  width: calc(100% + 2px);
-  border: none;
-  border-bottom: 1px solid var(--aimd-border-color, #90caf9);
-  border-radius: 10px 10px 0 0;
-  min-height: 30px;
-  background: var(--aimd-var-bg, #e3f2fd);
-  margin: -1px -1px 0 -1px;
-  box-sizing: border-box;
-}
-
-.aimd-rec-inline--var-dna > .aimd-field--no-style.aimd-field__label .aimd-field__scope {
-  align-self: center;
-  height: 22px;
-  margin-left: 3px;
-  padding: 0 7px;
-  border-radius: 6px;
-}
-
-.aimd-rec-inline--var-dna > .aimd-field--no-style.aimd-field__label .aimd-field__id {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-width: 0;
-  padding: 0 10px 0 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--aimd-var-text, #1565c0);
-  white-space: nowrap;
-}
-
 .aimd-dna-field {
   display: flex;
   flex-direction: column;
@@ -618,6 +583,8 @@ watch(() => value.value.sequence, seq => {
   box-sizing: border-box;
   gap: 14px;
   padding: 12px;
+  border: 1px solid #d9e6fb;
+  border-radius: 10px;
   background: #fff;
 }
 

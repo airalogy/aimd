@@ -21,6 +21,10 @@ describe('type-plugins', () => {
     const genericCodePlugin = resolveAimdTypePlugin('CodeStr', BUILT_IN_AIMD_TYPE_PLUGINS)
     expect(genericCodePlugin?.type).toBe('CodeStr')
     expect(genericCodePlugin?.inputKind).toBe('code')
+
+    const filePlugin = resolveAimdTypePlugin('FileIdPNG', BUILT_IN_AIMD_TYPE_PLUGINS)
+    expect(filePlugin?.type).toBe('FileId')
+    expect(typeof filePlugin?.renderField).toBe('function')
   })
 
   it('uses a dedicated recorder widget for AiralogyMarkdown', () => {

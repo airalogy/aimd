@@ -381,8 +381,10 @@ function getVarControlMinWidth(inputKind: VarInputKind): number {
     case "dna":
     case "code":
       return 160
+    case "checkbox":
+      return 72
     default:
-      return 0
+      return 136
   }
 }
 
@@ -465,9 +467,14 @@ function measureLabelTokenWidth(token: HTMLElement): number {
 
 export function measureVarLabelWidth(wrapper: HTMLElement): number {
   const scope = wrapper.querySelector(".aimd-field__scope--var") as HTMLElement | null
-  const id = wrapper.querySelector(".aimd-field__id") as HTMLElement | null
-  if (scope && id) {
-    return measureLabelTokenWidth(scope) + measureLabelTokenWidth(id) + 4
+  const name = wrapper.querySelector(".aimd-field__name") as HTMLElement | null
+  if (scope && name) {
+    return measureLabelTokenWidth(scope) + measureLabelTokenWidth(name) + 8
+  }
+
+  const mainLabel = wrapper.querySelector(".aimd-field__label-main") as HTMLElement | null
+  if (mainLabel) {
+    return mainLabel.scrollWidth + 2
   }
 
   const fallbackLabel = wrapper.querySelector(".aimd-field__label") as HTMLElement | null
