@@ -12,6 +12,21 @@ async function flushUi() {
   await nextTick()
 }
 
+async function waitForSelector(
+  wrapper: ReturnType<typeof mount>,
+  selector: string,
+  attempts = 12,
+) {
+  for (let index = 0; index < attempts; index += 1) {
+    await flushUi()
+    if (wrapper.find(selector).exists()) {
+      return
+    }
+  }
+
+  throw new Error(`Timed out waiting for selector: ${selector}`)
+}
+
 describe('AimdRecorder form layout extraction', () => {
   it('promotes label-style var paragraphs into top-aligned form items', async () => {
     const wrapper = mount(AimdRecorder, {
@@ -52,7 +67,7 @@ describe('AimdRecorder form layout extraction', () => {
       },
     })
 
-    await flushUi()
+    await waitForSelector(wrapper, '.aimd-asset-field')
 
     expect(wrapper.find('.aimd-form-item').exists()).toBe(true)
     expect(wrapper.find('.aimd-asset-field').exists()).toBe(true)
@@ -73,7 +88,7 @@ describe('AimdRecorder form layout extraction', () => {
       },
     })
 
-    await flushUi()
+    await waitForSelector(wrapper, '.aimd-asset-field__media--image')
 
     expect((wrapper.find('.aimd-asset-field__media--image').element as HTMLImageElement).getAttribute('src')).toBe('https://example.com/demo.png')
   })
