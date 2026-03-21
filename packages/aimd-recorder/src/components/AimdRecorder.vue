@@ -3,6 +3,7 @@ import { computed, defineComponent, h, nextTick, onBeforeUnmount, reactive, ref,
 import type {
   AimdCheckNode,
   AimdClientAssignerField,
+  AimdFigNode,
   AimdQuizField,
   AimdQuizNode,
   AimdStepNode,
@@ -739,6 +740,66 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
   return applyFieldAdapter("quiz", fieldKey, node, localRecord.quiz[quizId], vnode)
 }
 
+function renderResolvedImage(node: { properties?: Record<string, unknown> }): VNode {
+  const properties = node.properties || {}
+  const originalSrc = typeof properties.src === "string" ? properties.src : ""
+  const resolvedSrc = originalSrc && props.resolveFile
+    ? props.resolveFile(originalSrc) ?? originalSrc
+    : originalSrc
+
+  return h("img", {
+    src: resolvedSrc,
+    alt: typeof properties.alt === "string" ? properties.alt : undefined,
+    title: typeof properties.title === "string" ? properties.title : undefined,
+    class: "aimd-image",
+    loading: "lazy",
+  })
+}
+
+function renderInlineFigure(node: AimdFigNode): VNode {
+  const fieldKey = `fig:${node.id}`
+
+  if (props.customRenderers?.fig) {
+    const custom = props.customRenderers.fig(node, {} as any, [])
+    if (custom) {
+      return custom as VNode
+    }
+  }
+
+  const resolvedSrc = props.resolveFile?.(node.src) ?? node.src
+  const captionChildren: VNodeChild[] = []
+  const figureLabel = resolvedLocale.value === "zh-CN" ? "图" : "Figure"
+
+  if (node.sequence !== undefined || node.title) {
+    const titleText = node.sequence !== undefined
+      ? `${figureLabel} ${node.sequence + 1}${node.title ? `. ${node.title}` : ""}`
+      : node.title
+    captionChildren.push(h("div", { class: "aimd-figure__title" }, titleText))
+  }
+
+  if (node.legend) {
+    captionChildren.push(h("div", { class: "aimd-figure__legend" }, node.legend))
+  }
+
+  return h("figure", {
+    class: "aimd-figure",
+    "data-aimd-type": "fig",
+    "data-aimd-fig-id": node.id,
+    "data-aimd-fig-src": resolvedSrc,
+    id: `fig-${node.id}`,
+  }, [
+    h("img", {
+      class: "aimd-figure__image",
+      src: resolvedSrc,
+      alt: node.title || node.id,
+      loading: "lazy",
+    }),
+    captionChildren.length > 0
+      ? h("figcaption", { class: "aimd-figure__caption" }, captionChildren)
+      : null,
+  ])
+}
+
 // ---------------------------------------------------------------------------
 // Rebuild pipeline
 // ---------------------------------------------------------------------------
@@ -758,12 +819,18 @@ async function rebuildInlineNodes(
       value: localRecord as Record<string, Record<string, unknown>>,
     },
     blockVarTypes: ["AiralogyMarkdown"],
+    elementRenderers: props.resolveFile
+      ? {
+          img: node => renderResolvedImage(node as { properties?: Record<string, unknown> }),
+        }
+      : undefined,
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
       step: (node, _ctx, children) => renderInlineStep(node as AimdStepNode, children),
       check: node => renderInlineCheck(node as AimdCheckNode),
       quiz: node => renderInlineQuiz(node as AimdQuizNode),
+      fig: node => renderInlineFigure(node as AimdFigNode),
     },
   })
 
