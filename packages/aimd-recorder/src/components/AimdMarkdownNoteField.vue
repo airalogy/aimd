@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, nextTick, onBeforeUnmount, ref, shallowRef, watch, type VNode } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor/vue'
-import { renderToVue } from '@airalogy/aimd-renderer'
+import { createCodeBlockRenderer, getDefaultCodeBlockHighlighter, renderToVue } from '@airalogy/aimd-renderer'
 
 type AimdEditorExpose = {
   getMonacoEditor?: () => { focus?: () => void } | null
@@ -102,8 +102,12 @@ async function renderPreview() {
   }
 
   try {
+    const codeBlockHighlighter = await getDefaultCodeBlockHighlighter()
     const rendered = await renderToVue(currentContent, {
       locale: props.locale,
+      elementRenderers: {
+        pre: createCodeBlockRenderer(codeBlockHighlighter, 'github-light'),
+      },
     })
 
     if (requestId !== previewRenderRequestId) {

@@ -48,7 +48,7 @@ export default defineComponent({
       const tooltipType = type
       const tooltipTitle = getVarTooltipTitle(node)
       const tooltipDescription = getVarTooltipDescription(node)
-      const showTooltip = Boolean(tooltipTitle || tooltipDescription || id)
+      const showTooltip = inputKind !== "code" && Boolean(tooltipTitle || tooltipDescription || id)
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -164,6 +164,10 @@ export default defineComponent({
             modelValue: typeof displayValue === "number" ? String(displayValue) : displayValue,
             language: codeLanguage,
             disabled,
+            title: tooltipTitle,
+            description: tooltipDescription,
+            fieldId: id,
+            typeLabel: tooltipType,
             "onUpdate:modelValue": (nextValue: string) => onVarChange(nextValue),
             onBlur: onVarBlur,
           }),

@@ -34,7 +34,10 @@ describe('AimdRecorder render stability', () => {
   it('routes markdown image nodes through resolveFile when a host resolver is provided', () => {
     expect(source).toMatch(/function renderResolvedImage\(node: \{ properties\?: Record<string, unknown> \}\): VNode/)
     expect(source).toMatch(/props\.resolveFile\(originalSrc\) \?\? originalSrc/)
-    expect(source).toMatch(/elementRenderers: props\.resolveFile/)
+    expect(source).toMatch(/const codeBlockHighlighter = await getDefaultCodeBlockHighlighter\(\)/)
+    expect(source).toMatch(/const codeBlockRenderer = createCodeBlockRenderer\(codeBlockHighlighter, "github-light"\)/)
+    expect(source).toMatch(/assignerVisibility: "collapsed"/)
+    expect(source).toMatch(/pre: codeBlockRenderer/)
     expect(source).toMatch(/img: node => renderResolvedImage\(node as \{ properties\?: Record<string, unknown> \}\)/)
     expect(source).toMatch(/function renderInlineFigure\(node: AimdFigNode\): VNode/)
     expect(source).toMatch(/const resolvedSrc = props\.resolveFile\?\.\(node\.src\) \?\? node\.src/)

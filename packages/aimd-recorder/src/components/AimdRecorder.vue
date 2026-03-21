@@ -11,7 +11,7 @@ import type {
   AimdVarTableNode,
   ExtractedAimdFields,
 } from "@airalogy/aimd-core/types"
-import { parseAndExtract, renderToVue } from "@airalogy/aimd-renderer"
+import { createCodeBlockRenderer, getDefaultCodeBlockHighlighter, parseAndExtract, renderToVue } from "@airalogy/aimd-renderer"
 import type { AimdComponentRenderer } from "@airalogy/aimd-renderer"
 import type { AimdRecorderMessagesInput } from "../locales"
 import {
@@ -859,21 +859,27 @@ async function rebuildInlineNodes(
   expectedInlineRequestId?: number,
 ) {
   recordInitializedDuringRender = false
+  const codeBlockHighlighter = await getDefaultCodeBlockHighlighter()
+  const codeBlockRenderer = createCodeBlockRenderer(codeBlockHighlighter, "github-light")
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     groupStepBodies: true,
     groupCheckBodies: true,
+    assignerVisibility: "collapsed",
     context: {
       mode: "edit",
       readonly: props.readonly,
       value: localRecord as Record<string, Record<string, unknown>>,
     },
     blockVarTypes: ["AiralogyMarkdown"],
-    elementRenderers: props.resolveFile
-      ? {
-          img: node => renderResolvedImage(node as { properties?: Record<string, unknown> }),
-        }
-      : undefined,
+    elementRenderers: {
+      pre: codeBlockRenderer,
+      ...(props.resolveFile
+        ? {
+            img: node => renderResolvedImage(node as { properties?: Record<string, unknown> }),
+          }
+        : {}),
+    },
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
@@ -965,6 +971,17 @@ function normalizeInlineText(text: string): string {
   return text.replace(/\s+/g, " ").trim()
 }
 
+const INLINE_METADATA_VAR_TYPES = new Set([
+  "username",
+  "currenttime",
+  "currentrecordid",
+])
+const FORM_ITEM_INPUT_KINDS = new Set([
+  "textarea",
+  "dna",
+  "code",
+])
+
 function isRecorderFormParagraphCandidate(node: VNode): boolean {
   return node.type === "p"
 }
@@ -1019,7 +1036,19 @@ function tryTransformParagraphToFormItem(node: VNode): VNode | null {
   const rawVarType = typeof varFieldNode?.definition === "object" && varFieldNode?.definition
     ? (varFieldNode.definition as Record<string, unknown>).type
     : undefined
-  const isAssetField = typeof rawVarType === "string" && /^fileid/i.test(rawVarType.trim())
+  const typeLabel = typeof fieldProps?.typeLabel === "string" ? fieldProps.typeLabel : undefined
+  const normalizedVarType = normalizeVarTypeName(typeof rawVarType === "string" ? rawVarType : undefined)
+  if (INLINE_METADATA_VAR_TYPES.has(normalizedVarType)) {
+    return null
+  }
+  const isAssetField = (
+    (typeof rawVarType === "string" && /^fileid/i.test(rawVarType.trim()))
+    || (typeof typeLabel === "string" && /^fileid/i.test(typeLabel.trim()))
+  )
+  const inputKind = typeof fieldProps?.inputKind === "string" ? fieldProps.inputKind : undefined
+  if (!isAssetField && (!inputKind || !FORM_ITEM_INPUT_KINDS.has(inputKind))) {
+    return null
+  }
 
   return h("div", {
     class: ["aimd-form-item", isAssetField ? "aimd-form-item--asset" : ""],

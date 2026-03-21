@@ -36,6 +36,25 @@ function findVNodeByType(node: any, expectedType: string): any | null {
   return null
 }
 
+function findVNodesByType(node: any, expectedType: string): any[] {
+  if (!node || typeof node !== 'object') {
+    return []
+  }
+
+  const matches = node.type === expectedType ? [node] : []
+  const children = Array.isArray(node.children)
+    ? node.children
+    : Array.isArray(node.component?.subTree?.children)
+      ? node.component.subTree.children
+      : []
+
+  for (const child of children) {
+    matches.push(...findVNodesByType(child, expectedType))
+  }
+
+  return matches
+}
+
 function collectVNodeText(node: any): string {
   if (node == null) {
     return ''
@@ -322,6 +341,32 @@ describe('renderToVue', () => {
     expect(card.props['data-test-check-id']).toBe('measurement_complete')
     expect(collectVNodeText(card)).toContain('确认所有孔位的量子共振值已记录完毕')
     expect(collectVNodeText(card)).not.toContain('measurement_complete')
+  })
+
+  it('keeps consecutive inline checks as separate siblings when they appear in one markdown paragraph', async () => {
+    const { nodes } = await renderToVue(
+      [
+        '{{check|experiment_complete, label="确认所有步骤已完成，数据已同步至星际联邦数据库。", checked_message="实验已完成"}}',
+        '{{check|dimension_sealed, label="确认实验结束后已关闭所有维度传送门，防止时空污染。", checked_message="维度裂隙已封闭"}}',
+        '### 🌟 任务信息汇总',
+      ].join('\n'),
+      {
+        groupCheckBodies: true,
+        aimdRenderers: {
+          check: (node, _ctx, children) => ({
+            type: 'section',
+            props: { 'data-test-check-id': node.id },
+            children,
+          }) as any,
+        },
+      },
+    )
+
+    const checks = findVNodesByType(nodes[0], 'section')
+    expect(checks).toHaveLength(2)
+    expect(checks[0].props['data-test-check-id']).toBe('experiment_complete')
+    expect(checks[1].props['data-test-check-id']).toBe('dimension_sealed')
+    expect(collectVNodeText(checks[0])).not.toContain('dimension_sealed')
   })
 })
 
