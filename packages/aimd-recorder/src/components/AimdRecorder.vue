@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, defineComponent, h, nextTick, onBeforeUnmount, reactive, ref, watch, type PropType, type VNode, type VNodeChild } from "vue"
+import { Text, computed, defineComponent, h, nextTick, onBeforeUnmount, reactive, ref, watch, type PropType, type VNode, type VNodeChild } from "vue"
 import type {
   AimdCheckNode,
   AimdClientAssignerField,
+  AimdFigNode,
   AimdQuizField,
   AimdQuizNode,
   AimdStepNode,
@@ -10,7 +11,7 @@ import type {
   AimdVarTableNode,
   ExtractedAimdFields,
 } from "@airalogy/aimd-core/types"
-import { parseAndExtract, renderToVue } from "@airalogy/aimd-renderer"
+import { createCodeBlockRenderer, getDefaultCodeBlockHighlighter, parseAndExtract, renderToVue } from "@airalogy/aimd-renderer"
 import type { AimdComponentRenderer } from "@airalogy/aimd-renderer"
 import type { AimdRecorderMessagesInput } from "../locales"
 import {
@@ -430,6 +431,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
       locale: resolvedLocale.value,
       messages: resolvedMessages.value,
       record: localRecord,
+      resolveFile: props.resolveFile,
       displayValue,
       extraClasses,
       placeholder,
@@ -596,6 +598,52 @@ function normalizeStepBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
   return [groupedChildren as VNodeChild]
 }
 
+function isGroupedCheckBodyNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object" || !("props" in node)) {
+    return false
+  }
+
+  const props = (node as VNode).props as Record<string, unknown> | null | undefined
+  if (!props) {
+    return false
+  }
+
+  const classValue = props.class
+  const classNames = Array.isArray(classValue)
+    ? classValue
+    : typeof classValue === "string"
+      ? [classValue]
+      : []
+
+  return props["data-aimd-check-body"] === "true"
+    || props["data-aimd-check-body"] === true
+    || props.dataAimdCheckBody === "true"
+    || props.dataAimdCheckBody === true
+    || classNames.some((className) => typeof className === "string" && className.includes("aimd-check-body"))
+}
+
+function normalizeCheckBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
+  if (bodyNodes.length === 0) {
+    return []
+  }
+
+  const groupedBody = bodyNodes.find((child) => isGroupedCheckBodyNode(child))
+  if (!groupedBody || typeof groupedBody !== "object" || groupedBody === null) {
+    return bodyNodes
+  }
+
+  const groupedChildren = (groupedBody as VNode).children
+  if (Array.isArray(groupedChildren)) {
+    return groupedChildren as VNodeChild[]
+  }
+
+  if (groupedChildren == null) {
+    return []
+  }
+
+  return [groupedChildren as VNodeChild]
+}
+
 function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
@@ -665,7 +713,7 @@ function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNo
   return applyFieldAdapter("step", fieldKey, node, state, vnode)
 }
 
-function renderInlineCheck(node: AimdCheckNode): VNode {
+function renderInlineCheck(node: AimdCheckNode, bodyNodes: VNodeChild[] = []): VNode {
   const id = node.id
   const fieldKey = `check:${id}`
   if (!(id in localRecord.check)) {
@@ -676,10 +724,12 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
   const state = localRecord.check[id]
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
+  const normalizedBodyNodes = normalizeCheckBodyNodes(bodyNodes)
 
   const vnode = h(AimdCheckField, {
     node,
     state,
+    bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
     messages: resolvedMessages.value,
@@ -739,6 +789,66 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
   return applyFieldAdapter("quiz", fieldKey, node, localRecord.quiz[quizId], vnode)
 }
 
+function renderResolvedImage(node: { properties?: Record<string, unknown> }): VNode {
+  const properties = node.properties || {}
+  const originalSrc = typeof properties.src === "string" ? properties.src : ""
+  const resolvedSrc = originalSrc && props.resolveFile
+    ? props.resolveFile(originalSrc) ?? originalSrc
+    : originalSrc
+
+  return h("img", {
+    src: resolvedSrc,
+    alt: typeof properties.alt === "string" ? properties.alt : undefined,
+    title: typeof properties.title === "string" ? properties.title : undefined,
+    class: "aimd-image",
+    loading: "lazy",
+  })
+}
+
+function renderInlineFigure(node: AimdFigNode): VNode {
+  const fieldKey = `fig:${node.id}`
+
+  if (props.customRenderers?.fig) {
+    const custom = props.customRenderers.fig(node, {} as any, [])
+    if (custom) {
+      return custom as VNode
+    }
+  }
+
+  const resolvedSrc = props.resolveFile?.(node.src) ?? node.src
+  const captionChildren: VNodeChild[] = []
+  const figureLabel = resolvedLocale.value === "zh-CN" ? "图" : "Figure"
+
+  if (node.sequence !== undefined || node.title) {
+    const titleText = node.sequence !== undefined
+      ? `${figureLabel} ${node.sequence + 1}${node.title ? `. ${node.title}` : ""}`
+      : node.title
+    captionChildren.push(h("div", { class: "aimd-figure__title" }, titleText))
+  }
+
+  if (node.legend) {
+    captionChildren.push(h("div", { class: "aimd-figure__legend" }, node.legend))
+  }
+
+  return h("figure", {
+    class: "aimd-figure",
+    "data-aimd-type": "fig",
+    "data-aimd-fig-id": node.id,
+    "data-aimd-fig-src": resolvedSrc,
+    id: `fig-${node.id}`,
+  }, [
+    h("img", {
+      class: "aimd-figure__image",
+      src: resolvedSrc,
+      alt: node.title || node.id,
+      loading: "lazy",
+    }),
+    captionChildren.length > 0
+      ? h("figcaption", { class: "aimd-figure__caption" }, captionChildren)
+      : null,
+  ])
+}
+
 // ---------------------------------------------------------------------------
 // Rebuild pipeline
 // ---------------------------------------------------------------------------
@@ -749,21 +859,34 @@ async function rebuildInlineNodes(
   expectedInlineRequestId?: number,
 ) {
   recordInitializedDuringRender = false
+  const codeBlockHighlighter = await getDefaultCodeBlockHighlighter()
+  const codeBlockRenderer = createCodeBlockRenderer(codeBlockHighlighter, "github-light")
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     groupStepBodies: true,
+    groupCheckBodies: true,
+    assignerVisibility: "collapsed",
     context: {
       mode: "edit",
       readonly: props.readonly,
       value: localRecord as Record<string, Record<string, unknown>>,
     },
     blockVarTypes: ["AiralogyMarkdown"],
+    elementRenderers: {
+      pre: codeBlockRenderer,
+      ...(props.resolveFile
+        ? {
+            img: node => renderResolvedImage(node as { properties?: Record<string, unknown> }),
+          }
+        : {}),
+    },
     aimdRenderers: {
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
       step: (node, _ctx, children) => renderInlineStep(node as AimdStepNode, children),
-      check: node => renderInlineCheck(node as AimdCheckNode),
+      check: (node, _ctx, children) => renderInlineCheck(node as AimdCheckNode, children),
       quiz: node => renderInlineQuiz(node as AimdQuizNode),
+      fig: node => renderInlineFigure(node as AimdFigNode),
     },
   })
 
@@ -774,11 +897,201 @@ async function rebuildInlineNodes(
     return
   }
 
-  inlineNodes.value = rendered.nodes
+  inlineNodes.value = normalizeRecorderLayoutNodes(rendered.nodes)
   await nextTick()
   restoreFocusSnapshot(contentRoot.value, focusSnapshot ?? null)
 
   if (recordInitializedDuringRender) emitRecordUpdate()
+}
+
+function getVNodeClassList(node: VNode): string[] {
+  const props = node.props as Record<string, unknown> | null | undefined
+  const classValue = props?.class
+  if (Array.isArray(classValue)) {
+    return classValue.filter((value): value is string => typeof value === "string")
+  }
+  return typeof classValue === "string" ? [classValue] : []
+}
+
+function isVarFieldNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object") {
+    return false
+  }
+
+  const vnode = node as VNode
+  const props = vnode.props as Record<string, unknown> | null | undefined
+  const fieldNode = props?.node as Record<string, unknown> | undefined
+  if (fieldNode?.fieldType === "var") {
+    return true
+  }
+
+  return getVNodeClassList(vnode).some((className) => className.includes("aimd-rec-inline--var"))
+}
+
+function isTextLikeVNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object") {
+    return false
+  }
+
+  const vnode = node as VNode
+  if (vnode.type === Text) {
+    return true
+  }
+
+  return typeof vnode.type === "string" && ["span", "strong", "em", "code", "small", "b", "i"].includes(vnode.type)
+}
+
+function collectInlineText(node: VNodeChild): string | null {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node)
+  }
+
+  if (Array.isArray(node)) {
+    const parts = node.map(collectInlineText).filter((part): part is string => typeof part === "string")
+    return parts.length > 0 ? parts.join("") : null
+  }
+
+  if (!isTextLikeVNode(node)) {
+    return null
+  }
+
+  const children = node.children
+  if (typeof children === "string" || typeof children === "number") {
+    return String(children)
+  }
+  if (Array.isArray(children)) {
+    const parts = children.map(collectInlineText).filter((part): part is string => typeof part === "string")
+    return parts.length > 0 ? parts.join("") : null
+  }
+
+  return null
+}
+
+function normalizeInlineText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
+}
+
+const INLINE_METADATA_VAR_TYPES = new Set([
+  "username",
+  "currenttime",
+  "currentrecordid",
+])
+const FORM_ITEM_INPUT_KINDS = new Set([
+  "textarea",
+  "dna",
+  "code",
+])
+
+function isRecorderFormParagraphCandidate(node: VNode): boolean {
+  return node.type === "p"
+}
+
+function tryTransformParagraphToFormItem(node: VNode): VNode | null {
+  if (!isRecorderFormParagraphCandidate(node)) {
+    return null
+  }
+
+  const rawChildren = Array.isArray(node.children) ? node.children as VNodeChild[] : [node.children as VNodeChild]
+  const meaningfulChildren = rawChildren.filter((child) => {
+    const text = collectInlineText(child)
+    return text == null || normalizeInlineText(text).length > 0
+  })
+
+  const fieldChildren = meaningfulChildren.filter(isVarFieldNode)
+  if (fieldChildren.length !== 1) {
+    return null
+  }
+
+  const fieldIndex = meaningfulChildren.findIndex(isVarFieldNode)
+  if (fieldIndex < 0) {
+    return null
+  }
+
+  const textPartsBefore = meaningfulChildren.slice(0, fieldIndex).map(collectInlineText)
+  const textPartsAfter = meaningfulChildren.slice(fieldIndex + 1).map(collectInlineText)
+  if (textPartsBefore.some((part) => part == null) || textPartsAfter.some((part) => part == null)) {
+    return null
+  }
+
+  const prefix = normalizeInlineText((textPartsBefore as string[]).join(""))
+  const suffix = normalizeInlineText((textPartsAfter as string[]).join(""))
+  if (!prefix || !/[:：]\s*$/.test(prefix)) {
+    return null
+  }
+
+  const label = prefix.replace(/[:：]\s*$/, "").trim()
+  if (!label) {
+    return null
+  }
+
+  if (suffix.length > 14) {
+    return null
+  }
+
+  const fieldNode = fieldChildren[0] as VNode
+  const fieldProps = fieldNode.props as Record<string, unknown> | null | undefined
+  const varFieldNode = fieldProps?.node as Record<string, unknown> | undefined
+  const varId = typeof varFieldNode?.id === "string" ? varFieldNode.id : ""
+  const showMeta = varId && normalizeInlineText(varId).toLowerCase() !== normalizeInlineText(label).toLowerCase()
+  const rawVarType = typeof varFieldNode?.definition === "object" && varFieldNode?.definition
+    ? (varFieldNode.definition as Record<string, unknown>).type
+    : undefined
+  const typeLabel = typeof fieldProps?.typeLabel === "string" ? fieldProps.typeLabel : undefined
+  const normalizedVarType = normalizeVarTypeName(typeof rawVarType === "string" ? rawVarType : undefined)
+  if (INLINE_METADATA_VAR_TYPES.has(normalizedVarType)) {
+    return null
+  }
+  const isAssetField = (
+    (typeof rawVarType === "string" && /^fileid/i.test(rawVarType.trim()))
+    || (typeof typeLabel === "string" && /^fileid/i.test(typeLabel.trim()))
+  )
+  const inputKind = typeof fieldProps?.inputKind === "string" ? fieldProps.inputKind : undefined
+  if (!isAssetField && (!inputKind || !FORM_ITEM_INPUT_KINDS.has(inputKind))) {
+    return null
+  }
+
+  return h("div", {
+    class: ["aimd-form-item", isAssetField ? "aimd-form-item--asset" : ""],
+    "data-aimd-form-item": "true",
+  }, [
+    h("div", { class: "aimd-form-item__label" }, [
+      h("div", { class: "aimd-form-item__label-text" }, label),
+      showMeta
+        ? h("div", { class: "aimd-form-item__meta" }, varId)
+        : null,
+    ]),
+    h("div", { class: "aimd-form-item__control" }, [
+      meaningfulChildren[fieldIndex] as VNode,
+      suffix
+        ? h("span", { class: "aimd-form-item__suffix" }, suffix)
+        : null,
+    ]),
+  ])
+}
+
+function normalizeRecorderLayoutNode(node: VNodeChild): VNodeChild {
+  if (Array.isArray(node)) {
+    return node.map((child) => normalizeRecorderLayoutNode(child))
+  }
+
+  if (!node || typeof node !== "object") {
+    return node
+  }
+
+  const vnode = node as VNode
+  const normalizedChildren = Array.isArray(vnode.children)
+    ? (vnode.children as VNodeChild[]).map((child) => normalizeRecorderLayoutNode(child))
+    : vnode.children
+
+  const normalizedVNode = Array.isArray(normalizedChildren)
+    ? h(vnode.type as any, { ...(vnode.props ?? {}), key: vnode.key ?? undefined }, normalizedChildren as any)
+    : vnode
+
+  return tryTransformParagraphToFormItem(normalizedVNode) ?? normalizedVNode
+}
+
+function normalizeRecorderLayoutNodes(nodes: VNode[]): VNode[] {
+  return nodes.map((node) => normalizeRecorderLayoutNode(node) as VNode)
 }
 
 async function parseAndBuild() {
@@ -965,8 +1278,16 @@ defineExpose({
 
 /* ── Typography ─────────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(h1) { margin: 0.45em 0 0.5em; font-size: 1.7em; line-height: 1.25; }
-.aimd-protocol-recorder__content :deep(h2) { margin: 0.8em 0 0.45em; font-size: 1.35em; line-height: 1.3; }
-.aimd-protocol-recorder__content :deep(h3) { margin: 0.7em 0 0.4em; font-size: 1.15em; }
+.aimd-protocol-recorder__content :deep(h2) { margin: 0.95em 0 0.6em; font-size: 1.42em; line-height: 1.25; font-weight: 700; }
+.aimd-protocol-recorder__content :deep(h3) {
+  margin: 1.1em 0 0.7em;
+  padding-bottom: 0.45em;
+  border-bottom: 1px solid #e7edf5;
+  font-size: 1.02em;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
 .aimd-protocol-recorder__content :deep(p) { margin: 0.45em 0; color: var(--rec-text); }
 .aimd-protocol-recorder__content :deep(ul),
 .aimd-protocol-recorder__content :deep(ol) { margin: 0.35em 0; padding-left: 22px; }
@@ -1053,22 +1374,143 @@ defineExpose({
   width: fit-content;
   min-width: 0;
   max-width: 100%;
-  border: 1px solid var(--aimd-border-color, #90caf9);
-  border-radius: 8px;
-  overflow: hidden;
+  padding: 0;
+  border: 0 none;
+  border-radius: 0;
+  overflow: visible;
   box-shadow: none;
-  background: #f7fbff;
+  background: transparent;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item) {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item__label) {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item__label-text) {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item__meta) {
+  color: #98a2b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item__control) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item__suffix) {
+  color: #5b6678;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item .aimd-rec-inline--var-stacked) {
+  flex: 1 1 auto;
+  width: min(100%, 560px);
+  margin: 0;
+  padding: 0;
+  border: 0 none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item--asset .aimd-form-item__control) {
+  display: block;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item--asset .aimd-rec-inline--var-stacked) {
+  width: 100%;
+  max-width: 100%;
+}
+.aimd-protocol-recorder__content :deep(.aimd-form-item .aimd-rec-inline--var-stacked:focus-within) {
+  border-color: transparent;
+  box-shadow: none;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked--textarea) { min-width: 0; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked--checkbox) { width: fit-content; min-width: 0; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked:focus-within) {
-  border-color: var(--aimd-border-color-focus, #4181fd);
-  box-shadow: 0 0 0 2px rgba(65, 129, 253, 0.14);
+  border-color: transparent;
+  box-shadow: none;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field) { margin: 0; box-shadow: none; }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field--no-style.aimd-field__label) { min-height: 30px; border-radius: 6px 6px 0 0; }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field__scope) { align-self: center; height: 22px; margin-left: 3px; padding: 0 7px; border-radius: 6px; }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked .aimd-field__id) { display: flex; flex: 1; align-items: center; padding: 0 10px 0 6px; font-size: 13px; font-weight: 500; color: #1565c0; white-space: nowrap; }
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip) {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  z-index: 20;
+  display: grid;
+  gap: 3px;
+  width: min(320px, calc(100vw - 48px));
+  padding: 10px 12px 11px;
+  border: 1px solid rgba(207, 222, 243, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 14px 36px rgba(15, 23, 42, 0.08),
+    0 2px 10px rgba(15, 23, 42, 0.04);
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transform-origin: left bottom;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip::after) {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 100%;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid rgba(207, 222, 243, 0.9);
+  border-bottom: 1px solid rgba(207, 222, 243, 0.9);
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-7px) rotate(45deg);
+}
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip__title) {
+  color: #1f3f75;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip__type) {
+  color: #7c8da6;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip__description) {
+  color: #516277;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.aimd-protocol-recorder__content :deep(.aimd-var-tooltip__meta) {
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked:hover .aimd-var-tooltip),
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked:focus-within .aimd-var-tooltip) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-markdown) {
   display: flex;
   flex-direction: column;
@@ -1095,15 +1537,25 @@ defineExpose({
   font-family: inherit;
   font-size: inherit;
   line-height: var(--rec-var-single-line-height);
-  border: 0 none;
-  border-top: 1px solid var(--aimd-border-color, #90caf9);
-  border-radius: 0 0 6px 6px;
+  border: 1px solid rgba(144, 202, 249, 0.72);
+  border-radius: 10px;
   margin: 0;
   box-shadow: none;
   padding: 0 10px;
   background: #fff;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease;
 }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked:focus) { border-color: var(--aimd-border-color, #90caf9); box-shadow: none; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked:focus) {
+  border-color: rgba(83, 135, 242, 0.78);
+  box-shadow:
+    0 0 0 4px rgba(83, 135, 242, 0.11),
+    0 8px 18px rgba(83, 135, 242, 0.06);
+  background: #ffffff;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:not(.aimd-rec-inline__textarea--stacked-text)) {
   width: 100%;
   min-width: 0;
@@ -1111,13 +1563,17 @@ defineExpose({
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  border: 0 none;
-  border-top: 1px solid var(--aimd-border-color, #90caf9);
-  border-radius: 0 0 6px 6px;
+  border: 1px solid rgba(144, 202, 249, 0.72);
+  border-radius: 10px;
   margin: 0;
   box-shadow: none;
   padding: 8px 10px;
   background: #fff;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked-text) {
   display: block;
@@ -1127,9 +1583,8 @@ defineExpose({
   font-family: inherit;
   font-size: inherit;
   line-height: var(--rec-var-text-wrap-line-height);
-  border: 0 none;
-  border-top: 1px solid var(--aimd-border-color, #90caf9);
-  border-radius: 0 0 6px 6px;
+  border: 1px solid rgba(144, 202, 249, 0.72);
+  border-radius: 10px;
   margin: 0;
   box-shadow: none;
   padding: 5px 10px;
@@ -1137,23 +1592,187 @@ defineExpose({
   box-sizing: border-box;
   resize: none;
   overflow: hidden;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease;
 }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:focus) { border-color: var(--aimd-border-color, #90caf9); box-shadow: none; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:focus) {
+  border-color: rgba(83, 135, 242, 0.78);
+  box-shadow:
+    0 0 0 4px rgba(83, 135, 242, 0.11),
+    0 8px 18px rgba(83, 135, 242, 0.06);
+  background: #ffffff;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row) {
   display: flex;
   align-items: center;
   min-height: 38px;
   padding: 0 10px;
-  border-top: 1px solid var(--aimd-border-color, #90caf9);
+  border: 1px solid rgba(144, 202, 249, 0.72);
+  border-radius: 10px;
   background: #fff;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.18s ease;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row:focus-within) {
+  border-color: rgba(83, 135, 242, 0.78);
+  box-shadow:
+    0 0 0 4px rgba(83, 135, 242, 0.11),
+    0 8px 18px rgba(83, 135, 242, 0.06);
 }
 
 /* ── Select ─────────────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__select) { appearance: auto; cursor: pointer; height: var(--rec-var-control-height); padding: 0 8px; background: #fff; }
+.aimd-protocol-recorder__content :deep(.aimd-form-item .aimd-rec-inline__select) {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .aimd-protocol-recorder {
+    --rec-var-control-height: 38px;
+    --rec-var-single-line-height: 1.25;
+    --rec-var-text-wrap-line-height: 1.45;
+  }
+  .aimd-protocol-recorder__content {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+  .aimd-protocol-recorder__content :deep(h3) {
+    margin-top: 1em;
+    margin-bottom: 0.65em;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-form-item) {
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-form-item__control) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-form-item__suffix) {
+    white-space: normal;
+    font-size: 12px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-form-item .aimd-rec-inline--var-stacked) {
+    width: 100%;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked),
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked),
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row) {
+    width: 100%;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked),
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__select) {
+    font-size: 16px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked) {
+    font-size: 16px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row) {
+    min-height: 42px;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-var-tooltip) {
+    left: 0;
+    right: auto;
+    bottom: auto;
+    top: calc(100% + 10px);
+    width: min(320px, calc(100vw - 32px));
+    padding: 11px 12px 12px;
+    border-radius: 16px;
+    transform: translateY(-4px) scale(0.985);
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-var-tooltip::after) {
+    left: 0;
+    left: 18px;
+    top: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 1px solid rgba(207, 222, 243, 0.9);
+    border-top: 1px solid rgba(207, 222, 243, 0.9);
+    transform: translateY(-6px) rotate(45deg);
+  }
+}
 
 /* ── Step / check ───────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) { gap: 8px; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(100%, 1040px);
+  max-width: 100%;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #d8dfe8;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__main) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__input--annotation) {
+  min-width: 0;
+  width: 100%;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__toggle) {
+  gap: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__key) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f5f77;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body) {
+  min-width: 0;
+  color: var(--rec-text);
+  font-size: 14px;
+  line-height: 1.65;
+  transition: color 0.2s ease, opacity 0.2s ease, text-decoration-color 0.2s ease;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body p) {
+  margin: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body--checked) {
+  color: #667085;
+  opacity: 0.92;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(102, 112, 133, 0.55);
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap > .aimd-field__name),
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__banner) {
+  padding: 8px 10px;
+  border: 1px solid rgba(22, 101, 52, 0.16);
+  border-radius: 10px;
+  background: rgba(236, 253, 245, 0.92);
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step) {
   display: flex;
   flex-direction: column;
@@ -1366,6 +1985,32 @@ defineExpose({
   }
   .aimd-protocol-recorder__content :deep(.aimd-step-field__main-actions) {
     justify-content: flex-start;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) {
+    gap: 10px;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input--stacked:focus),
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea--stacked:focus),
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline__checkbox-row:focus-within) {
+    box-shadow:
+      0 0 0 3px rgba(83, 135, 242, 0.12),
+      0 6px 14px rgba(83, 135, 242, 0.05);
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-var-tooltip) {
+    transition:
+      opacity 0.16s ease,
+      transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked:hover .aimd-var-tooltip) {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline--var-stacked:focus-within .aimd-var-tooltip) {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input.aimd-rec-inline__input--stacked),

@@ -21,6 +21,8 @@ describe('AimdVarField render behavior', () => {
     expect(source).toMatch(/const AimdCodeField = defineAsyncComponent\(\(\) => import\("\.\/AimdCodeField\.vue"\)\)/)
     expect(source).toMatch(/if \(inputKind === "code"\)/)
     expect(source).toMatch(/language: codeLanguage/)
+    expect(source).toMatch(/fieldId: id/)
+    expect(source).toMatch(/typeLabel: tooltipType/)
     expect(source).toMatch(/"aimd-rec-inline--var-stacked--code"/)
   })
 })
