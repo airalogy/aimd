@@ -32,16 +32,6 @@ export {
 } from './common/eventKeys'
 
 export {
-  extractAssignerFieldSummary,
-  resolveCodeLanguageBadge,
-  resolveCodeLanguageLabel,
-} from './common/codeBlockPresentation'
-
-export {
-  getDefaultCodeBlockHighlighter,
-} from './common/codeBlockHighlighter'
-
-export {
   type AssetResponse,
   createUnifiedTokenRenderer,
   type TokenLike,

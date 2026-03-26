@@ -1,8 +1,7 @@
 import type { Element, Root as HastRoot, Text as HastText } from "hast"
 import type { ShikiHighlighter } from "../vue/vue-renderer"
 import type { AimdRendererOptions } from "./processor"
-import { buildInlineStyle } from "./codeBlockPresentation"
-import { resolveAssignerVisibility } from "./assignerVisibility"
+import { buildInlineStyle, resolveAssignerVisibility } from "./assignerVisibility"
 
 let assignerHighlighterLoadPromise: Promise<ShikiHighlighter | null> | null = null
 const ASSIGNER_HIGHLIGHT_THEME = "github-light"

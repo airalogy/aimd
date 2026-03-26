@@ -25,12 +25,6 @@ import {
   resolveAimdRendererLocale,
 } from "../locales"
 import { parseAndExtract, renderToVue } from "./processor"
-import {
-  decorateHighlightedCodeHtml,
-  getCodeBlockPresentation,
-  resolveCodeLanguageBadge,
-  resolveCodeLanguageLabel,
-} from "./codeBlockPresentation"
 
 /**
  * Token props interface (compatible with IAIMDItemProps)
@@ -592,33 +586,12 @@ function createElementRenderers(options: UnifiedTokenRendererOptions): Record<st
 
   // Code block renderer with Mermaid support
   renderers.pre = (node, children, ctx) => {
-    const collectCodeContent = (currentNode: Element): string =>
-      currentNode.children
-        .map((child) => {
-          if (child.type === "text") {
-            return child.value
-          }
-          if (child.type === "element") {
-            return collectCodeContent(child)
-          }
-          return ""
-        })
-        .join("")
-
     const codeNode = node.children.find(
       (child): child is Element => child.type === "element" && child.tagName === "code",
     )
 
     if (!codeNode) {
       return h("pre", {}, children)
-    }
-
-    const skipCard = node.properties?.["data-aimd-skip-code-card"] === "true"
-      || node.properties?.dataAimdSkipCodeCard === "true"
-      || codeNode.properties?.["data-aimd-skip-code-card"] === "true"
-      || codeNode.properties?.dataAimdSkipCodeCard === "true"
-    if (skipCard) {
-      return h("pre", node.properties as Record<string, unknown>, children)
     }
 
     // Get language
@@ -632,7 +605,9 @@ function createElementRenderers(options: UnifiedTokenRendererOptions): Record<st
     }
 
     // Get code content
-    const codeContent = collectCodeContent(codeNode)
+    const codeContent = codeNode.children
+      .map(child => (child.type === "text" ? child.value : ""))
+      .join("")
 
     // Check for Mermaid
     const firstLine = codeContent.split(/\n/)[0].trim()
@@ -645,42 +620,19 @@ function createElementRenderers(options: UnifiedTokenRendererOptions): Record<st
       return h(MermaidBlock, { code: codeContent })
     }
 
-    const presentation = getCodeBlockPresentation("neutral")
-    const title = resolveCodeLanguageLabel(lang)
-    const badge = resolveCodeLanguageBadge(lang)
-
     // Use Shiki if available
     const hl = typeof highlighter === "function" ? highlighter() : highlighter
     if (hl) {
       try {
         const highlightedHtml = hl.codeToHtml(codeContent, {
           lang,
-          theme: "github-light",
+          theme: "github-dark",
         })
-        return h("details", {
-          "class": "aimd-code-block-card aimd-code-block-card--highlighted shiki-code-block",
+        return h("div", {
+          "class": "shiki-code-block",
           "data-lang": lang,
-          style: presentation.containerStyle,
-          open: true,
-        }, [
-          h("summary", {
-            style: [
-              presentation.headerStyle,
-              "cursor:pointer",
-              "list-style:none",
-            ].join(";"),
-          }, [
-            h("span", { style: presentation.headerMainStyle }, [
-              h("span", { style: presentation.titleStyle }, title),
-              h("span", { style: presentation.metaStyle }, "Code block"),
-            ]),
-            h("span", { style: presentation.badgeStyle }, badge),
-          ]),
-          h("div", {
-            style: presentation.preShellStyle,
-            innerHTML: decorateHighlightedCodeHtml(highlightedHtml, presentation),
-          }),
-        ])
+          "innerHTML": highlightedHtml,
+        })
       }
       catch (error) {
         console.error("Failed to highlight code:", error)
@@ -688,31 +640,8 @@ function createElementRenderers(options: UnifiedTokenRendererOptions): Record<st
     }
 
     // Fallback
-    return h("details", {
-      class: ["aimd-code-block-card", "aimd-code-block-card--plain"],
-      "data-lang": lang,
-      style: presentation.containerStyle,
-      open: true,
-    }, [
-      h("summary", {
-        style: [
-          presentation.headerStyle,
-          "cursor:pointer",
-          "list-style:none",
-        ].join(";"),
-      }, [
-        h("span", { style: presentation.headerMainStyle }, [
-          h("span", { style: presentation.titleStyle }, title),
-          h("span", { style: presentation.metaStyle }, "Code block"),
-        ]),
-        h("span", { style: presentation.badgeStyle }, badge),
-      ]),
-      h("div", { style: presentation.preShellStyle }, [
-        h("pre", { class: `language-${lang}`, style: presentation.preStyle }, [
-          h("code", { class: `language-${lang}`, style: presentation.codeStyle }, codeContent),
-        ]),
-      ]),
-    ])
+    return h("pre", { class: `language-${lang}` }, h("code", { class: `language-${lang}` }, codeContent),
+    )
   }
 
   // Iframe renderer

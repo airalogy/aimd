@@ -37,24 +37,6 @@ const CODE_LANGUAGE_ALIASES: Record<string, string> = {
   xml: 'xml',
 }
 
-const CODE_LANGUAGE_LABELS: Record<string, string> = {
-  plaintext: 'Plain Text',
-  text: 'Text',
-  python: 'Python',
-  javascript: 'JavaScript',
-  typescript: 'TypeScript',
-  json: 'JSON',
-  yaml: 'YAML',
-  ini: 'INI',
-  shell: 'Shell',
-  sql: 'SQL',
-  html: 'HTML',
-  css: 'CSS',
-  scss: 'SCSS',
-  less: 'Less',
-  xml: 'XML',
-}
-
 export const BUILT_IN_CODE_STR_TYPES = [
   'CodeStr',
   'PyStr',
@@ -109,11 +91,4 @@ export function isAimdCodeEditorType(
   fieldMeta?: Pick<AimdFieldMeta, 'inputType' | 'codeLanguage'>,
 ): boolean {
   return resolveAimdCodeEditorLanguage(type, fieldMeta) !== null
-}
-
-export function formatAimdCodeEditorLanguageLabel(language: string | undefined): string {
-  const normalized = normalizeAimdTypeName(language || "")
-  return CODE_LANGUAGE_LABELS[normalized]
-    ?? normalized.replace(/[-_]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase())
-    ?? 'Code'
 }
