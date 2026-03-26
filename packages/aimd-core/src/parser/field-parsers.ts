@@ -77,6 +77,134 @@ export function parseKeyValueParams(content: string): Record<string, string | bo
   return params
 }
 
+function splitTopLevelCommaSegments(content: string): string[] {
+  const parts: string[] = []
+  let current = ""
+  let quote: "\"" | "'" | null = null
+  let escaped = false
+  let parenDepth = 0
+  let bracketDepth = 0
+  let braceDepth = 0
+
+  for (const char of content) {
+    if (escaped) {
+      current += char
+      escaped = false
+      continue
+    }
+
+    if (quote) {
+      current += char
+      if (char === "\\") {
+        escaped = true
+      }
+      else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+
+    if (char === "\"" || char === "'") {
+      quote = char
+      current += char
+      continue
+    }
+
+    if (char === "(") {
+      parenDepth += 1
+      current += char
+      continue
+    }
+    if (char === ")") {
+      parenDepth = Math.max(0, parenDepth - 1)
+      current += char
+      continue
+    }
+    if (char === "[") {
+      bracketDepth += 1
+      current += char
+      continue
+    }
+    if (char === "]") {
+      bracketDepth = Math.max(0, bracketDepth - 1)
+      current += char
+      continue
+    }
+    if (char === "{") {
+      braceDepth += 1
+      current += char
+      continue
+    }
+    if (char === "}") {
+      braceDepth = Math.max(0, braceDepth - 1)
+      current += char
+      continue
+    }
+
+    if (char === "," && parenDepth === 0 && bracketDepth === 0 && braceDepth === 0) {
+      const trimmed = current.trim()
+      if (trimmed) {
+        parts.push(trimmed)
+      }
+      current = ""
+      continue
+    }
+
+    current += char
+  }
+
+  const trimmed = current.trim()
+  if (trimmed) {
+    parts.push(trimmed)
+  }
+
+  return parts
+}
+
+function findMatchingBracketIndex(content: string, openIndex: number): number {
+  let quote: "\"" | "'" | null = null
+  let escaped = false
+  let depth = 0
+
+  for (let index = openIndex; index < content.length; index += 1) {
+    const char = content[index]
+
+    if (escaped) {
+      escaped = false
+      continue
+    }
+
+    if (quote) {
+      if (char === "\\") {
+        escaped = true
+      }
+      else if (char === quote) {
+        quote = null
+      }
+      continue
+    }
+
+    if (char === "\"" || char === "'") {
+      quote = char
+      continue
+    }
+
+    if (char === "[") {
+      depth += 1
+      continue
+    }
+
+    if (char === "]") {
+      depth -= 1
+      if (depth === 0) {
+        return index
+      }
+    }
+  }
+
+  return -1
+}
+
 /**
  * Parse fenced-code meta into a flat key/value object.
  * Supports `runtime=client` and quoted values.
@@ -368,54 +496,33 @@ export function parseVarDefinition(content: string): AimdVarDefinition {
   let subvarDefs: Record<string, AimdVarDefinition> | undefined
 
   if (subvarsStart !== -1) {
-    const afterSubvars = trimmed.slice(subvarsStart)
-    const openBracketIndex = afterSubvars.indexOf("[")
+    const openBracketIndex = trimmed.indexOf("[", subvarsStart)
     if (openBracketIndex !== -1) {
-      let depth = 0
-      let closeBracketIndex = -1
-      for (let i = openBracketIndex; i < afterSubvars.length; i++) {
-        if (afterSubvars[i] === "[") {
-          depth++
-        }
-        else if (afterSubvars[i] === "]") {
-          depth--
-          if (depth === 0) {
-            closeBracketIndex = i
-            break
-          }
-        }
-      }
+      const closeBracketIndex = findMatchingBracketIndex(trimmed, openBracketIndex)
       if (closeBracketIndex !== -1) {
-        subvarsContent = afterSubvars.slice(openBracketIndex + 1, closeBracketIndex)
+        subvarsContent = trimmed.slice(openBracketIndex + 1, closeBracketIndex)
       }
     }
   }
 
   if (subvarsContent) {
-    // eslint-disable-next-line regexp/no-super-linear-backtracking
-    const subvarParts = subvarsContent.split(/,\s*(?![^(]*\))/).map(s => s.trim()).filter(Boolean)
+    const subvarParts = splitTopLevelCommaSegments(subvarsContent)
     subvarDefs = {}
 
     for (const part of subvarParts) {
-      if (part.includes(":")) {
+      if (/^var\s*\(/.test(part) || /^[A-Za-z_]\w*\s*[:=]/.test(part)) {
         const subDef = parseSimpleVarDef(part)
         subvarDefs[subDef.id] = subDef
       }
       else {
-        const name = part.replace(/^var\s*\(\s*|\s*\)$/g, "").trim()
-        subvarDefs[name] = { id: name }
+        subvarDefs[part] = { id: part }
       }
     }
   }
 
-  let contentWithoutSubvars = trimmed
-  if (subvarsStart !== -1 && subvarsContent !== undefined) {
-    const subvarsEndIndex = trimmed.indexOf("]", subvarsStart + "subvars".length)
-    if (subvarsEndIndex !== -1) {
-      contentWithoutSubvars = trimmed.slice(0, subvarsStart) + trimmed.slice(subvarsEndIndex + 1)
-      contentWithoutSubvars = contentWithoutSubvars.replace(/,\s*,/, ",").replace(/,\s*$/, "").trim()
-    }
-  }
+  const contentWithoutSubvars = splitTopLevelCommaSegments(trimmed)
+    .filter(part => !/^subvars\s*=/.test(part))
+    .join(", ")
 
   const def = parseSimpleVarDef(contentWithoutSubvars)
 
@@ -440,8 +547,10 @@ function parseSimpleVarDef(content: string): AimdVarDefinition {
     trimmed = trimmed.slice(5, -1).trim()
   }
 
-  const kvParams = parseKeyValueParams(trimmed)
-  const mainPart = trimmed.split(/,\s*(?=\w+\s*=)/)[0].trim()
+  const parts = splitTopLevelCommaSegments(trimmed)
+  const mainPart = (parts[0] || "").trim()
+  const kvParts = parts.slice(1).filter(part => /^\w+\s*=/.test(part))
+  const kvParams = parseKeyValueParams(kvParts.join(", "))
 
   if (!mainPart.includes(":")) {
     const eqIndex = mainPart.indexOf("=")
