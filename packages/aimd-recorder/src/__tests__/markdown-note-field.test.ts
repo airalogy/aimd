@@ -2,9 +2,7 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-const { createCodeBlockRendererMock, getDefaultCodeBlockHighlighterMock, renderToVueMock } = vi.hoisted(() => ({
-  createCodeBlockRendererMock: vi.fn(() => vi.fn()),
-  getDefaultCodeBlockHighlighterMock: vi.fn(async () => "mock-highlighter"),
+const { renderToVueMock } = vi.hoisted(() => ({
   renderToVueMock: vi.fn(),
 }))
 
@@ -29,8 +27,6 @@ vi.mock('@airalogy/aimd-editor/vue', () => ({
 }))
 
 vi.mock('@airalogy/aimd-renderer', () => ({
-  createCodeBlockRenderer: createCodeBlockRendererMock,
-  getDefaultCodeBlockHighlighter: getDefaultCodeBlockHighlighterMock,
   renderToVue: renderToVueMock,
 }))
 
@@ -58,14 +54,7 @@ describe('AimdMarkdownNoteField', () => {
 
     await flushUi()
 
-    expect(getDefaultCodeBlockHighlighterMock).toHaveBeenCalled()
-    expect(createCodeBlockRendererMock).toHaveBeenCalledWith('mock-highlighter', 'github-light')
-    expect(renderToVueMock).toHaveBeenCalledWith('**keep cold**', {
-      locale: 'en-US',
-      elementRenderers: {
-        pre: expect.any(Function),
-      },
-    })
+    expect(renderToVueMock).toHaveBeenCalledWith('**keep cold**', { locale: 'en-US' })
     expect(wrapper.find('.aimd-markdown-note-field__preview').exists()).toBe(true)
     expect(wrapper.find('.aimd-rendered-note').text()).toContain('rendered:**keep cold**')
     expect(wrapper.find('.aimd-editor-mock').exists()).toBe(false)

@@ -147,7 +147,6 @@ export interface AimdTypePluginRenderContext extends AimdTypePluginValueContext 
   locale: string
   messages: AimdRecorderMessages
   record: AimdProtocolRecordData
-  resolveFile?: (src: string) => string | null
   displayValue: string | number
   extraClasses: string[]
   placeholder?: string

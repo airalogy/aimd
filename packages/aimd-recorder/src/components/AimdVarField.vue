@@ -45,10 +45,6 @@ export default defineComponent({
       const placeholder = meta?.placeholder ?? getVarPlaceholder(node)
       const displayValue = props.displayValue
       const codeLanguage = resolveAimdCodeEditorLanguage(type, meta) ?? "plaintext"
-      const tooltipType = type
-      const tooltipTitle = getVarTooltipTitle(node)
-      const tooltipDescription = getVarTooltipDescription(node)
-      const showTooltip = inputKind !== "code" && Boolean(tooltipTitle || tooltipDescription || id)
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -72,13 +68,12 @@ export default defineComponent({
       const enumOptions = meta?.enumOptions ?? []
       if (enumOptions.length) {
         return h("span", {
-          class: [
-            "aimd-rec-inline",
-            "aimd-rec-inline--var-stacked",
-            "aimd-field-wrapper",
-            ...extraClasses,
-          ],
+          class: ["aimd-rec-inline aimd-rec-inline--var-stacked aimd-field-wrapper", ...extraClasses],
         }, [
+          h("span", { class: "aimd-field aimd-field--no-style aimd-field__label" }, [
+            h("span", { class: "aimd-field__scope aimd-field__scope--var" }, "var"),
+            h("span", { class: "aimd-field__id" }, id),
+          ]),
           h("select", {
             "data-rec-focus-key": `var:${id}`,
             class: "aimd-rec-inline__input aimd-rec-inline__input--stacked aimd-rec-inline__select",
@@ -93,31 +88,13 @@ export default defineComponent({
       // Default stacked widget
       const renderStackedVar = (control: VNode, variantClass?: string): VNode =>
         h("span", {
-          class: [
-            "aimd-rec-inline",
-            "aimd-rec-inline--var-stacked",
-            "aimd-field-wrapper",
-            "aimd-field-wrapper--inline",
-            variantClass,
-            ...extraClasses,
-          ],
+          class: ["aimd-rec-inline aimd-rec-inline--var-stacked aimd-field-wrapper aimd-field-wrapper--inline", variantClass, ...extraClasses],
         }, [
+          h("span", { class: "aimd-field aimd-field--no-style aimd-field__label" }, [
+            h("span", { class: "aimd-field__scope aimd-field__scope--var" }, getAimdRecorderScopeLabel("var", props.messages)),
+            h("span", { class: "aimd-field__id" }, id),
+          ]),
           control,
-          showTooltip
-            ? h("span", {
-                class: "aimd-var-tooltip",
-                role: "note",
-              }, [
-                tooltipTitle
-                  ? h("span", { class: "aimd-var-tooltip__title" }, tooltipTitle)
-                  : null,
-                h("span", { class: "aimd-var-tooltip__type" }, tooltipType),
-                tooltipDescription
-                  ? h("span", { class: "aimd-var-tooltip__description" }, tooltipDescription)
-                  : null,
-                h("span", { class: "aimd-var-tooltip__meta" }, id),
-              ])
-            : null,
         ])
 
       if (inputKind === "checkbox") {
@@ -164,10 +141,6 @@ export default defineComponent({
             modelValue: typeof displayValue === "number" ? String(displayValue) : displayValue,
             language: codeLanguage,
             disabled,
-            title: tooltipTitle,
-            description: tooltipDescription,
-            fieldId: id,
-            typeLabel: tooltipType,
             "onUpdate:modelValue": (nextValue: string) => onVarChange(nextValue),
             onBlur: onVarBlur,
           }),
@@ -236,15 +209,5 @@ export default defineComponent({
 function getVarPlaceholder(node: AimdVarNode): string | undefined {
   const title = node.definition?.kwargs?.title
   return typeof title === "string" && title.trim() ? title.trim() : undefined
-}
-
-function getVarTooltipTitle(node: AimdVarNode): string | undefined {
-  const title = node.definition?.kwargs?.title
-  return typeof title === "string" && title.trim() ? title.trim() : undefined
-}
-
-function getVarTooltipDescription(node: AimdVarNode): string | undefined {
-  const description = node.definition?.kwargs?.description
-  return typeof description === "string" && description.trim() ? description.trim() : undefined
 }
 </script>
