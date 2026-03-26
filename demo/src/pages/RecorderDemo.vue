@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import {
-  AimdRecorder,
+  AimdRecorderEditor,
   createEmptyProtocolRecordData,
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
 import '@airalogy/aimd-recorder/styles'
-import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
 import { useSampleContent } from '../composables/sampleContent'
 
@@ -18,8 +17,6 @@ const recordData = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 function resetForm() {
   recordData.value = createEmptyProtocolRecordData()
 }
-
-const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
 </script>
 
 <template>
@@ -27,28 +24,20 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
     <h2 class="page-title">@airalogy/aimd-recorder</h2>
     <p class="page-desc">{{ messages.pages.recorder.desc }}</p>
 
-    <div class="demo-layout">
-      <div class="panel">
-        <h3 class="panel-title">{{ messages.common.aimdSource }}</h3>
-        <DemoAimdSourceEditor v-model="input" :min-height="500" />
-      </div>
-
-      <div class="panel">
-        <div class="panel-title-bar">
-          <h3 class="panel-title-text">{{ messages.pages.recorder.inlineFormTitle }}</h3>
-          <button class="reset-btn" @click="resetForm">{{ messages.common.reset }}</button>
-        </div>
-
-        <div class="form-content">
-          <AimdRecorder v-model="recordData" :content="input" :locale="locale" />
-        </div>
-      </div>
+    <div class="page-toolbar">
+      <button class="reset-btn" @click="resetForm">{{ messages.common.reset }}</button>
     </div>
 
-    <div class="panel full-width">
-      <h3 class="panel-title">{{ messages.common.collectedData }}</h3>
-      <pre class="code-output">{{ collectedJson }}</pre>
-    </div>
+    <AimdRecorderEditor
+      v-model="recordData"
+      v-model:content="input"
+      :locale="locale"
+      :initial-visual-edit-mode="true"
+      :show-record-data="true"
+      :editor-title="messages.common.aimdSource"
+      :recorder-title="messages.pages.recorder.inlineFormTitle"
+      :record-data-title="messages.common.collectedData"
+    />
   </div>
 </template>
 
@@ -56,7 +45,7 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
 .demo-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .page-title {
@@ -71,46 +60,9 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
   margin-top: -12px;
 }
 
-.demo-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.panel {
-  background: #fff;
-  border: 1px solid #e5e9f1;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.panel.full-width {
-  width: 100%;
-}
-
-.panel-title {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 12px 16px;
-  background: #f8fafd;
-  border-bottom: 1px solid #e5e9f1;
-  color: #444;
-}
-
-.panel-title-bar {
+.page-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  background: #f8fafd;
-  border-bottom: 1px solid #e5e9f1;
-}
-
-.panel-title-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #444;
+  justify-content: flex-end;
 }
 
 .reset-btn {
@@ -127,31 +79,5 @@ const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
 .reset-btn:hover {
   border-color: #d03050;
   color: #d03050;
-}
-
-.form-content {
-  padding: 18px;
-  max-height: 500px;
-  overflow: auto;
-  background: #f7f9fc;
-}
-
-.code-output {
-  padding: 16px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  overflow: auto;
-  max-height: 300px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: #333;
-  margin: 0;
-}
-
-@media (max-width: 960px) {
-  .demo-layout {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

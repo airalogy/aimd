@@ -1,11 +1,12 @@
 # @airalogy/aimd-recorder
 
-AIMD 记录 UI 组件与样式集合，包含协议内联录入组件与可复用题目作答控件。
+AIMD 记录 UI 组件与样式集合，包含协议内联录入组件、组合式 `AimdRecorderEditor` 与可复用题目作答控件。
 
 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown` 和 `DNASequence`。
 `AiralogyMarkdown` 现在会在 recorder 中以横铺内嵌 AIMD/Markdown 编辑器呈现，默认进入 `源码` 模式，并保留完整顶部工具栏，同时支持切换到 `所见即所得`，而不是普通 textarea。
 在 recorder/edit 模式下，`ref_var` 如果已经有记录值，会优先以只读内联内容显示该值。
 前端受限的 `assigner runtime=client` 代码块会在 recorder 中本地执行，用于纯 `var` 计算。
+如果需要一边改 Protocol 结构、一边继续填写字段数据，可以使用 `AimdRecorderEditor`，它会把源码编辑器和 recorder 绑定到同一份 `content` 与 `record`，并在字段 id 从当前 protocol 里消失后单独展示旧数据。
 
 > 协议级 AIMD 语法、assigner 语义与校验规则以 Airalogy 文档为准；`@airalogy/aimd-*` 文档只描述前端 parser、renderer、recorder 如何实现这些规范。
 
@@ -65,6 +66,61 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 
 通过 `locale` 可以切换 recorder 内建标签（`en-US` / `zh-CN`）。
 `AimdProtocolRecorder` 仍保留为已废弃的兼容别名，但新的代码建议直接使用 `AimdRecorder`。
+
+## Recorder Editor
+
+当用户需要在同一个界面里同时修改 AIMD Protocol 结构并继续填写 recorder 数据时，使用 `AimdRecorderEditor`。
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+import "@airalogy/aimd-recorder/styles"
+
+const content = ref(`# Protocol
+
+样本名：{{var|sample_name: str}}
+温度：{{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="zh-CN"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+这个 editor 会在 AIMD 源码变化时继续保留 recorder 状态，并把 `Recorder`、`Record Data`、`脱离当前 Protocol 的旧数据` 收到右侧同一组 tab 里，避免 AIMD 很长时这些面板被挤到页面底部。默认情况下，左右两列会根据 editor 在当前页面里的位置和浏览器可用高度自动伸展，尽量撑满视口，并在各自面板内部滚动，避免左右两列高度失衡；这个同高滚动行为也会覆盖 recorder 侧的可视化编辑模式。如果宿主仍然希望保留独立的 `Field 结构编辑` 辅助面板，可以显式传 `:show-field-structure="true"`。同时用户可以直接：
+
+- 切换 field kind
+- 修改 field id
+- 修改内联 `var` 的值类型
+- 新增或删除 field
+- 通过拖拽调整 field 源码片段顺序
+
+如果字段被改名或删除，脱离当前 protocol 的旧值会在右侧 `脱离当前 Protocol 的旧数据` tab 里单独显示出来，用户可以再把它们搬到新建 field 里，而不是只能去翻外部 JSON。
+
+对于不理解源码的用户，这个 editor 现在还提供了一个 recorder-aware 的 WYSIWYG 编辑模式。打开 recorder 面板标题栏里的切换后，右侧会直接切到一个可落光标的 AIMD 编辑器，其中 `var`、`var_table`、`step`、`check`、`quiz` 会直接显示成真实的 recorder widget，而不是普通小 chip。用户可以一边继续写标题、列表和普通 Markdown，一边拖动这些渲染后的 field 到任意可落光标的位置；拖动过程中还会出现明确的落点提示，方便更精确地放置。也可以直接通过贴在 field 本体上的 hover / focus 工具条完成编辑、删除和拖动，不需要跳出当前 widget。如果宿主不希望用户在 recorder 侧继续改 raw AIMD，可以设置 `:allow-raw-field-source-editing="false"`，这样字段弹窗里只保留结构化控件。关闭切换后再回到正常 recorder 录入，已有 record 数据会继续保留。
+
+如果宿主不希望跟随浏览器高度自动伸展，可以显式关闭：
+
+```vue
+<AimdRecorderEditor
+  :fit-viewport="false"
+  :editor-min-height="640"
+  :recorder-min-height="640"
+/>
+```
 
 `record` 数据结构：
 

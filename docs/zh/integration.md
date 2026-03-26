@@ -77,6 +77,40 @@ watch(content, async (value) => {
 </template>
 ```
 
+## Recorder Editor
+
+如果宿主应用希望把 Protocol 编辑和 recorder 录入放在同一个界面里，可以直接使用 `AimdRecorderEditor`，而不是自己手动拼 `AimdEditor` + `AimdRecorder`：
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+
+const content = ref(`# Protocol
+
+样本名：{{var|sample_name: str}}
+温度：{{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="zh-CN"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+当用户在编辑 protocol 时删除或重命名字段，editor 会把 `Recorder`、`Record Data`、脱离当前结构的旧记录值统一放在右侧 tab 工作区里，而不是继续堆在页面底部。这样即使 AIMD 很长，这些辅助面板也仍然靠近主操作区；默认情况下，左右两列还会根据浏览器剩余可用高度自动伸展，尽量撑满视口，并在各自区域内部滚动，这个同高滚动行为在 recorder 侧切到可视化编辑模式后也继续成立。如果宿主还想保留独立的结构编辑辅助面板，可以显式传 `:show-field-structure="true"`。如果宿主希望更接近真正的所见即所得流程，用户还可以在 recorder 面板里打开可视化编辑模式；右侧会切到一个 recorder-aware 的 WYSIWYG 编辑面，其中 `var`、`var_table`、`step`、`check`、`quiz` 会直接显示成 live recorder widget，能够拖到任意可落光标的位置，并且可以直接从渲染后的节点打开字段编辑弹窗。如果这个弹窗只应该保留结构化编辑控件，可以设置 `:allow-raw-field-source-editing="false"`。关闭后再切回 recorder，record 状态会继续保留。如果宿主更希望使用固定高度，也可以设置 `:fit-viewport="false"`。
+
 ## 字段提取
 
 通过 renderer 的 `parseAndExtract` 可以拿到内容里的结构化 AIMD 字段元数据。这很适合用来构建侧边栏、校验摘要或进度跟踪。

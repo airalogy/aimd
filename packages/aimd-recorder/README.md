@@ -1,11 +1,12 @@
 # @airalogy/aimd-recorder
 
-Reusable recording UI for AIMD, including inline protocol recorder, quiz answer components, and styles.
+Reusable recording UI for AIMD, including inline protocol recorder, the combined `AimdRecorderEditor`, quiz answer components, and styles.
 
 Built-in variable input types include `CurrentTime`, `UserName`, `AiralogyMarkdown`, and `DNASequence`.
 `AiralogyMarkdown` now uses a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG` instead of a plain textarea.
 In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 Frontend-only `assigner runtime=client` blocks are executed locally for pure var computations.
+For simultaneous protocol restructuring and data entry, `AimdRecorderEditor` keeps the AIMD source editor and recorder bound to the same `content` + `record` state and can surface detached values after field IDs disappear from the current protocol.
 
 > Protocol-level AIMD syntax, assigner semantics, and validation rules are normative in Airalogy docs. `@airalogy/aimd-*` docs describe how the frontend parser, renderer, and recorder implement those rules.
 
@@ -65,6 +66,61 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 
 Use `locale` to switch built-in recorder labels (`en-US` / `zh-CN`).
 `AimdProtocolRecorder` is still available as a deprecated compatibility alias, but new code should use `AimdRecorder`.
+
+## Recorder Editor
+
+Use `AimdRecorderEditor` when users need to edit the AIMD protocol structure and fill recorder values in the same screen.
+
+```vue
+  <script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+import "@airalogy/aimd-recorder/styles"
+
+const content = ref(`# Protocol
+
+Sample: {{var|sample_name: str}}
+Temperature: {{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="en-US"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+This editor keeps recorder state alive while the AIMD source changes, and it groups `Recorder`, `Record Data`, and detached-data views into one right-side tab workspace so those auxiliary panels do not get pushed below a long AIMD document. By default, it also measures the remaining viewport space below the editor and stretches both columns to fill that space as much as possible, with internal scrolling on each side so the columns stay visually aligned; that balanced scroll behavior also applies when the recorder side is switched into visual editing. If the host still wants the separate `Field Structure` helper panel, pass `:show-field-structure="true"`. Users can:
+
+- switch field kinds
+- rename field ids
+- change inline `var` value types
+- add or delete fields
+- drag field source fragments into a different order
+
+If a field is renamed or removed, detached values are shown in their own tab so users can copy them into newly created fields instead of losing track of the previous data.
+
+For non-technical users, the editor also has a recorder-aware WYSIWYG mode. Turn it on in the recorder panel header and the right side switches into a caret-based AIMD editor where `var`, `var_table`, `step`, `check`, and `quiz` fields are rendered as real recorder widgets instead of inline chips. Users can keep writing headings, lists, and normal Markdown around those widgets, drag the rendered field nodes to any caret-valid position, and follow the visible drop indicator that appears while dragging for more precise placement. The contextual hover/focus toolbar attached to each rendered field also keeps edit, delete, and drag actions on the widget itself. If the host does not want raw AIMD editing inside the recorder-side dialog, set `:allow-raw-field-source-editing="false"` and the dialog keeps only the structured controls. Turn visual edit mode back off to return to normal recorder entry; the current record state stays intact.
+
+If the host prefers the previous fixed-height behavior, disable viewport fitting explicitly:
+
+```vue
+<AimdRecorderEditor
+  :fit-viewport="false"
+  :editor-min-height="640"
+  :recorder-min-height="640"
+/>
+```
 
 `record` shape:
 

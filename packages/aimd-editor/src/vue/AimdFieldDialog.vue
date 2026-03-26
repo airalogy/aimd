@@ -16,6 +16,7 @@ const props = defineProps<{
   messages: AimdEditorMessages
   refSuggestions?: string[]
   varTypePlugins?: AimdVarTypePresetOption[]
+  allowedTypes?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -23,7 +24,25 @@ const emit = defineEmits<{
   (e: 'insert', syntax: string): void
 }>()
 
-const dialogType = ref(props.initialType || 'var')
+const localizedFieldTypes = computed(() => {
+  const allTypes = createAimdFieldTypes(props.messages)
+  if (!props.allowedTypes || props.allowedTypes.length === 0) {
+    return allTypes
+  }
+
+  const allowed = new Set(props.allowedTypes)
+  return allTypes.filter(fieldType => allowed.has(fieldType.type))
+})
+
+function resolveDialogType(type?: string): string {
+  if (type && localizedFieldTypes.value.some(fieldType => fieldType.type === type)) {
+    return type
+  }
+
+  return localizedFieldTypes.value[0]?.type ?? type ?? 'var'
+}
+
+const dialogType = ref(resolveDialogType(props.initialType))
 const fields = ref<Record<string, string>>(getDefaultAimdFields(dialogType.value, props.messages))
 
 interface ChoiceOptionItem {
@@ -42,7 +61,6 @@ const quizMultipleAnswers = ref<string[]>([])
 const draggingChoiceIndex = ref<number | null>(null)
 const dragOverChoiceIndex = ref<number | null>(null)
 const formError = ref('')
-const localizedFieldTypes = computed(() => createAimdFieldTypes(props.messages))
 const varTypePresets = computed<AimdVarTypePresetOption[]>(() =>
   createAimdVarTypePresets(props.messages, props.varTypePlugins ?? []),
 )
@@ -307,12 +325,23 @@ function validateBeforeInsert(): string | null {
 }
 
 watch(() => props.initialType, (t) => {
-  if (t) {
-    dialogType.value = t
-    fields.value = getDefaultAimdFields(t, props.messages)
-    hydrateQuizDraftsFromFields()
-    formError.value = ''
+  const resolvedType = resolveDialogType(t)
+  dialogType.value = resolvedType
+  fields.value = getDefaultAimdFields(resolvedType, props.messages)
+  hydrateQuizDraftsFromFields()
+  formError.value = ''
+})
+
+watch(localizedFieldTypes, () => {
+  const resolvedType = resolveDialogType(dialogType.value)
+  if (resolvedType === dialogType.value) {
+    return
   }
+
+  dialogType.value = resolvedType
+  fields.value = getDefaultAimdFields(resolvedType, props.messages)
+  hydrateQuizDraftsFromFields()
+  formError.value = ''
 })
 
 watch(() => props.visible, (v) => {
@@ -324,8 +353,9 @@ watch(() => props.visible, (v) => {
 })
 
 function switchType(type: string) {
-  dialogType.value = type
-  fields.value = getDefaultAimdFields(type, props.messages)
+  const resolvedType = resolveDialogType(type)
+  dialogType.value = resolvedType
+  fields.value = getDefaultAimdFields(resolvedType, props.messages)
   hydrateQuizDraftsFromFields()
   formError.value = ''
 }

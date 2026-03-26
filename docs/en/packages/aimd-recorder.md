@@ -14,6 +14,7 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 
 - Recorder UI styles via `@airalogy/aimd-recorder/styles`.
 - Inline protocol recorder component: `AimdRecorder` (render + input in-place).
+- Combined authoring + recording editor: `AimdRecorderEditor` (edit AIMD source and fill recorder data side by side).
 - Reusable quiz answer component: `AimdQuizRecorder`.
 - Built-in var input handling for `CurrentTime`, `UserName`, `AiralogyMarkdown`, `DNASequence`.
 - `AiralogyMarkdown` uses a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG`; when authored mid-sentence, recorder lifts it into its own block row instead of leaving it as a plain textarea-sized inline control.
@@ -64,6 +65,44 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   "quiz": {}
 }
 ```
+
+## Recorder Editor
+
+Use `AimdRecorderEditor` when the user needs to keep editing the AIMD protocol structure while continuing to fill the recorder on the same screen.
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+
+const content = ref(`# Protocol
+
+Sample: {{var|sample_name: str}}
+Temperature: {{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="en-US"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+`AimdRecorderEditor` keeps the editor and recorder bound to the same state, and it groups `Recorder`, `Record Data`, and detached-data views into a single right-side tab workspace so those auxiliary panels do not get pushed below a long AIMD document. By default, it also measures the remaining viewport space below the editor and stretches both columns to fill that space as much as possible, with internal scrolling on each side so the columns stay visually aligned; that balanced scroll behavior also applies when the recorder side is switched into visual editing. If the host still wants the separate `Field Structure` helper panel, pass `:show-field-structure="true"`. Its built-in structure editor still covers field-kind switching, id changes, inline `var` value-type changes, add/delete actions, and drag-to-reorder source fragments.
+
+For non-technical users, the recorder panel now also exposes a recorder-aware WYSIWYG AIMD editor. Turn the header toggle on and the right side switches into a caret-based surface where `var`, `var_table`, `step`, `check`, and `quiz` fields render as their real recorder widgets instead of inline chips. Users can keep writing headings, normal Markdown blocks, and lists around those widgets, drag the rendered field nodes to any caret-valid position, and follow the visible drop indicator that appears during dragging for more precise placement. The contextual hover/focus toolbar attached to each rendered field keeps edit, delete, and drag actions on the widget itself. If the host does not want raw AIMD editing in that recorder-side dialog, set `:allow-raw-field-source-editing="false"` so only the structured field controls remain. Turn it off again to return to normal recorder entry; the current record state stays intact. When the current AIMD structure no longer contains a previously recorded field ID, the editor can surface that detached data in a dedicated tab so users can migrate values into newly created fields.
+
+If the host prefers the previous fixed-height behavior, set `:fit-viewport="false"` and continue to size the editor with `editorMinHeight` / `recorderMinHeight`.
 
 Client assigner example:
 

@@ -43,6 +43,8 @@ const content = ref("")
 </template>
 ```
 
+如果要做更底层的宿主集成，低层组件 `AimdWysiwygEditor` 也支持注入自定义 Milkdown plugin 链，而 `AimdFieldDialog` 则可以通过 `allowedTypes` 限定成一组更聚焦的 AIMD 字段类型。
+
 ## 国际化
 
 Vue 编辑器内建 `en-US` 和 `zh-CN` 两套 UI 文案。

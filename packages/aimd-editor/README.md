@@ -34,6 +34,8 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 Use `messages` to override built-in copy per locale.
 
+For advanced embedding, the low-level `AimdWysiwygEditor` now accepts a custom Milkdown plugin chain, and `AimdFieldDialog` can be limited to a focused subset of AIMD field kinds with `allowedTypes`.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>

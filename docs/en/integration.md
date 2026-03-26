@@ -80,6 +80,40 @@ watch(content, async (value) => {
 </template>
 ```
 
+## Recorder Editor
+
+If the host needs simultaneous protocol authoring and recorder entry in one surface, use `AimdRecorderEditor` instead of wiring `AimdEditor` and `AimdRecorder` separately:
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+
+const content = ref(`# Protocol
+
+Sample: {{var|sample_name: str}}
+Temperature: {{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="en-US"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+When the user removes or renames fields while editing the protocol, the editor keeps `Recorder`, `Record Data`, and detached record values together in one right-side tab workspace instead of pushing those panels below the main editor. That keeps the secondary tools visible even when the AIMD document is long, and by default the editor also stretches both columns to the remaining viewport height below its current page position so the editor and recorder stay aligned. The same balanced-scroll layout continues to apply when the recorder side is switched into visual editing. If the host still wants the separate structure-helper panel, pass `:show-field-structure="true"`. If the host wants a truly caret-based WYSIWYG flow, users can switch on visual edit mode in the recorder panel; the right side then becomes a recorder-aware WYSIWYG surface where `var`, `var_table`, `step`, `check`, and `quiz` fields render as live recorder widgets, can be dragged to any caret-valid location, and expose the built-in field-edit dialog directly from the rendered node. Set `:allow-raw-field-source-editing="false"` when that dialog should stay in structured mode only. Turn the toggle off again to return to recorder entry with the current record state intact. If the host prefers fixed-height behavior, set `:fit-viewport="false"`.
+
 ## Field Extraction
 
 Use `parseAndExtract` from the renderer to get structured metadata about all AIMD fields in the content. This is useful for building side panels, validation summaries, or progress tracking.

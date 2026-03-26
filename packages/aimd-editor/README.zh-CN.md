@@ -34,6 +34,8 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 也可以通过 `messages` 覆盖内建文案。
 
+如果要做更底层的嵌入式集成，`AimdWysiwygEditor` 现在支持注入自定义 Milkdown plugin 链，`AimdFieldDialog` 也支持通过 `allowedTypes` 限定可插入的 AIMD 字段类型。
+
 ## 文档
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>

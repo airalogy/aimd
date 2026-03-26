@@ -43,6 +43,8 @@ const content = ref("")
 </template>
 ```
 
+For advanced host integrations, the low-level `AimdWysiwygEditor` also accepts a custom Milkdown plugin chain, and `AimdFieldDialog` can be restricted to a focused subset of AIMD field types with `allowedTypes`.
+
 ## Localization
 
 The Vue editor includes built-in `en-US` and `zh-CN` UI messages.

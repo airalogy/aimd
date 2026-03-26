@@ -428,6 +428,7 @@ Vue components for structured data input and recording.
 ```ts
 import {
   AimdRecorder,
+  AimdRecorderEditor,
   AimdQuizRecorder,
   AimdDnaSequenceField,
 } from "@airalogy/aimd-recorder"
@@ -436,6 +437,7 @@ import {
 | Component | Description |
 |-----------|-------------|
 | `AimdRecorder` | Full protocol recorder: renders AIMD content with inline input fields. |
+| `AimdRecorderEditor` | Combined protocol editor + recorder surface. Use with `v-model:content` and `v-model` when users need to restructure AIMD and keep entering data in the same view. Includes built-in field-structure editing and a recorder-side visual edit mode for recorder fields. |
 | `AimdQuizRecorder` | Standalone quiz answer component for choice, blank, and open questions. |
 | `AimdDnaSequenceField` | Specialized DNA sequence input with SeqViz viewer, annotation editing, and GenBank import/export. |
 

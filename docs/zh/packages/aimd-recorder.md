@@ -15,6 +15,8 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - 通过 `@airalogy/aimd-recorder/styles` 提供 recorder 样式。
 - 提供协议内联录入组件 `AimdRecorder`：
   在 Markdown 渲染位置直接插入 `var / var_table / step / check / quiz` 的记录控件。
+- 提供组合式编辑器组件 `AimdRecorderEditor`：
+  在同一屏里同时编辑 AIMD 源码并填写 recorder 数据。
 - 提供可复用题目控件 `AimdQuizRecorder`（单独使用 quiz 输入时可复用）。
 - 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown`、`DNASequence`。
 - `AiralogyMarkdown` 在 recorder 中会以横铺内嵌编辑器呈现，默认进入 `源码` 模式，保留完整顶部工具栏，并支持切换到 `所见即所得`；如果它写在一行文字中间，recorder 会自动把它提升成下一行的块级编辑区，而不是普通 textarea。
@@ -64,6 +66,44 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
   "quiz": {}
 }
 ```
+
+## Recorder Editor
+
+如果用户需要一边改 AIMD Protocol 结构，一边继续填写 recorder 数据，可以使用 `AimdRecorderEditor`。
+
+```vue
+<script setup lang="ts">
+import { ref } from "vue"
+import {
+  AimdRecorderEditor,
+  createEmptyProtocolRecordData,
+  type AimdProtocolRecordData,
+} from "@airalogy/aimd-recorder"
+
+const content = ref(`# Protocol
+
+样本名：{{var|sample_name: str}}
+温度：{{var|temperature: float}}
+`)
+const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+</script>
+
+<template>
+  <AimdRecorderEditor
+    v-model="record"
+    v-model:content="content"
+    locale="zh-CN"
+    :show-record-data="true"
+    :allow-raw-field-source-editing="false"
+  />
+</template>
+```
+
+`AimdRecorderEditor` 会把编辑器和 recorder 绑定到同一份状态上，同时把 `Recorder`、`Record Data`、`脱离当前 Protocol 的旧数据` 收到右侧同一组 tab 里，避免 AIMD 很长时这些辅助面板被推到页面底部。默认情况下，它会根据当前 editor 在页面中的位置和浏览器剩余可用高度自动调整左右两列，让工作区尽量撑满视口；左右两列都在各自面板内部滚动，因此长协议下仍然保持对齐，这个同高滚动行为也会覆盖 recorder 侧的可视化编辑模式。如果宿主还想保留独立的 `Field 结构编辑` 面板，可以显式传 `:show-field-structure="true"`。内建结构编辑器仍然支持切换 field kind、修改 id、修改内联 `var` 的值类型、新增/删除字段，以及拖拽重排源码片段。
+
+对于不理解 AIMD 源码的用户，recorder 面板里现在还提供了一个 recorder-aware 的 WYSIWYG 编辑模式。打开标题栏里的切换后，右侧会直接切到一个可落光标的 AIMD 编辑面，其中 `var`、`var_table`、`step`、`check`、`quiz` 会直接显示成真实的 recorder widget，而不是普通小 chip。用户可以继续在这些 widget 周围补充标题、普通 Markdown、列表，也可以把渲染后的 field 拖到任意可落光标的位置；拖动过程中会出现明确的落点提示，方便更精确地放置。贴在 field 本体上的 hover / focus 工具条则继续提供编辑、删除和拖动，不需要跳出当前 widget。如果宿主不希望用户在 recorder 侧直接编辑 raw AIMD，可以设置 `:allow-raw-field-source-editing="false"`，这样字段弹窗里只保留结构化编辑控件。关闭切换后再回到正常 recorder 录入，record 数据状态会继续保留。当当前 AIMD 结构里已经没有某个旧字段 id 时，editor 可以把这些脱离当前 protocol 的旧数据放进单独 tab，方便用户把值迁移到新建 field。
+
+如果宿主希望退回旧的定高模式，可以设置 `:fit-viewport="false"`，并继续通过 `editorMinHeight` / `recorderMinHeight` 控制固定高度。
 
 client assigner 示例：
 
