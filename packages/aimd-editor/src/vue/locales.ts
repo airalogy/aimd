@@ -71,6 +71,7 @@ export interface AimdEditorMessages {
     blockquote: string
     code: string
     codeblock: string
+    assignerClient: string
     link: string
     image: string
     table: string
@@ -205,6 +206,22 @@ export interface AimdEditorMessages {
     insertAimdField: (keyword: string) => string
     quizBlockLabel: string
     quizBlock: string
+    clientAssignerLabel: string
+    clientAssigner: string
+    pythonCodeFenceLabel: string
+    pythonCodeFence: string
+    jsonCodeFenceLabel: string
+    jsonCodeFence: string
+    yamlCodeFenceLabel: string
+    yamlCodeFence: string
+  }
+  sourceBlocks: {
+    codeBlock: string
+    calculationLogic: string
+    clientAssigner: string
+    serverAssigner: string
+    reads: string
+    writes: string
   }
 }
 
@@ -285,6 +302,7 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     blockquote: 'Blockquote',
     code: 'Inline Code',
     codeblock: 'Code Block',
+    assignerClient: 'Client Assigner',
     link: 'Link',
     image: 'Image',
     table: 'Table',
@@ -419,6 +437,22 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     insertAimdField: keyword => `Insert AIMD ${keyword} field`,
     quizBlockLabel: 'quiz block',
     quizBlock: 'Insert AIMD quiz code block',
+    clientAssignerLabel: 'client assigner',
+    clientAssigner: 'Insert AIMD client assigner block',
+    pythonCodeFenceLabel: 'python block',
+    pythonCodeFence: 'Insert Python code fence',
+    jsonCodeFenceLabel: 'json block',
+    jsonCodeFence: 'Insert JSON code fence',
+    yamlCodeFenceLabel: 'yaml block',
+    yamlCodeFence: 'Insert YAML code fence',
+  },
+  sourceBlocks: {
+    codeBlock: 'Code block',
+    calculationLogic: 'Calculation logic',
+    clientAssigner: 'Client assigner',
+    serverAssigner: 'Server assigner',
+    reads: 'Reads',
+    writes: 'Writes',
   },
 }
 
@@ -481,6 +515,7 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     blockquote: '引用块',
     code: '行内代码',
     codeblock: '代码块',
+    assignerClient: '前端计算块',
     link: '链接',
     image: '图片',
     table: '表格',
@@ -615,6 +650,22 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     insertAimdField: keyword => `插入 AIMD ${keyword} 字段`,
     quizBlockLabel: '题目代码块',
     quizBlock: '插入 AIMD 题目代码块',
+    clientAssignerLabel: '前端 assigner',
+    clientAssigner: '插入 AIMD 前端 assigner 代码块',
+    pythonCodeFenceLabel: 'Python 代码块',
+    pythonCodeFence: '插入 Python 代码块',
+    jsonCodeFenceLabel: 'JSON 代码块',
+    jsonCodeFence: '插入 JSON 代码块',
+    yamlCodeFenceLabel: 'YAML 代码块',
+    yamlCodeFence: '插入 YAML 代码块',
+  },
+  sourceBlocks: {
+    codeBlock: '代码块',
+    calculationLogic: '计算逻辑',
+    clientAssigner: '前端 assigner',
+    serverAssigner: '服务端 assigner',
+    reads: '读取',
+    writes: '写入',
   },
 }
 

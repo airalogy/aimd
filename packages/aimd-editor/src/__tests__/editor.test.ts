@@ -268,6 +268,7 @@ describe('MD toolbar item definitions', () => {
     const actions = MD_TOOLBAR_ITEM_DEFINITIONS.map(d => d.action)
     expect(actions).toContain('h1')
     expect(actions).toContain('bold')
+    expect(actions).toContain('assignerClient')
   })
 
   it('createMdToolbarItems localizes items', () => {
