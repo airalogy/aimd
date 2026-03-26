@@ -52,6 +52,7 @@ export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nO
   assignerVisibility?: AimdAssignerVisibility
   aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
   groupStepBodies?: boolean
+  groupCheckBodies?: boolean
   blockVarTypes?: string[]
 }
 
@@ -138,6 +139,13 @@ function isAimdStepElement(node: unknown): node is Element {
     && getPropertyValue((node as Element).properties, "data-aimd-type") === "step"
 }
 
+function isAimdCheckElement(node: unknown): node is Element {
+  return typeof node === "object"
+    && node !== null
+    && (node as Element).type === "element"
+    && getPropertyValue((node as Element).properties, "data-aimd-type") === "check"
+}
+
 function isHeadingOrDivider(node: unknown): boolean {
   if (typeof node !== "object" || node === null || (node as Element).type !== "element") {
     return false
@@ -172,6 +180,116 @@ function unwrapStandaloneContainerStep(node: unknown): Element | null {
 
 function cloneNodeForStepBody<T extends Element | HastText>(node: T): T {
   return JSON.parse(JSON.stringify(node)) as T
+}
+
+function createGroupedCheckElement(
+  checkElement: Element,
+  trailingChildren: Array<Element | HastText>,
+): Element {
+  const clonedCheck = cloneNodeForStepBody(checkElement)
+  const tailChildren = trailingChildren
+    .map((child) => cloneNodeForStepBody(child as Element | HastText))
+    .filter((child) => !isWhitespaceTextNode(child))
+
+  clonedCheck.properties = {
+    ...(clonedCheck.properties || {}),
+    "data-aimd-check-container": "true",
+    "data-aimd-strip-default-children": "true",
+  }
+
+  clonedCheck.children = tailChildren.length > 0
+    ? [{
+        type: "element",
+        tagName: "div",
+        properties: {
+          className: ["aimd-check-body"],
+          "data-aimd-check-body": "true",
+        },
+        children: tailChildren,
+      }]
+    : []
+
+  return clonedCheck
+}
+
+function splitCheckParagraph(paragraph: Element): Array<Element | HastText> | null {
+  const paragraphChildren = (paragraph.children || []) as Array<Element | HastText>
+  const meaningfulChildren = paragraphChildren.filter((child) => !isWhitespaceTextNode(child))
+  const checkCount = meaningfulChildren.filter((child) => isAimdCheckElement(child)).length
+
+  if (checkCount === 0) {
+    return null
+  }
+
+  if (!isAimdCheckElement(meaningfulChildren[0])) {
+    return null
+  }
+
+  const nextNodes: Array<Element | HastText> = []
+  let currentCheck: Element | null = null
+  let currentTail: Array<Element | HastText> = []
+
+  const flushCurrentCheck = () => {
+    if (!currentCheck) {
+      return
+    }
+    nextNodes.push(createGroupedCheckElement(currentCheck, currentTail))
+    currentCheck = null
+    currentTail = []
+  }
+
+  for (const child of paragraphChildren) {
+    if (isAimdCheckElement(child)) {
+      flushCurrentCheck()
+      currentCheck = child
+      continue
+    }
+
+    if (currentCheck) {
+      currentTail.push(child)
+    }
+  }
+
+  flushCurrentCheck()
+  return nextNodes.length > 0 ? nextNodes : null
+}
+
+function groupCheckBodiesInParent(parent: HastRoot | Element): void {
+  const originalChildren = (parent.children || []) as Array<Element | HastText>
+  const nextChildren: Array<Element | HastText> = []
+
+  for (let index = 0; index < originalChildren.length; index += 1) {
+    const currentNode = originalChildren[index]
+
+    if (typeof currentNode === "object" && currentNode !== null && (currentNode as Element).type === "element") {
+      groupCheckBodiesInParent(currentNode as Element)
+    }
+
+    if (
+      typeof currentNode !== "object"
+      || currentNode === null
+      || (currentNode as Element).type !== "element"
+      || (currentNode as Element).tagName !== "p"
+    ) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    const paragraph = currentNode as Element
+    const splitNodes = splitCheckParagraph(paragraph)
+    if (!splitNodes) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    nextChildren.push(...splitNodes)
+  }
+
+  parent.children = nextChildren
+}
+
+function groupCheckBodies(tree: HastRoot): void {
+  groupCheckBodiesInParent(tree)
 }
 
 function groupStepBodiesInParent(parent: HastRoot | Element): void {
@@ -1199,6 +1317,9 @@ export async function renderToHtml(
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
   }
+  if (options.groupCheckBodies) {
+    groupCheckBodies(hastTree)
+  }
   await highlightVisibleAssigners(hastTree, options)
   const html = toHtml(hastTree, { allowDangerousHtml: true })
 
@@ -1225,6 +1346,9 @@ export async function renderToVue(
   liftBlockVarElements(hastTree, options.blockVarTypes)
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
+  }
+  if (options.groupCheckBodies) {
+    groupCheckBodies(hastTree)
   }
   await highlightVisibleAssigners(hastTree, options)
   const nodes = renderToVNodes(hastTree, options)
