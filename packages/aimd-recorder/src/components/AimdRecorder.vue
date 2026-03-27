@@ -596,6 +596,52 @@ function normalizeStepBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
   return [groupedChildren as VNodeChild]
 }
 
+function isGroupedCheckBodyNode(node: unknown): node is VNode {
+  if (!node || typeof node !== "object" || !("props" in node)) {
+    return false
+  }
+
+  const props = (node as VNode).props as Record<string, unknown> | null | undefined
+  if (!props) {
+    return false
+  }
+
+  const classValue = props.class
+  const classNames = Array.isArray(classValue)
+    ? classValue
+    : typeof classValue === "string"
+      ? [classValue]
+      : []
+
+  return props["data-aimd-check-body"] === "true"
+    || props["data-aimd-check-body"] === true
+    || props.dataAimdCheckBody === "true"
+    || props.dataAimdCheckBody === true
+    || classNames.some((className) => typeof className === "string" && className.includes("aimd-check-body"))
+}
+
+function normalizeCheckBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
+  if (bodyNodes.length === 0) {
+    return []
+  }
+
+  const groupedBody = bodyNodes.find((child) => isGroupedCheckBodyNode(child))
+  if (!groupedBody || typeof groupedBody !== "object" || groupedBody === null) {
+    return bodyNodes
+  }
+
+  const groupedChildren = (groupedBody as VNode).children
+  if (Array.isArray(groupedChildren)) {
+    return groupedChildren as VNodeChild[]
+  }
+
+  if (groupedChildren == null) {
+    return []
+  }
+
+  return [groupedChildren as VNodeChild]
+}
+
 function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNode {
   const id = node.id
   const fieldKey = `step:${id}`
@@ -665,7 +711,7 @@ function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNo
   return applyFieldAdapter("step", fieldKey, node, state, vnode)
 }
 
-function renderInlineCheck(node: AimdCheckNode): VNode {
+function renderInlineCheck(node: AimdCheckNode, bodyNodes: VNodeChild[] = []): VNode {
   const id = node.id
   const fieldKey = `check:${id}`
   if (!(id in localRecord.check)) {
@@ -676,10 +722,12 @@ function renderInlineCheck(node: AimdCheckNode): VNode {
   const state = localRecord.check[id]
   const disabled = fieldRendering.isFieldDisabled(fieldKey)
   const extraClasses = fieldRendering.fieldStateClasses(fieldKey)
+  const normalizedBodyNodes = normalizeCheckBodyNodes(bodyNodes)
 
   const vnode = h(AimdCheckField, {
     node,
     state,
+    bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
     messages: resolvedMessages.value,
@@ -752,6 +800,7 @@ async function rebuildInlineNodes(
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     groupStepBodies: true,
+    groupCheckBodies: true,
     context: {
       mode: "edit",
       readonly: props.readonly,
@@ -762,7 +811,7 @@ async function rebuildInlineNodes(
       var: node => renderInlineVar(node as AimdVarNode),
       var_table: node => renderInlineVarTable(node as AimdVarTableNode),
       step: (node, _ctx, children) => renderInlineStep(node as AimdStepNode, children),
-      check: node => renderInlineCheck(node as AimdCheckNode),
+      check: (node, _ctx, children) => renderInlineCheck(node as AimdCheckNode, children),
       quiz: node => renderInlineQuiz(node as AimdQuizNode),
     },
   })
@@ -1154,6 +1203,76 @@ defineExpose({
 /* ── Step / check ───────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) { gap: 8px; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(100%, 1040px);
+  max-width: 100%;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #d8dfe8;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__main) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__input--annotation) {
+  min-width: 0;
+  width: 100%;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap) {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__toggle) {
+  gap: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__key) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f5f77;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body) {
+  min-width: 0;
+  color: var(--rec-text);
+  font-size: 14px;
+  line-height: 1.65;
+  transition: color 0.2s ease, opacity 0.2s ease, text-decoration-color 0.2s ease;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body p) {
+  margin: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body--checked) {
+  color: #667085;
+  opacity: 0.92;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(102, 112, 133, 0.55);
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap > .aimd-field__name),
+.aimd-protocol-recorder__content :deep(.aimd-check-field__body) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__banner) {
+  padding: 8px 10px;
+  border: 1px solid rgba(22, 101, 52, 0.16);
+  border-radius: 10px;
+  background: rgba(236, 253, 245, 0.92);
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step) {
   display: flex;
   flex-direction: column;
@@ -1366,6 +1485,9 @@ defineExpose({
   }
   .aimd-protocol-recorder__content :deep(.aimd-step-field__main-actions) {
     justify-content: flex-start;
+  }
+  .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check) {
+    gap: 10px;
   }
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input.aimd-rec-inline__input--stacked),

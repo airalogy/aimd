@@ -377,6 +377,7 @@ export const AimdCheckField = defineComponent({
   props: {
     node: { type: Object as PropType<AimdCheckNode>, required: true },
     state: { type: Object as PropType<AimdCheckRecordItem>, required: true },
+    bodyNodes: { type: Array as PropType<VNodeChild[]>, default: () => [] },
     disabled: { type: Boolean, default: false },
     extraClasses: { type: Array as PropType<string[]>, default: () => [] },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },
@@ -389,28 +390,46 @@ export const AimdCheckField = defineComponent({
       const state = props.state
       const disabled = props.disabled
       const extraClasses = props.extraClasses
+      const hasBody = props.bodyNodes.length > 0
+      const showCheckedMessage = Boolean(state.checked && node.checked_message)
+      const fallbackLabel = node.label || id
 
-      return h("span", {
+      return h("div", {
         class: ["aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check", ...extraClasses],
       }, [
-        h("label", { class: "aimd-rec-inline__check-wrap" }, [
-          h("input", {
-            "data-rec-focus-key": `check:${id}:checked`,
-            type: "checkbox",
-            class: "aimd-checkbox",
-            disabled,
-            checked: Boolean(state.checked),
-            onChange: (event: Event) => {
-              emit("check-change", {
-                id,
-                value: (event.target as HTMLInputElement).checked,
-              })
+        h("div", { class: "aimd-check-field__main" }, [
+          h("label", { class: "aimd-rec-inline__check-wrap aimd-check-field__toggle" }, [
+            h("input", {
+              "data-rec-focus-key": `check:${id}:checked`,
+              type: "checkbox",
+              class: "aimd-checkbox",
+              disabled,
+              checked: Boolean(state.checked),
+              onChange: (event: Event) => {
+                emit("check-change", {
+                  id,
+                  value: (event.target as HTMLInputElement).checked,
+                })
             },
             onBlur: () => emit("blur", { id }),
           }),
           h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", props.messages)),
-          h("span", { class: "aimd-field__name" }, node.label || id),
+          !hasBody
+            ? h("span", { class: "aimd-field__name aimd-check-field__key" }, fallbackLabel)
+            : null,
         ]),
+          hasBody
+            ? h("div", {
+              class: [
+                "aimd-check-field__body",
+                state.checked ? "aimd-check-field__body--checked" : "",
+              ],
+            }, props.bodyNodes)
+            : null,
+        ]),
+        showCheckedMessage
+          ? h("div", { class: "aimd-check-field__banner" }, node.checked_message)
+          : null,
         h("input", {
           "data-rec-focus-key": `check:${id}:annotation`,
           class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",

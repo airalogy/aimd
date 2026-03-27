@@ -52,6 +52,7 @@ export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nO
   assignerVisibility?: AimdAssignerVisibility
   aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
   groupStepBodies?: boolean
+  groupCheckBodies?: boolean
   blockVarTypes?: string[]
 }
 
@@ -138,6 +139,13 @@ function isAimdStepElement(node: unknown): node is Element {
     && getPropertyValue((node as Element).properties, "data-aimd-type") === "step"
 }
 
+function isAimdCheckElement(node: unknown): node is Element {
+  return typeof node === "object"
+    && node !== null
+    && (node as Element).type === "element"
+    && getPropertyValue((node as Element).properties, "data-aimd-type") === "check"
+}
+
 function isHeadingOrDivider(node: unknown): boolean {
   if (typeof node !== "object" || node === null || (node as Element).type !== "element") {
     return false
@@ -172,6 +180,78 @@ function unwrapStandaloneContainerStep(node: unknown): Element | null {
 
 function cloneNodeForStepBody<T extends Element | HastText>(node: T): T {
   return JSON.parse(JSON.stringify(node)) as T
+}
+
+function groupCheckBodiesInParent(parent: HastRoot | Element): void {
+  const originalChildren = (parent.children || []) as Array<Element | HastText>
+  const nextChildren: Array<Element | HastText> = []
+
+  for (let index = 0; index < originalChildren.length; index += 1) {
+    const currentNode = originalChildren[index]
+
+    if (typeof currentNode === "object" && currentNode !== null && (currentNode as Element).type === "element") {
+      groupCheckBodiesInParent(currentNode as Element)
+    }
+
+    if (
+      typeof currentNode !== "object"
+      || currentNode === null
+      || (currentNode as Element).type !== "element"
+      || (currentNode as Element).tagName !== "p"
+    ) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    const paragraph = currentNode as Element
+    const paragraphChildren = (paragraph.children || []) as Array<Element | HastText>
+    const meaningfulChildren = paragraphChildren.filter((child) => !isWhitespaceTextNode(child))
+
+    if (meaningfulChildren.length < 2 || !isAimdCheckElement(meaningfulChildren[0])) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    const checkElement = meaningfulChildren[0] as Element
+    const checkIndex = paragraphChildren.indexOf(checkElement)
+    if (checkIndex < 0) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    const tailChildren = paragraphChildren
+      .slice(checkIndex + 1)
+      .map((child) => cloneNodeForStepBody(child as Element | HastText))
+      .filter((child) => !isWhitespaceTextNode(child))
+
+    if (tailChildren.length === 0) {
+      nextChildren.push(currentNode)
+      continue
+    }
+
+    checkElement.properties = {
+      ...(checkElement.properties || {}),
+      "data-aimd-check-container": "true",
+      "data-aimd-strip-default-children": "true",
+    }
+    checkElement.children = [{
+      type: "element",
+      tagName: "div",
+      properties: {
+        className: ["aimd-check-body"],
+        "data-aimd-check-body": "true",
+      },
+      children: tailChildren,
+    }]
+
+    nextChildren.push(checkElement)
+  }
+
+  parent.children = nextChildren
+}
+
+function groupCheckBodies(tree: HastRoot): void {
+  groupCheckBodiesInParent(tree)
 }
 
 function groupStepBodiesInParent(parent: HastRoot | Element): void {
@@ -1199,6 +1279,9 @@ export async function renderToHtml(
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
   }
+  if (options.groupCheckBodies) {
+    groupCheckBodies(hastTree)
+  }
   await highlightVisibleAssigners(hastTree, options)
   const html = toHtml(hastTree, { allowDangerousHtml: true })
 
@@ -1225,6 +1308,9 @@ export async function renderToVue(
   liftBlockVarElements(hastTree, options.blockVarTypes)
   if (options.groupStepBodies) {
     groupStepBodies(hastTree)
+  }
+  if (options.groupCheckBodies) {
+    groupCheckBodies(hastTree)
   }
   await highlightVisibleAssigners(hastTree, options)
   const nodes = renderToVNodes(hastTree, options)
