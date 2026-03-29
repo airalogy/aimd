@@ -1,3 +1,5 @@
+import { resolveAimdTheme, type AimdThemeInput } from '@airalogy/aimd-theme'
+
 export type CodeBlockTone = "neutral" | "client" | "server"
 
 export interface CodeBlockPresentation {
@@ -146,28 +148,17 @@ export function extractAssignerFieldSummary(source: string): {
   }
 }
 
-export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeBlockPresentation {
-  const accent = tone === "client"
-    ? "#0f766e"
-    : tone === "server"
-      ? "#b45309"
-      : "#475467"
-  const accentSoft = tone === "client"
-    ? "rgba(15, 118, 110, 0.10)"
-    : tone === "server"
-      ? "rgba(180, 83, 9, 0.10)"
-      : "rgba(71, 84, 103, 0.08)"
-  const border = tone === "client"
-    ? "rgba(15, 118, 110, 0.18)"
-    : tone === "server"
-      ? "rgba(180, 83, 9, 0.18)"
-      : "rgba(148, 163, 184, 0.22)"
-  const rule = "rgba(148, 163, 184, 0.16)"
-  const surface = tone === "neutral"
-    ? "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)"
-    : tone === "client"
-      ? "linear-gradient(180deg, rgba(248,252,251,0.98) 0%, rgba(241,248,247,0.98) 100%)"
-      : "linear-gradient(180deg, rgba(255,251,245,0.98) 0%, rgba(250,247,242,0.98) 100%)"
+export function getCodeBlockPresentation(
+  tone: CodeBlockTone = "neutral",
+  themeInput?: AimdThemeInput,
+): CodeBlockPresentation {
+  const theme = resolveAimdTheme(themeInput)
+  const toneTokens = theme.codeBlock[tone]
+  const accent = toneTokens.accent
+  const accentSoft = toneTokens.accentSoft
+  const border = toneTokens.border
+  const rule = theme.codeBlock.rule
+  const surface = toneTokens.surface
 
   return {
     containerStyle: buildInlineStyle({
@@ -176,7 +167,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       "border-radius": "18px",
       overflow: "hidden",
       background: surface,
-      "box-shadow": "0 14px 34px rgba(15, 23, 42, 0.06)",
+      "box-shadow": theme.codeBlock.shadow,
     }),
     headerStyle: buildInlineStyle({
       display: "flex",
@@ -184,7 +175,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       "justify-content": "space-between",
       gap: "0.85rem",
       padding: "0.85rem 1rem 0.8rem",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.72) 100%)",
+      background: theme.codeBlock.headerSurface,
       "border-bottom": `1px solid ${rule}`,
     }),
     headerMainStyle: buildInlineStyle({
@@ -194,14 +185,14 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       "min-width": "0",
     }),
     titleStyle: buildInlineStyle({
-      color: "#0f172a",
+      color: theme.codeBlock.title,
       "font-size": "0.95rem",
       "font-weight": "700",
       "line-height": "1.3",
       "letter-spacing": "-0.01em",
     }),
     metaStyle: buildInlineStyle({
-      color: "#667085",
+      color: theme.codeBlock.meta,
       "font-size": "0.76rem",
       "font-weight": "600",
       "line-height": "1.4",
@@ -230,7 +221,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
     }),
     preShellStyle: buildInlineStyle({
       overflow: "auto",
-      background: "rgba(248, 250, 252, 0.72)",
+      background: theme.codeBlock.shell,
     }),
     preStyle: buildInlineStyle({
       margin: "0",
@@ -241,7 +232,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
     }),
     codeStyle: buildInlineStyle({
       display: "block",
-      color: "#0f172a",
+      color: theme.codeBlock.text,
       background: "transparent",
       "font-family": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
       "font-size": "0.88rem",
@@ -255,7 +246,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       gap: "0.55rem",
       "flex-wrap": "wrap",
       padding: "0 1rem 0.8rem",
-      background: "linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgba(248,250,252,0.20) 100%)",
+      background: theme.codeBlock.flowSurface,
       "border-bottom": `1px solid ${rule}`,
     }),
     flowGroupStyle: buildInlineStyle({
@@ -266,7 +257,7 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       "min-width": "0",
     }),
     flowLabelStyle: buildInlineStyle({
-      color: "#667085",
+      color: theme.codeBlock.meta,
       "font-size": "0.72rem",
       "font-weight": "700",
       "letter-spacing": "0.08em",
@@ -284,9 +275,9 @@ export function getCodeBlockPresentation(tone: CodeBlockTone = "neutral"): CodeB
       "align-items": "center",
       padding: "0.18rem 0.45rem",
       "border-radius": "999px",
-      background: "rgba(255,255,255,0.88)",
+      background: theme.codeBlock.chipSurface,
       border: `1px solid ${border}`,
-      color: "#0f172a",
+      color: theme.codeBlock.chipText,
       "font-size": "0.76rem",
       "font-weight": "600",
       "line-height": "1.25",

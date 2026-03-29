@@ -212,11 +212,11 @@ watch(() => props.language, async (language) => {
   position: relative;
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(144, 202, 249, 0.56);
+  border: 1px solid color-mix(in srgb, var(--aimd-state-var-border) 56%, transparent);
   border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
+  background: linear-gradient(180deg, var(--aimd-surface-panel) 0%, var(--aimd-surface-editor) 100%);
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--aimd-color-text-strong) 7%, transparent);
 }
 
 .aimd-code-field__header {
@@ -225,8 +225,8 @@ watch(() => props.language, async (language) => {
   justify-content: space-between;
   gap: 14px;
   padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 251, 255, 0.82) 100%);
+  border-bottom: 1px solid var(--aimd-code-rule);
+  background: linear-gradient(180deg, var(--aimd-surface-overlay) 0%, color-mix(in srgb, var(--aimd-surface-editor) 82%, transparent) 100%);
 }
 
 .aimd-code-field__meta {
@@ -237,7 +237,7 @@ watch(() => props.language, async (language) => {
 }
 
 .aimd-code-field__title {
-  color: #0f172a;
+  color: var(--aimd-code-title);
   font-size: 14px;
   font-weight: 700;
   line-height: 1.35;
@@ -250,7 +250,7 @@ watch(() => props.language, async (language) => {
 }
 
 .aimd-code-field__submeta-item {
-  color: #667085;
+  color: var(--aimd-color-text-muted);
   font-size: 11px;
   font-weight: 600;
   line-height: 1.35;
@@ -277,9 +277,9 @@ watch(() => props.language, async (language) => {
   align-self: flex-start;
   padding: 4px 9px;
   border-radius: 999px;
-  border: 1px solid rgba(83, 135, 242, 0.18);
-  background: rgba(83, 135, 242, 0.08);
-  color: #1d4ed8;
+  border: 1px solid var(--aimd-code-neutral-border);
+  background: var(--aimd-code-neutral-accent-soft);
+  color: var(--aimd-code-neutral-accent);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -289,7 +289,7 @@ watch(() => props.language, async (language) => {
 
 .aimd-code-field__surface {
   position: relative;
-  background: rgba(248, 250, 252, 0.82);
+  background: color-mix(in srgb, var(--aimd-surface-panel-subtle) 82%, transparent);
 }
 
 .aimd-code-field__loading,
@@ -306,9 +306,9 @@ watch(() => props.language, async (language) => {
   z-index: 1;
   align-items: center;
   justify-content: center;
-  color: #667085;
+  color: var(--aimd-color-text-muted);
   font-size: 13px;
-  background: linear-gradient(180deg, rgba(252, 253, 255, 0.94) 0%, rgba(247, 251, 255, 0.94) 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--aimd-surface-panel) 94%, transparent) 0%, color-mix(in srgb, var(--aimd-surface-editor) 94%, transparent) 100%);
 }
 
 .aimd-code-field__editor {
@@ -323,7 +323,7 @@ watch(() => props.language, async (language) => {
 
 .aimd-code-field__editor :deep(.margin),
 .aimd-code-field__editor :deep(.monaco-editor .margin) {
-  background: rgba(241, 245, 249, 0.92);
+  background: color-mix(in srgb, var(--aimd-surface-panel-subtle) 92%, transparent);
 }
 
 .aimd-code-field__fallback {
@@ -335,7 +335,7 @@ watch(() => props.language, async (language) => {
   outline: none;
   box-sizing: border-box;
   background: transparent;
-  color: #101828;
+  color: var(--aimd-color-text-strong);
   font-size: 13px;
   line-height: 1.6;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -346,7 +346,7 @@ watch(() => props.language, async (language) => {
 }
 
 .aimd-code-field--disabled .aimd-code-field__fallback {
-  background: rgba(248, 251, 255, 0.7);
+  background: color-mix(in srgb, var(--aimd-surface-editor) 70%, transparent);
 }
 
 .aimd-code-field--disabled .aimd-code-field__language-badge {

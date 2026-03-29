@@ -20,6 +20,8 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - Input handling for `choice`, `blank`, and `open` quiz types.
 - In recorder/edit mode, `ref_var` references display current var values as readonly inline content when available.
 - Frontend-only `assigner runtime=client` blocks run locally for pure var computations.
+- Optional recorder-level `theme` prop lets host apps apply shared AIMD semantic tokens through one scoped root.
+- Optional `presentationProfile` prop lets hosts control step detail disclosure, assigner visibility, outline chrome, id surfacing, and density from one shared strategy object.
 
 ## Example
 
@@ -29,6 +31,8 @@ import { ref } from "vue"
 import {
   AimdRecorder,
   createEmptyProtocolRecordData,
+  defaultAimdPresentationProfile,
+  defaultAimdLightTheme,
   type AimdProtocolRecordData,
 } from "@airalogy/aimd-recorder"
 import "@airalogy/aimd-recorder/styles"
@@ -49,6 +53,8 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
     v-model="record"
     :content="content"
     locale="en-US"
+    :presentation-profile="{ ...defaultAimdPresentationProfile, assigners: 'collapsed' }"
+    :theme="defaultAimdLightTheme"
     current-user-name="Alice"
   />
 </template>
@@ -93,6 +99,35 @@ For `mode: "manual"`, `AimdRecorder` exposes explicit trigger methods through th
 ```ts
 recorderRef.value?.runClientAssigner("calculate_total_liquid_ml")
 recorderRef.value?.runManualClientAssigners()
+```
+
+Theme example:
+
+```ts
+import {
+  createAimdThemeCssVars,
+  defaultAimdDarkTheme,
+} from "@airalogy/aimd-recorder"
+```
+
+```vue
+<AimdRecorder :content="content" :theme="defaultAimdDarkTheme" />
+```
+
+Presentation profile example:
+
+```vue
+<AimdRecorder
+  :content="content"
+  :presentation-profile="{
+    assigners: 'collapsed',
+    stepDetails: 'hidden',
+    outline: 'compact',
+    ids: 'show',
+    labels: 'prefer_label',
+    density: 'compact',
+  }"
+/>
 ```
 
 ## Locale

@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import {
+  isCompactPresentation,
+  resolveAimdPresentationProfile,
+  resolvePresentationAssignerVisibility,
+  resolvePresentationStepDetails,
+  type AimdPresentationProfileInput,
+} from "@airalogy/aimd-presentation"
+import { createCssVars, resolveAimdTheme, type AimdThemeInput } from "@airalogy/aimd-theme"
 import { Text, computed, defineComponent, h, nextTick, onBeforeUnmount, reactive, ref, watch, type PropType, type VNode, type VNodeChild } from "vue"
 import type {
   AimdCheckNode,
@@ -87,6 +95,8 @@ const props = withDefaults(defineProps<{
   now?: Date | string | number
   locale?: string
   messages?: AimdRecorderMessagesInput
+  presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
   /** Controls whether step timer / note details stay expanded */
   stepDetailDisplay?: AimdStepDetailDisplay
 
@@ -141,6 +151,8 @@ const props = withDefaults(defineProps<{
   now: undefined,
   locale: undefined,
   messages: undefined,
+  presentationProfile: undefined,
+  theme: undefined,
   stepDetailDisplay: "auto",
   fieldMeta: undefined,
   fieldState: undefined,
@@ -199,6 +211,20 @@ let protocolTimerTicker: ReturnType<typeof setInterval> | null = null
 const resolvedLocale = computed(() => resolveAimdRecorderLocale(props.locale))
 const resolvedMessages = computed(() => createAimdRecorderMessages(resolvedLocale.value, props.messages))
 const resolvedTypePlugins = computed(() => createAimdTypePlugins(props.typePlugins))
+const resolvedPresentationProfile = computed(() => resolveAimdPresentationProfile(props.presentationProfile, {
+  assigners: "collapsed",
+}))
+const resolvedTheme = computed(() => resolveAimdTheme(props.theme))
+const themeVars = computed(() => createCssVars(resolvedTheme.value))
+const isCompactDensity = computed(() => isCompactPresentation(resolvedPresentationProfile.value))
+const effectiveStepDetailDisplay = computed<AimdStepDetailDisplay>(() => {
+  if (props.stepDetailDisplay !== "auto") {
+    return props.stepDetailDisplay
+  }
+
+  const profileStepDetails = resolvePresentationStepDetails(resolvedPresentationProfile.value)
+  return profileStepDetails === "hidden" ? "hidden" : profileStepDetails === "always" ? "always" : "auto"
+})
 
 const InlineNodesOutlet = defineComponent({
   name: "AimdRecorderInlineNodesOutlet",
@@ -663,9 +689,11 @@ function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNo
     bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
-    detailDisplay: props.stepDetailDisplay,
+    detailDisplay: effectiveStepDetailDisplay.value,
     locale: resolvedLocale.value,
     messages: resolvedMessages.value,
+    presentationProfile: resolvedPresentationProfile.value,
+    theme: resolvedTheme.value,
     onCheckChange: (payload: { id: string, value: boolean }) => {
       const wasRunning = isStepTimerRunning(state)
       setStepChecked(state, payload.value, Date.now())
@@ -733,6 +761,7 @@ function renderInlineCheck(node: AimdCheckNode, bodyNodes: VNodeChild[] = []): V
     disabled,
     extraClasses,
     messages: resolvedMessages.value,
+    presentationProfile: resolvedPresentationProfile.value,
     onCheckChange: (payload: { id: string, value: boolean }) => {
       state.checked = payload.value
       markRecordChanged()
@@ -860,12 +889,18 @@ async function rebuildInlineNodes(
 ) {
   recordInitializedDuringRender = false
   const codeBlockHighlighter = await getDefaultCodeBlockHighlighter()
-  const codeBlockRenderer = createCodeBlockRenderer(codeBlockHighlighter, "github-light")
+  const codeBlockRenderer = createCodeBlockRenderer(
+    codeBlockHighlighter,
+    resolvedTheme.value.mode === "dark" ? "github-dark" : "github-light",
+    resolvedTheme.value,
+  )
   const rendered = await renderToVue(props.content || "", {
     locale: resolvedLocale.value,
     groupStepBodies: true,
     groupCheckBodies: true,
-    assignerVisibility: "collapsed",
+    assignerVisibility: resolvePresentationAssignerVisibility(resolvedPresentationProfile.value, {
+      assigners: "collapsed",
+    }),
     context: {
       mode: "edit",
       readonly: props.readonly,
@@ -1182,7 +1217,13 @@ defineExpose({
 </script>
 
 <template>
-  <div class="aimd-protocol-recorder">
+  <div
+    class="aimd-protocol-recorder"
+    :data-aimd-theme="resolvedTheme.mode"
+    :data-aimd-density="isCompactDensity ? 'compact' : 'comfortable'"
+    :data-aimd-outline="resolvedPresentationProfile.outline"
+    :style="themeVars"
+  >
     <div v-if="renderError" class="aimd-protocol-recorder__error">{{ renderError }}</div>
 
     <template v-else>
@@ -1212,23 +1253,19 @@ defineExpose({
 
 <style scoped>
 .aimd-protocol-recorder {
-  --rec-text: #253041;
-  --rec-muted: #667085;
-  --rec-border: #e3e8ef;
-  --rec-focus: #2f6fed;
-  --rec-error: #e03050;
   --rec-var-control-height: 30px;
   --rec-var-single-line-height: 1.2;
   --rec-var-text-wrap-line-height: 1.35;
+  color: var(--aimd-color-text);
 }
 
 .aimd-protocol-recorder__error {
   margin-bottom: 12px;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #f4b3c1;
-  background: #fff3f6;
-  color: #b4234d;
+  border: 1px solid var(--aimd-state-danger-border);
+  background: var(--aimd-state-danger-bg);
+  color: var(--aimd-state-danger-text);
   font-size: 13px;
 }
 
@@ -1244,25 +1281,25 @@ defineExpose({
   align-items: center;
   min-height: 30px;
   padding: 0 12px;
-  border: 1px solid #d5dde8;
+  border: 1px solid var(--aimd-border-default);
   border-radius: 999px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--aimd-surface-panel-subtle);
+  color: var(--aimd-color-text);
   font-size: 12px;
   font-weight: 600;
 }
 
 .aimd-protocol-recorder__timing-pill--estimate {
-  border-color: #f1d39a;
-  background: #fff8ea;
-  color: #9a5800;
+  border-color: var(--aimd-state-warning-border);
+  background: var(--aimd-state-warning-bg);
+  color: var(--aimd-state-warning-text);
 }
 
 .aimd-protocol-recorder__content {
   padding: 18px 20px;
   border: 1px solid var(--rec-border);
   border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+  background: linear-gradient(180deg, var(--aimd-surface-panel) 0%, var(--aimd-surface-panel-raised) 100%);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   color: var(--rec-text);
   line-height: 1.7;
@@ -1853,6 +1890,20 @@ defineExpose({
   gap: 8px;
   min-width: 0;
 }
+.aimd-protocol-recorder__content :deep(.aimd-field__meta-id) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--aimd-border-default);
+  background: var(--aimd-surface-panel-subtle);
+  color: var(--rec-muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__step-num) { font-weight: 600; color: #9a5800; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step > .aimd-step-field__main .aimd-rec-inline__check-wrap > .aimd-field__name) {
   font-size: 1.02rem;
@@ -2015,6 +2066,20 @@ defineExpose({
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input.aimd-rec-inline__input--stacked),
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__textarea.aimd-rec-inline__textarea--stacked) { font-family: inherit; outline: none; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--compact) {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--compact.aimd-rec-inline--step) {
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-radius: 14px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--compact.aimd-rec-inline--check) {
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline-table__table td) {
   vertical-align: middle;
   transition:

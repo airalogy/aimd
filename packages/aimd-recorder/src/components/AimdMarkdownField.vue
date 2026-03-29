@@ -101,9 +101,9 @@ watch(() => props.modelValue, (value) => {
 .aimd-markdown-field__editor-shell {
   width: 100%;
   min-width: 0;
-  border: 1px solid #d9e6fb;
+  border: 1px solid var(--aimd-border-default);
   border-radius: 10px;
-  background: #fff;
+  background: var(--aimd-surface-panel);
   overflow: hidden;
 }
 
@@ -115,8 +115,8 @@ watch(() => props.modelValue, (value) => {
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor-toolbar) {
-  border-bottom-color: #d9e6fb;
-  background: #fff;
+  border-bottom-color: var(--aimd-border-default);
+  background: var(--aimd-surface-panel);
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor-panel) {
@@ -128,7 +128,7 @@ watch(() => props.modelValue, (value) => {
   height: auto !important;
   min-height: 360px;
   overflow-y: visible !important;
-  background: #fff;
+  background: var(--aimd-surface-panel);
   border-radius: 0 0 8px 8px;
 }
 
@@ -152,7 +152,7 @@ watch(() => props.modelValue, (value) => {
 
 .aimd-markdown-field__editor-shell :deep(.milkdown-editor-content--readonly) {
   cursor: default;
-  background: #f8fbff;
+  background: var(--aimd-surface-panel-subtle);
 }
 
 .aimd-markdown-field--disabled {

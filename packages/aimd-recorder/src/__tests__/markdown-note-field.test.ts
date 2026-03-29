@@ -59,7 +59,11 @@ describe('AimdMarkdownNoteField', () => {
     await flushUi()
 
     expect(getDefaultCodeBlockHighlighterMock).toHaveBeenCalled()
-    expect(createCodeBlockRendererMock).toHaveBeenCalledWith('mock-highlighter', 'github-light')
+    expect(createCodeBlockRendererMock).toHaveBeenCalledWith(
+      'mock-highlighter',
+      'github-light',
+      expect.objectContaining({ mode: 'light' }),
+    )
     expect(renderToVueMock).toHaveBeenCalledWith('**keep cold**', {
       locale: 'en-US',
       elementRenderers: {

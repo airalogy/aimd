@@ -4,6 +4,17 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-03-29
+
+### Added
+
+- Added semantic syntax theme derivation through `@airalogy/aimd-theme`, including `createAimdTheme(...)` and exported shared scope mappings for AIMD Monaco/Shiki integrations.
+
+### Changed
+
+- Replaced the editor-local hardcoded AIMD token palette with syntax colors derived from the shared semantic theme core so editor integrations stay aligned with recorder and renderer theming.
+- Exported editor-side scope mappings that can be paired with `@airalogy/aimd-presentation` / `@airalogy/aimd-theme` host configuration flows, keeping syntax theming separate from presentation-policy decisions.
+
 ## [1.6.1] - 2026-03-21
 
 ### Fixed

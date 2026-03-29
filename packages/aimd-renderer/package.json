@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-renderer",
   "type": "module",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "AIMD rendering engines for HTML and Vue",
   "keywords": [
     "aimd",
@@ -46,6 +46,8 @@
   },
   "dependencies": {
     "@airalogy/aimd-core": "workspace:*",
+    "@airalogy/aimd-presentation": "workspace:*",
+    "@airalogy/aimd-theme": "workspace:*",
     "@types/hast": "^3.0.4",
     "hast-util-to-html": "^9.0.5",
     "katex": "catalog:",

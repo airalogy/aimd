@@ -291,6 +291,24 @@ describe('renderToHtmlSync', () => {
     expect(html).toContain('<li><p>Experiment summary: </p><div class="aimd-field aimd-field--var aimd-block-var"')
     expect(html).not.toContain('<li>Experiment summary: <span')
   })
+
+  it('can derive visible assigner previews from the presentation profile', () => {
+    const { html } = renderToHtmlSync(
+      [
+        '```assigner runtime=client',
+        'assigner({ mode: "auto", dependent_fields: ["water_ml"], assigned_fields: ["total_ml"] }, function calc({ water_ml }) { return { total_ml: water_ml } })',
+        '```',
+      ].join('\n'),
+      {
+        presentationProfile: {
+          assigners: 'collapsed',
+        },
+      },
+    )
+
+    expect(html).toContain('aimd-assigner-preview')
+    expect(html).toContain('Client assigner')
+  })
 })
 
 describe('renderToVue', () => {
@@ -313,7 +331,7 @@ describe('renderToVue', () => {
     const header = card.children[0] as any
     const leftCluster = header.children[0] as any
     const contentStack = leftCluster.children[1] as any
-    expect(contentStack.children[1].children).toBe('Verify Output')
+    expect(contentStack.children[1].children[0]).toBe('Verify Output')
     expect(contentStack.children[2].children).toBe('Cross-check')
     const body = card.children[1] as any
     expect(body.props.class).toContain('aimd-step-card__body')
@@ -341,6 +359,34 @@ describe('renderToVue', () => {
     expect(card.props['data-test-check-id']).toBe('measurement_complete')
     expect(collectVNodeText(card)).toContain('确认所有孔位的量子共振值已记录完毕')
     expect(collectVNodeText(card)).not.toContain('measurement_complete')
+  })
+
+  it('lets the step-card renderer hide outline chrome and expose the raw id via presentation profile', async () => {
+    const { nodes } = await renderToVue(
+      "{{step|verify_output, title='Verify Output'}}\n\nBody content.",
+      {
+        groupStepBodies: true,
+        aimdRenderers: {
+          step: createStepCardRenderer({
+            presentationProfile: {
+              outline: 'hidden',
+              ids: 'show',
+              labels: 'prefer_label',
+            },
+          }),
+        },
+      },
+    )
+
+    const card = findVNodeByType(nodes[0], 'article') as any
+    const header = card.children[0] as any
+    const leftCluster = header.children[0] as any
+    const contentStack = leftCluster.children[1] as any
+
+    expect(leftCluster.children[0]).toBeNull()
+    expect(contentStack.children[0]).toBeNull()
+    expect(collectVNodeText(contentStack.children[1])).toContain('Verify Output')
+    expect(collectVNodeText(contentStack.children[1])).toContain('verify_output')
   })
 
   it('keeps consecutive inline checks as separate siblings when they appear in one markdown paragraph', async () => {

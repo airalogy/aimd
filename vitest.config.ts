@@ -3,6 +3,16 @@ import { defineConfig } from 'vitest/config'
 
 const projects = [
   {
+    name: 'aimd-theme',
+    root: resolve(__dirname, 'packages/aimd-theme'),
+    extends: resolve(__dirname, 'packages/aimd-theme/vitest.config.ts'),
+  },
+  {
+    name: 'aimd-presentation',
+    root: resolve(__dirname, 'packages/aimd-presentation'),
+    extends: resolve(__dirname, 'packages/aimd-presentation/vitest.config.ts'),
+  },
+  {
     name: 'aimd-core',
     root: resolve(__dirname, 'packages/aimd-core'),
     extends: resolve(__dirname, 'packages/aimd-core/vitest.config.ts'),

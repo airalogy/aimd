@@ -4,6 +4,18 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-03-29
+
+### Added
+
+- Added recorder-level `theme` support backed by `@airalogy/aimd-theme`, including shared CSS variable generation and re-exported default AIMD light/dark themes.
+
+### Changed
+
+- Moved recorder root surfaces, field tags, markdown shells, and code-field chrome onto semantic theme tokens so host apps can theme recorder UI from one scoped root instead of patching hardcoded colors piecemeal.
+- Routed recorder-rendered code blocks and markdown note previews through the shared semantic theme so code presentation stays aligned with the rest of the recorder surface.
+- Added shared `presentationProfile` handling so recorder hosts can formally control assigner visibility, step detail disclosure, outline chrome, technical id surfacing, label preference, and compact density from one strategy object.
+
 ## [1.11.1] - 2026-03-21
 
 ### Fixed

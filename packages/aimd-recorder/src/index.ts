@@ -21,6 +21,23 @@ export {
   DEFAULT_AIMD_RECORDER_LOCALE,
   resolveAimdRecorderLocale,
 } from './locales'
+export {
+  defaultAimdPresentationProfile,
+  isCompactPresentation as isCompactAimdPresentation,
+  resolveAimdPresentationProfile,
+  resolvePresentationAssignerVisibility,
+  resolvePresentationPrimaryLabel,
+  resolvePresentationSecondaryId,
+  resolvePresentationStepDetails,
+  shouldShowOutlineBadge as shouldShowAimdOutlineBadge,
+  shouldShowOutlineScope as shouldShowAimdOutlineScope,
+} from '@airalogy/aimd-presentation'
+export {
+  createCssVars as createAimdThemeCssVars,
+  defaultDark as defaultAimdDarkTheme,
+  defaultLight as defaultAimdLightTheme,
+  resolveAimdTheme,
+} from '@airalogy/aimd-theme'
 export type {
   AimdProtocolRecordData,
   AimdTypePlugin,
@@ -45,6 +62,10 @@ export type {
   AimdDnaSequenceQualifier,
   AimdDnaSequenceSegment,
   AimdDnaSequenceValue,
+  AimdPresentationProfile,
+  AimdPresentationProfileInput,
+  AimdThemeInput,
+  AimdThemeTokens,
   FieldEventPayload,
   TableEventPayload,
 } from './types'

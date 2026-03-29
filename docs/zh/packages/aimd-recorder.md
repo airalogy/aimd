@@ -20,6 +20,8 @@ pnpm add @airalogy/aimd-recorder @airalogy/aimd-core
 - `AiralogyMarkdown` 在 recorder 中会以横铺内嵌编辑器呈现，默认进入 `源码` 模式，保留完整顶部工具栏，并支持切换到 `所见即所得`；如果它写在一行文字中间，recorder 会自动把它提升成下一行的块级编辑区，而不是普通 textarea。
 - 在 recorder/edit 模式下，`ref_var` 如果已经有记录值，会优先以只读内联内容显示该值。
 - 前端受限的 `assigner runtime=client` 代码块会在 recorder 中本地执行，用于纯 `var` 计算。
+- 可选的 recorder 级 `theme` prop 可以让宿主应用通过一个 scoped root 应用共享 AIMD 语义主题 token。
+- 可选的 `presentationProfile` prop 可以让宿主应用统一控制 step detail、assigner 可见性、outline、id 展示和密度策略。
 
 ## 协议内联录入示例（推荐）
 
@@ -29,6 +31,8 @@ import { ref } from "vue"
 import {
   AimdRecorder,
   createEmptyProtocolRecordData,
+  defaultAimdPresentationProfile,
+  defaultAimdLightTheme,
   type AimdProtocolRecordData,
 } from "@airalogy/aimd-recorder"
 import "@airalogy/aimd-recorder/styles"
@@ -49,6 +53,8 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
     v-model="record"
     :content="content"
     locale="zh-CN"
+    :presentation-profile="{ ...defaultAimdPresentationProfile, assigners: 'collapsed' }"
+    :theme="defaultAimdLightTheme"
     current-user-name="张三"
   />
 </template>
@@ -93,6 +99,35 @@ assigner(
 ```ts
 recorderRef.value?.runClientAssigner("calculate_total_liquid_ml")
 recorderRef.value?.runManualClientAssigners()
+```
+
+主题示例：
+
+```ts
+import {
+  createAimdThemeCssVars,
+  defaultAimdDarkTheme,
+} from "@airalogy/aimd-recorder"
+```
+
+```vue
+<AimdRecorder :content="content" :theme="defaultAimdDarkTheme" />
+```
+
+展示策略示例：
+
+```vue
+<AimdRecorder
+  :content="content"
+  :presentation-profile="{
+    assigners: 'collapsed',
+    stepDetails: 'hidden',
+    outline: 'compact',
+    ids: 'show',
+    labels: 'prefer_label',
+    density: 'compact',
+  }"
+/>
 ```
 
 ## 宿主字段适配器

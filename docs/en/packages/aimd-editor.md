@@ -28,6 +28,21 @@ monaco.languages.setLanguageConfiguration("aimd", conf)
 monaco.languages.registerCompletionItemProvider("aimd", completionItemProvider)
 ```
 
+## Monaco Theme Helpers
+
+```ts
+import {
+  aimdTheme,
+  createAimdExtendedTheme,
+  createAimdTheme,
+} from "@airalogy/aimd-editor/monaco"
+import { defaultDark } from "@airalogy/aimd-theme"
+
+const darkAimdTheme = createAimdTheme(defaultDark, "aimd-dark")
+```
+
+`createAimdTheme(...)` and `createAimdExtendedTheme(...)` now derive AIMD syntax colors from the shared semantic theme package instead of using a separate editor-local palette.
+
 ## Vue Editor
 
 ```vue

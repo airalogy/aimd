@@ -7,7 +7,7 @@ export async function getDefaultCodeBlockHighlighter(): Promise<ShikiHighlighter
     defaultCodeBlockHighlighterPromise = import("shiki")
       .then(async ({ createHighlighter }) => {
         const highlighter = await createHighlighter({
-          themes: ["github-light"],
+          themes: ["github-light", "github-dark"],
           langs: [
             "javascript",
             "typescript",

@@ -142,6 +142,49 @@ describe('AimdStepField', () => {
     expect(wrapper.emitted('timer-start')).toBeTruthy()
   })
 
+  it('can hide all step detail controls through presentation strategy', () => {
+    const state = reactive({
+      ...createEmptyStepRecordItem(),
+      annotation: 'Keep on ice',
+    })
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps(),
+        detailDisplay: 'hidden',
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-step-field__details').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__toggle--annotation').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__toggle--timer').exists()).toBe(false)
+    expect(wrapper.text()).toContain('ETA 1m 30s')
+    expect(wrapper.text()).not.toContain('Timer 0s')
+  })
+
+  it('can hide outline chrome and show the technical id as secondary metadata', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_output',
+          title: 'Verify Output',
+        }),
+        presentationProfile: {
+          outline: 'hidden',
+          ids: 'show',
+          labels: 'prefer_label',
+        },
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__scope').exists()).toBe(false)
+    expect(wrapper.find('.aimd-rec-inline__step-num').exists()).toBe(false)
+    expect(wrapper.find('.aimd-field__name').text()).toBe('Verify Output')
+    expect(wrapper.find('.aimd-step-field__id').text()).toBe('verify_output')
+  })
+
   it('renders estimated and recorded timing UI and updates while running in always mode', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(0))
@@ -318,5 +361,36 @@ describe('AimdStepField', () => {
     })
 
     expect(wrapper.find('.aimd-check-field__key').text()).toBe('verify_tube_label')
+  })
+
+  it('can hide check scope and expose the raw id as secondary metadata', () => {
+    const node: AimdCheckNode = {
+      id: 'verify_tube_label',
+      label: 'Verify tube label',
+      fieldType: 'check',
+      scope: 'check',
+      type: 'aimd',
+      raw: '{{check|verify_tube_label}}',
+    }
+    const state = reactive({ checked: false, annotation: '' })
+    const wrapper = mount(AimdCheckField, {
+      props: {
+        node,
+        state,
+        bodyNodes: [],
+        disabled: false,
+        extraClasses: [],
+        messages: createAimdRecorderMessages('en-US'),
+        presentationProfile: {
+          outline: 'hidden',
+          ids: 'show',
+          labels: 'prefer_label',
+        },
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__scope').exists()).toBe(false)
+    expect(wrapper.find('.aimd-check-field__key').text()).toBe('Verify tube label')
+    expect(wrapper.find('.aimd-check-field__id').text()).toBe('verify_tube_label')
   })
 })

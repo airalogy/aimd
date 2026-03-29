@@ -10,6 +10,7 @@ import type {
   RenderContext,
 } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
+import type { AimdPresentationProfileInput } from "@airalogy/aimd-presentation"
 import type { AimdRendererI18nOptions } from "../locales"
 import type { VueRendererOptions } from "../vue/vue-renderer"
 import { resolveQuizPreviewOptions } from "./quiz-preview"
@@ -50,6 +51,7 @@ export type AimdHtmlNodeRenderer = (
 
 export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nOptions {
   assignerVisibility?: AimdAssignerVisibility
+  presentationProfile?: AimdPresentationProfileInput
   aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
   groupStepBodies?: boolean
   groupCheckBodies?: boolean

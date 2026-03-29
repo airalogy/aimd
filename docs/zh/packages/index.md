@@ -3,6 +3,8 @@
 文档按包组织：
 
 - [`@airalogy/aimd-core`](/zh/packages/aimd-core/)
+- [`@airalogy/aimd-presentation`](/zh/packages/aimd-presentation)
+- [`@airalogy/aimd-theme`](/zh/packages/aimd-theme)
 - [`@airalogy/aimd-editor`](/zh/packages/aimd-editor)
 - [`@airalogy/aimd-renderer`](/zh/packages/aimd-renderer)
 - [`@airalogy/aimd-recorder`](/zh/packages/aimd-recorder)
@@ -23,6 +25,8 @@
 aimd/
   packages/
     aimd-core/
+    aimd-presentation/
+    aimd-theme/
     aimd-editor/
     aimd-renderer/
     aimd-recorder/

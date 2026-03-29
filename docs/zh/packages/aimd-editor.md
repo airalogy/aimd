@@ -28,6 +28,21 @@ monaco.languages.setLanguageConfiguration("aimd", conf)
 monaco.languages.registerCompletionItemProvider("aimd", completionItemProvider)
 ```
 
+## Monaco 主题辅助
+
+```ts
+import {
+  aimdTheme,
+  createAimdExtendedTheme,
+  createAimdTheme,
+} from "@airalogy/aimd-editor/monaco"
+import { defaultDark } from "@airalogy/aimd-theme"
+
+const darkAimdTheme = createAimdTheme(defaultDark, "aimd-dark")
+```
+
+`createAimdTheme(...)` 和 `createAimdExtendedTheme(...)` 现在会从共享的语义主题包派生 AIMD 语法颜色，而不是继续维护一份 editor 本地硬编码配色。
+
 ## Vue 编辑器
 
 ```vue
