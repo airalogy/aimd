@@ -68,6 +68,26 @@ describe('AimdStepField', () => {
     expect(wrapper.find('input[type="checkbox"]').exists()).toBe(true)
   })
 
+  it('hides timer UI entirely for an untimed step', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          estimated_duration_ms: undefined,
+          timer_mode: undefined,
+          check: false,
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('ETA')
+    expect(wrapper.text()).not.toContain('Timer')
+    expect(wrapper.find('.aimd-step-field__toggle--timer').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__detail--timer').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-timer__pill--actual').exists()).toBe(false)
+  })
+
   it('shows the annotation detail when a note already exists in auto mode', () => {
     const state = reactive({
       ...createEmptyStepRecordItem(),
@@ -120,6 +140,49 @@ describe('AimdStepField', () => {
     expect(wrapper.text()).toContain('Timer 0s')
     expect(wrapper.text()).toContain('Start')
     expect(wrapper.emitted('timer-start')).toBeTruthy()
+  })
+
+  it('can hide all step detail controls through presentation strategy', () => {
+    const state = reactive({
+      ...createEmptyStepRecordItem(),
+      annotation: 'Keep on ice',
+    })
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps(),
+        detailDisplay: 'hidden',
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-step-field__details').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__toggle--annotation').exists()).toBe(false)
+    expect(wrapper.find('.aimd-step-field__toggle--timer').exists()).toBe(false)
+    expect(wrapper.text()).toContain('ETA 1m 30s')
+    expect(wrapper.text()).not.toContain('Timer 0s')
+  })
+
+  it('can hide outline chrome and show the technical id as secondary metadata', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_output',
+          title: 'Verify Output',
+        }),
+        presentationProfile: {
+          outline: 'hidden',
+          ids: 'show',
+          labels: 'prefer_label',
+        },
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__scope').exists()).toBe(false)
+    expect(wrapper.find('.aimd-rec-inline__step-num').exists()).toBe(false)
+    expect(wrapper.find('.aimd-field__name').text()).toBe('Verify Output')
+    expect(wrapper.find('.aimd-step-field__id').text()).toBe('verify_output')
   })
 
   it('renders estimated and recorded timing UI and updates while running in always mode', async () => {
@@ -207,6 +270,37 @@ describe('AimdStepField', () => {
     expect(wrapper.text()).toContain('Timer 0s')
   })
 
+  it('prefers the step title in the visible header label', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_tube_label',
+          title: 'Verify Tube Label',
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__name').text()).toBe('Verify Tube Label')
+    expect(wrapper.text()).toContain('Verify Tube Label')
+    expect(wrapper.find('.aimd-field__name').text()).not.toBe('verify_tube_label')
+  })
+
+  it('falls back to the step id when no title is provided', () => {
+    const state = reactive(createEmptyStepRecordItem())
+    const wrapper = mount(AimdStepField, {
+      props: {
+        ...createBaseProps({
+          id: 'verify_tube_label',
+          title: undefined,
+        }),
+        state,
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__name').text()).toBe('verify_tube_label')
+  })
   it('renders check cards as lightweight cards that absorb body text and checked state messaging', () => {
     const node: AimdCheckNode = {
       id: 'verify_tube_label',
@@ -266,5 +360,36 @@ describe('AimdStepField', () => {
     })
 
     expect(wrapper.find('.aimd-check-field__key').text()).toBe('verify_tube_label')
+  })
+
+  it('can hide check scope and expose the raw id as secondary metadata', () => {
+    const node: AimdCheckNode = {
+      id: 'verify_tube_label',
+      label: 'Verify tube label',
+      fieldType: 'check',
+      scope: 'check',
+      type: 'aimd',
+      raw: '{{check|verify_tube_label}}',
+    }
+    const state = reactive({ checked: false, annotation: '' })
+    const wrapper = mount(AimdCheckField, {
+      props: {
+        node,
+        state,
+        bodyNodes: [],
+        disabled: false,
+        extraClasses: [],
+        messages: createAimdRecorderMessages('en-US'),
+        presentationProfile: {
+          outline: 'hidden',
+          ids: 'show',
+          labels: 'prefer_label',
+        },
+      },
+    })
+
+    expect(wrapper.find('.aimd-field__scope').exists()).toBe(false)
+    expect(wrapper.find('.aimd-check-field__key').text()).toBe('Verify tube label')
+    expect(wrapper.find('.aimd-check-field__id').text()).toBe('verify_tube_label')
   })
 })

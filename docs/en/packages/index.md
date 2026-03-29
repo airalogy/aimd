@@ -6,6 +6,8 @@ This site organizes docs by package:
 - [`@airalogy/aimd-editor`](/en/packages/aimd-editor/)
 - [`@airalogy/aimd-renderer`](/en/packages/aimd-renderer/)
 - [`@airalogy/aimd-recorder`](/en/packages/aimd-recorder/)
+- [`@airalogy/aimd-presentation`](/en/packages/aimd-presentation)
+- [`@airalogy/aimd-theme`](/en/packages/aimd-theme)
 
 Interactive demo:
 
@@ -23,6 +25,8 @@ Guides and reference:
 aimd/
   packages/
     aimd-core/
+    aimd-presentation/
+    aimd-theme/
     aimd-editor/
     aimd-renderer/
     aimd-recorder/

@@ -36,6 +36,25 @@ function findVNodeByType(node: any, expectedType: string): any | null {
   return null
 }
 
+function findVNodesByType(node: any, expectedType: string): any[] {
+  if (!node || typeof node !== 'object') {
+    return []
+  }
+
+  const matches = node.type === expectedType ? [node] : []
+  const children = Array.isArray(node.children)
+    ? node.children
+    : Array.isArray(node.component?.subTree?.children)
+      ? node.component.subTree.children
+      : []
+
+  for (const child of children) {
+    matches.push(...findVNodesByType(child, expectedType))
+  }
+
+  return matches
+}
+
 function collectVNodeText(node: any): string {
   if (node == null) {
     return ''
@@ -272,6 +291,24 @@ describe('renderToHtmlSync', () => {
     expect(html).toContain('<li><p>Experiment summary: </p><div class="aimd-field aimd-field--var aimd-block-var"')
     expect(html).not.toContain('<li>Experiment summary: <span')
   })
+
+  it('can derive visible assigner previews from the presentation profile', () => {
+    const { html } = renderToHtmlSync(
+      [
+        '```assigner runtime=client',
+        'assigner({ mode: "auto", dependent_fields: ["water_ml"], assigned_fields: ["total_ml"] }, function calc({ water_ml }) { return { total_ml: water_ml } })',
+        '```',
+      ].join('\n'),
+      {
+        presentationProfile: {
+          assigners: 'collapsed',
+        },
+      },
+    )
+
+    expect(html).toContain('aimd-assigner-preview')
+    expect(html).toContain('Client assigner')
+  })
 })
 
 describe('renderToVue', () => {
@@ -294,7 +331,7 @@ describe('renderToVue', () => {
     const header = card.children[0] as any
     const leftCluster = header.children[0] as any
     const contentStack = leftCluster.children[1] as any
-    expect(contentStack.children[1].children).toBe('Verify Output')
+    expect(contentStack.children[1].children[0]).toBe('Verify Output')
     expect(contentStack.children[2].children).toBe('Cross-check')
     const body = card.children[1] as any
     expect(body.props.class).toContain('aimd-step-card__body')
@@ -322,6 +359,58 @@ describe('renderToVue', () => {
     expect(card.props['data-test-check-id']).toBe('measurement_complete')
     expect(collectVNodeText(card)).toContain('确认所有孔位的量子共振值已记录完毕')
     expect(collectVNodeText(card)).not.toContain('measurement_complete')
+  })
+  it('lets the step-card renderer hide outline chrome and expose the raw id via presentation profile', async () => {
+    const { nodes } = await renderToVue(
+      "{{step|verify_output, title='Verify Output'}}\n\nBody content.",
+      {
+        groupStepBodies: true,
+        aimdRenderers: {
+          step: createStepCardRenderer({
+            presentationProfile: {
+              outline: 'hidden',
+              ids: 'show',
+              labels: 'prefer_label',
+            },
+          }),
+        },
+      },
+    )
+
+    const card = findVNodeByType(nodes[0], 'article') as any
+    const header = card.children[0] as any
+    const leftCluster = header.children[0] as any
+    const contentStack = leftCluster.children[1] as any
+
+    expect(leftCluster.children[0]).toBeNull()
+    expect(contentStack.children[0]).toBeNull()
+    expect(collectVNodeText(contentStack.children[1])).toContain('Verify Output')
+    expect(collectVNodeText(contentStack.children[1])).toContain('verify_output')
+  })
+
+  it('keeps consecutive inline checks as separate siblings when they appear in one markdown paragraph', async () => {
+    const { nodes } = await renderToVue(
+      [
+        '{{check|experiment_complete, label="确认所有步骤已完成，数据已同步至星际联邦数据库。", checked_message="实验已完成"}}',
+        '{{check|dimension_sealed, label="确认实验结束后已关闭所有维度传送门，防止时空污染。", checked_message="维度裂隙已封闭"}}',
+        '### 🌟 任务信息汇总',
+      ].join('\n'),
+      {
+        groupCheckBodies: true,
+        aimdRenderers: {
+          check: (node, _ctx, children) => ({
+            type: 'section',
+            props: { 'data-test-check-id': node.id },
+            children,
+          }) as any,
+        },
+      },
+    )
+
+    const checks = findVNodesByType(nodes[0], 'section')
+    expect(checks).toHaveLength(2)
+    expect(checks[0].props['data-test-check-id']).toBe('experiment_complete')
+    expect(checks[1].props['data-test-check-id']).toBe('dimension_sealed')
   })
 })
 

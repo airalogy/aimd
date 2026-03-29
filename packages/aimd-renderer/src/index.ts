@@ -32,6 +32,27 @@ export {
 } from './common/eventKeys'
 
 export {
+  defaultAimdPresentationProfile,
+  isCompactPresentation as isCompactAimdPresentation,
+  resolveAimdPresentationProfile,
+  resolvePresentationAssignerVisibility,
+  resolvePresentationPrimaryLabel,
+  resolvePresentationSecondaryId,
+  resolvePresentationStepDetails,
+  shouldShowOutlineBadge as shouldShowAimdOutlineBadge,
+  shouldShowOutlineScope as shouldShowAimdOutlineScope,
+} from '@airalogy/aimd-presentation'
+export {
+  extractAssignerFieldSummary,
+  resolveCodeLanguageBadge,
+  resolveCodeLanguageLabel,
+} from './common/codeBlockPresentation'
+
+export {
+  getDefaultCodeBlockHighlighter,
+} from './common/codeBlockHighlighter'
+
+export {
   type AssetResponse,
   createUnifiedTokenRenderer,
   type TokenLike,
@@ -60,6 +81,16 @@ export {
 } from './vue/vue-renderer'
 
 // Re-export types from aimd-core
+export type {
+  AimdPresentationAssignerVisibility,
+  AimdPresentationDensity,
+  AimdPresentationIdVisibility,
+  AimdPresentationLabelStrategy,
+  AimdPresentationOutline,
+  AimdPresentationProfile,
+  AimdPresentationProfileInput,
+  AimdPresentationStepDetails,
+} from '@airalogy/aimd-presentation'
 export type {
   ProcessorOptions,
   RenderContext,

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, nextTick, onBeforeUnmount, ref, shallowRef, watch, type VNode } from 'vue'
+import { resolveAimdTheme, type AimdThemeInput } from '@airalogy/aimd-theme'
 import { AimdEditor } from '@airalogy/aimd-editor/vue'
-import { renderToVue } from '@airalogy/aimd-renderer'
+import { createCodeBlockRenderer, getDefaultCodeBlockHighlighter, renderToVue } from '@airalogy/aimd-renderer'
 
 type AimdEditorExpose = {
   getMonacoEditor?: () => { focus?: () => void } | null
@@ -12,11 +13,13 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   locale?: string
   minHeight?: number
+  theme?: AimdThemeInput
 }>(), {
   modelValue: undefined,
   disabled: false,
   locale: undefined,
   minHeight: 220,
+  theme: undefined,
 })
 
 const emit = defineEmits<{
@@ -57,6 +60,7 @@ const showEmptyState = computed(() => !showPreview.value && !showEditor.value)
 const editLabel = computed(() => (isZhLocale(props.locale) ? '编辑备注' : 'Edit note'))
 const closeLabel = computed(() => (isZhLocale(props.locale) ? '关闭备注' : 'Close note'))
 const emptyLabel = computed(() => (isZhLocale(props.locale) ? '暂无备注' : 'No notes'))
+const resolvedTheme = computed(() => resolveAimdTheme(props.theme))
 
 const PreviewOutlet = defineComponent({
   name: 'AimdMarkdownNotePreviewOutlet',
@@ -102,8 +106,16 @@ async function renderPreview() {
   }
 
   try {
+    const codeBlockHighlighter = await getDefaultCodeBlockHighlighter()
     const rendered = await renderToVue(currentContent, {
       locale: props.locale,
+      elementRenderers: {
+        pre: createCodeBlockRenderer(
+          codeBlockHighlighter,
+          resolvedTheme.value.mode === 'dark' ? 'github-dark' : 'github-light',
+          resolvedTheme.value,
+        ),
+      },
     })
 
     if (requestId !== previewRenderRequestId) {

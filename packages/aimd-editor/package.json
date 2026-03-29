@@ -1,7 +1,7 @@
 {
   "name": "@airalogy/aimd-editor",
   "type": "module",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "AIMD editor with Monaco source mode and Milkdown WYSIWYG mode",
   "keywords": [
     "aimd",
@@ -49,6 +49,7 @@
   "dependencies": {
     "@airalogy/aimd-core": "workspace:*",
     "@airalogy/aimd-renderer": "workspace:*",
+    "@airalogy/aimd-theme": "workspace:*",
     "@codingame/monaco-vscode-editor-api": "^20.2.1",
     "@codingame/monaco-vscode-standalone-languages": "^20.2.1",
     "@milkdown/kit": "^7.18.0",

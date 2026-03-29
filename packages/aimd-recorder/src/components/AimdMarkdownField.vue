@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor/vue'
-import type { AimdRecorderMessages } from '../locales'
-import { getAimdRecorderScopeLabel } from '../locales'
 
 const props = withDefaults(defineProps<{
   modelValue?: unknown
   varId: string
   disabled?: boolean
   locale?: string
-  messages: Pick<AimdRecorderMessages, 'scope'>
 }>(), {
   modelValue: undefined,
   disabled: false,
@@ -72,13 +69,6 @@ watch(() => props.modelValue, (value) => {
     :class="{ 'aimd-markdown-field--disabled': disabled }"
     @focusout="emitBlurIfLeavingField"
   >
-    <span class="aimd-field aimd-field--no-style aimd-field__label">
-      <span class="aimd-field__scope aimd-field__scope--var">
-        {{ getAimdRecorderScopeLabel('var', messages) }}
-      </span>
-      <span class="aimd-field__id">{{ varId }}</span>
-    </span>
-
     <div class="aimd-markdown-field__editor-shell">
       <AimdEditor
         class="aimd-markdown-field__editor"
@@ -111,7 +101,10 @@ watch(() => props.modelValue, (value) => {
 .aimd-markdown-field__editor-shell {
   width: 100%;
   min-width: 0;
-  background: #fff;
+  border: 1px solid var(--aimd-border-default);
+  border-radius: 10px;
+  background: var(--aimd-surface-panel);
+  overflow: hidden;
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor) {
@@ -122,8 +115,8 @@ watch(() => props.modelValue, (value) => {
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor-toolbar) {
-  border-bottom-color: #d9e6fb;
-  background: #fff;
+  border-bottom-color: var(--aimd-border-default);
+  background: var(--aimd-surface-panel);
 }
 
 .aimd-markdown-field__editor-shell :deep(.aimd-editor-panel) {
@@ -135,7 +128,7 @@ watch(() => props.modelValue, (value) => {
   height: auto !important;
   min-height: 360px;
   overflow-y: visible !important;
-  background: #fff;
+  background: var(--aimd-surface-panel);
   border-radius: 0 0 8px 8px;
 }
 
@@ -159,7 +152,7 @@ watch(() => props.modelValue, (value) => {
 
 .aimd-markdown-field__editor-shell :deep(.milkdown-editor-content--readonly) {
   cursor: default;
-  background: #f8fbff;
+  background: var(--aimd-surface-panel-subtle);
 }
 
 .aimd-markdown-field--disabled {

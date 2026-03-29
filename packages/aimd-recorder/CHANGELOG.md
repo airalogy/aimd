@@ -4,6 +4,18 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-03-29
+
+### Added
+
+- Added recorder-level `theme` support backed by `@airalogy/aimd-theme`, including shared CSS variable generation and re-exported default AIMD light/dark themes.
+
+### Changed
+
+- Moved recorder root surfaces, field tags, markdown shells, and code-field chrome onto semantic theme tokens so host apps can theme recorder UI from one scoped root instead of patching hardcoded colors piecemeal.
+- Routed recorder-rendered code blocks and markdown note previews through the shared semantic theme so code presentation stays aligned with the rest of the recorder surface.
+- Added shared `presentationProfile` handling so recorder hosts can formally control assigner visibility, step detail disclosure, outline chrome, technical id surfacing, label preference, and compact density from one strategy object.
+
 ## [1.12.0] - 2026-03-26
 
 ### Added
@@ -36,6 +48,13 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 - Fixed recorder-aware WYSIWYG syncing so opening visual edit mode no longer leaks protected AIMD placeholder tokens or accidental Milkdown editor DOM markup back into the shared AIMD content.
 - Fixed recorder-aware WYSIWYG parsing by layering recorder widget plugins on top of the base AIMD Milkdown plugin chain with recorder-specific mdast node types, so inline recorder fields no longer regress into protected placeholder tokens when visual edit mode opens.
 - Fixed recorder-aware WYSIWYG serialization so inline recorder fields round-trip as markdown text and quiz widgets round-trip as real ` ```quiz ` code blocks, preventing visual edit mode from regressing into literal `<p>...AIMDINLINETEMPLATE...` output on reopen.
+
+## [1.11.1] - 2026-03-21
+
+### Fixed
+
+- Hid built-in step timer UI for steps that do not declare timing metadata, so plain and checkbox-enabled steps stay compact unless `duration` or `timer` is configured.
+- Updated recorder step headers to prefer human-readable AIMD step `title` values while keeping the raw step id as the data key.
 
 ## [1.11.0] - 2026-03-19
 

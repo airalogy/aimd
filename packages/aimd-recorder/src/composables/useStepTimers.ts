@@ -130,9 +130,24 @@ export function formatStepDuration(ms: number, locale: string | undefined): stri
   return zh ? parts.join("") : parts.join(" ")
 }
 
+export function hasStepTimerConfig(
+  step: Pick<AimdStepField, "timer_mode" | "estimated_duration_ms">,
+): boolean {
+  const estimate = normalizeFiniteNumber(step.estimated_duration_ms, null)
+  if (estimate != null && estimate > 0) {
+    return true
+  }
+
+  return step.timer_mode != null
+}
+
 export function resolveStepTimerMode(
   step: Pick<AimdStepField, "timer_mode" | "estimated_duration_ms">,
-): AimdStepTimerMode {
+): AimdStepTimerMode | null {
+  if (!hasStepTimerConfig(step)) {
+    return null
+  }
+
   const configuredMode = step.timer_mode ?? "elapsed"
   const estimate = normalizeFiniteNumber(step.estimated_duration_ms, null)
 

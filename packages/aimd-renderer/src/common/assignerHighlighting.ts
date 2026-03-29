@@ -113,7 +113,7 @@ async function getAssignerHighlighter(): Promise<ShikiHighlighter | null> {
  * assigner code block (`<code>` inside `.aimd-assigner-preview`).
  */
 export async function highlightVisibleAssigners(tree: HastRoot, options: AimdRendererOptions): Promise<void> {
-  if (resolveAssignerVisibility(options.assignerVisibility) === "hidden") {
+  if (resolveAssignerVisibility(options.assignerVisibility, options.presentationProfile) === "hidden") {
     return
   }
 

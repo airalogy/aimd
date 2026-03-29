@@ -1,4 +1,5 @@
 import type { Plugin } from "unified"
+import { resolvePresentationAssignerVisibility } from "@airalogy/aimd-presentation"
 import type { AimdRendererOptions } from "./processor"
 import type { AimdAssignerVisibility } from "./processor"
 import { createAimdRendererMessages } from "../locales"
@@ -22,11 +23,14 @@ export type MarkdownParent = MarkdownNode & { children: MarkdownNode[] }
 
 export function resolveAssignerVisibility(
   visibility: AimdRendererOptions["assignerVisibility"],
+  profile?: AimdRendererOptions["presentationProfile"],
 ): AimdAssignerVisibility {
-  switch (visibility) {
+  const resolvedVisibility = visibility ?? resolvePresentationAssignerVisibility(profile)
+
+  switch (resolvedVisibility) {
     case "collapsed":
     case "expanded":
-      return visibility
+      return resolvedVisibility
     default:
       return "hidden"
   }
@@ -253,7 +257,7 @@ export function visitMarkdownParents(node: MarkdownNode, visitor: (parent: Markd
  */
 export const remarkInsertVisibleAssigners: Plugin<[AimdRendererOptions?], MarkdownNode> = (options = {}) => {
   return (tree) => {
-    const visibility = resolveAssignerVisibility(options.assignerVisibility)
+    const visibility = resolveAssignerVisibility(options.assignerVisibility, options.presentationProfile)
     if (visibility === "hidden") {
       return
     }

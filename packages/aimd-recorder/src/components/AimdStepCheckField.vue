@@ -1,6 +1,15 @@
 <script lang="ts">
 import { computed, defineAsyncComponent, defineComponent, h, onBeforeUnmount, ref, watch, type PropType, type VNodeChild } from "vue"
 import type { AimdStepNode, AimdCheckNode, AimdStepTimerMode } from "@airalogy/aimd-core/types"
+import {
+  isCompactPresentation,
+  resolvePresentationPrimaryLabel,
+  resolvePresentationSecondaryId,
+  shouldShowOutlineBadge,
+  shouldShowOutlineScope,
+  type AimdPresentationProfileInput,
+} from "@airalogy/aimd-presentation"
+import type { AimdThemeInput } from "@airalogy/aimd-theme"
 import type { AimdRecorderMessages } from "../locales"
 import { getAimdRecorderScopeLabel } from "../locales"
 import type { AimdCheckRecordItem, AimdStepDetailDisplay, AimdStepRecordItem } from "../types"
@@ -27,6 +36,8 @@ export const AimdStepField = defineComponent({
     detailDisplay: { type: String as PropType<AimdStepDetailDisplay>, default: "auto" },
     locale: { type: String, required: true },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },
+    presentationProfile: { type: Object as PropType<AimdPresentationProfileInput | undefined>, default: undefined },
+    theme: { type: Object as PropType<AimdThemeInput | undefined>, default: undefined },
   },
   emits: ["check-change", "annotation-change", "timer-start", "timer-pause", "timer-reset", "blur"],
   setup(props, { emit }) {
@@ -66,19 +77,39 @@ export const AimdStepField = defineComponent({
       }
     })
 
+    const detailsHidden = computed(() => props.detailDisplay === "hidden")
     const alwaysShowDetails = computed(() => props.detailDisplay === "always")
+    const stepDisplayLabel = computed(() => resolvePresentationPrimaryLabel({
+      id: props.node.id,
+      label: props.node.title,
+    }, props.presentationProfile))
+    const stepSecondaryId = computed(() => resolvePresentationSecondaryId({
+      id: props.node.id,
+      label: props.node.title,
+    }, stepDisplayLabel.value, props.presentationProfile))
+    const showScopeLabel = computed(() => shouldShowOutlineScope(props.presentationProfile))
+    const showStepOutline = computed(() => shouldShowOutlineBadge(props.presentationProfile))
+    const compactDensity = computed(() => isCompactPresentation(props.presentationProfile))
+    const timerAvailable = computed(() => {
+      const estimate = typeof props.node.estimated_duration_ms === "number" && props.node.estimated_duration_ms > 0
+      return estimate || props.node.timer_mode != null
+    })
     const actualElapsedMs = computed(() => getStepElapsedMs(props.state, nowMs.value))
     const actualDurationLabel = computed(() => formatStepDuration(actualElapsedMs.value, props.locale))
     const estimatedDurationLabel = computed(() => (
-      typeof props.node.estimated_duration_ms === "number"
+      timerAvailable.value && typeof props.node.estimated_duration_ms === "number"
         ? formatStepDuration(props.node.estimated_duration_ms, props.locale)
         : ""
     ))
-    const timerMode = computed<AimdStepTimerMode>(() => resolveStepTimerMode(props.node))
+    const timerMode = computed<AimdStepTimerMode | null>(() => resolveStepTimerMode(props.node))
     const timerRunning = computed(() => isStepTimerRunning(props.state))
     const hasRecordedDuration = computed(() => hasRecordedStepDuration(props.state))
     const hasAnnotation = computed(() => Boolean(props.state.annotation?.trim()))
-    const remainingMs = computed(() => getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value))
+    const remainingMs = computed(() => (
+      timerAvailable.value
+        ? getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value)
+        : undefined
+    ))
     const countdownEnabled = computed(() => timerMode.value === "countdown" || timerMode.value === "both")
     const showElapsedDetail = computed(() => timerMode.value === "elapsed" || timerMode.value === "both")
     const countdownWarning = computed(() => (
@@ -110,18 +141,29 @@ export const AimdStepField = defineComponent({
     })
     const autoShowTimerDetails = computed(() => countdownEnabled.value)
     const showAnnotationEditor = computed(() => (
-      alwaysShowDetails.value
-      || hasAnnotation.value
-      || annotationExpanded.value
+      !detailsHidden.value
+      && (
+        alwaysShowDetails.value
+        || hasAnnotation.value
+        || annotationExpanded.value
+      )
     ))
     const showTimerDetails = computed(() => (
-      alwaysShowDetails.value
-      || autoShowTimerDetails.value
-      || timerRunning.value
-      || hasRecordedDuration.value
-      || timerExpanded.value
+      !detailsHidden.value
+      && timerAvailable.value && (
+        alwaysShowDetails.value
+        || autoShowTimerDetails.value
+        || timerRunning.value
+        || hasRecordedDuration.value
+        || timerExpanded.value
+      )
     ))
-    const showTimerSummary = computed(() => !showTimerDetails.value && (timerRunning.value || hasRecordedDuration.value))
+    const showTimerSummary = computed(() => (
+      !detailsHidden.value
+      && timerAvailable.value
+      && !showTimerDetails.value
+      && (timerRunning.value || hasRecordedDuration.value)
+    ))
     const showDetailRow = computed(() => showAnnotationEditor.value || showTimerDetails.value)
 
     function clearPendingFocusOutCheck() {
@@ -167,6 +209,9 @@ export const AimdStepField = defineComponent({
     }
 
     function openTimerDetail() {
+      if (!timerAvailable.value) {
+        return
+      }
       timerExpanded.value = true
       emit("timer-start", { id: props.node.id })
     }
@@ -257,6 +302,7 @@ export const AimdStepField = defineComponent({
               disabled,
               locale: props.locale,
               minHeight: 220,
+              theme: props.theme,
               modelValue: state.annotation || "",
               "onUpdate:modelValue": (value: string) => {
                 emit("annotation-change", {
@@ -291,9 +337,16 @@ export const AimdStepField = defineComponent({
               onBlur: () => emit("blur", { id }),
             })
             : null,
-          h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", props.messages)),
-          h("span", { class: "aimd-rec-inline__step-num" }, stepNumber),
-          h("span", { class: "aimd-field__name" }, id),
+          showScopeLabel.value
+            ? h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("step", props.messages))
+            : null,
+          showStepOutline.value
+            ? h("span", { class: "aimd-rec-inline__step-num" }, stepNumber)
+            : null,
+          h("span", { class: "aimd-field__name" }, stepDisplayLabel.value),
+          stepSecondaryId.value
+            ? h("span", { class: "aimd-field__meta-id aimd-step-field__id" }, stepSecondaryId.value)
+            : null,
         ]),
       )
 
@@ -319,7 +372,7 @@ export const AimdStepField = defineComponent({
         )
       }
 
-      if (!disabled && !showAnnotationEditor.value) {
+      if (!disabled && !detailsHidden.value && !showAnnotationEditor.value) {
         headerActionChildren.push(
           h("button", {
             type: "button",
@@ -330,7 +383,7 @@ export const AimdStepField = defineComponent({
         )
       }
 
-      if (!disabled && !showTimerDetails.value) {
+      if (!disabled && !detailsHidden.value && timerAvailable.value && !showTimerDetails.value) {
         headerActionChildren.push(
           h("button", {
             type: "button",
@@ -347,7 +400,11 @@ export const AimdStepField = defineComponent({
 
       return h("div", {
         ref: rootEl,
-        class: ["aimd-rec-inline aimd-rec-inline--step aimd-field aimd-field--step", ...extraClasses],
+        class: [
+          "aimd-rec-inline aimd-rec-inline--step aimd-field aimd-field--step",
+          compactDensity.value ? "aimd-rec-inline--compact" : "",
+          ...extraClasses,
+        ],
         onFocusin: handleFocusIn,
         onFocusout: handleFocusOut,
       }, [
@@ -381,6 +438,7 @@ export const AimdCheckField = defineComponent({
     disabled: { type: Boolean, default: false },
     extraClasses: { type: Array as PropType<string[]>, default: () => [] },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },
+    presentationProfile: { type: Object as PropType<AimdPresentationProfileInput | undefined>, default: undefined },
   },
   emits: ["check-change", "annotation-change", "blur"],
   setup(props, { emit }) {
@@ -392,10 +450,23 @@ export const AimdCheckField = defineComponent({
       const extraClasses = props.extraClasses
       const hasBody = props.bodyNodes.length > 0
       const showCheckedMessage = Boolean(state.checked && node.checked_message)
-      const fallbackLabel = node.label || id
+      const fallbackLabel = resolvePresentationPrimaryLabel({
+        id,
+        label: node.label,
+      }, props.presentationProfile)
+      const secondaryId = resolvePresentationSecondaryId({
+        id,
+        label: node.label,
+      }, fallbackLabel, props.presentationProfile)
+      const showScopeLabel = shouldShowOutlineScope(props.presentationProfile)
+      const compactDensity = isCompactPresentation(props.presentationProfile)
 
       return h("div", {
-        class: ["aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check", ...extraClasses],
+        class: [
+          "aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check",
+          compactDensity ? "aimd-rec-inline--compact" : "",
+          ...extraClasses,
+        ],
       }, [
         h("div", { class: "aimd-check-field__main" }, [
           h("label", { class: "aimd-rec-inline__check-wrap aimd-check-field__toggle" }, [
@@ -413,9 +484,14 @@ export const AimdCheckField = defineComponent({
             },
             onBlur: () => emit("blur", { id }),
           }),
-          h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", props.messages)),
+          showScopeLabel
+            ? h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", props.messages))
+            : null,
           !hasBody
             ? h("span", { class: "aimd-field__name aimd-check-field__key" }, fallbackLabel)
+            : null,
+          secondaryId
+            ? h("span", { class: "aimd-field__meta-id aimd-check-field__id" }, secondaryId)
             : null,
         ]),
           hasBody
