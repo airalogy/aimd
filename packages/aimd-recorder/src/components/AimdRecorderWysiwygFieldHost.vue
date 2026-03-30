@@ -29,6 +29,8 @@ const renderedContent = computed(() => (
       :now="surfaceState.now"
       :locale="surfaceState.locale"
       :messages="surfaceState.messages"
+      :presentation-profile="surfaceState.presentationProfile"
+      :theme="surfaceState.theme"
       :step-detail-display="surfaceState.stepDetailDisplay"
       :field-meta="surfaceState.fieldMeta"
       :field-state="surfaceState.fieldState"

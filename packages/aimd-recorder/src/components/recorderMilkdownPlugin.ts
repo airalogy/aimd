@@ -16,6 +16,8 @@ import {
 import type { AimdComponentRenderer } from '@airalogy/aimd-renderer'
 import type { AimdRecorderMessagesInput } from '../locales'
 import type {
+  AimdPresentationProfileInput,
+  AimdThemeInput,
   AimdFieldMeta,
   AimdFieldState,
   AimdProtocolRecordData,
@@ -42,6 +44,8 @@ export interface RecorderMilkdownSurfaceState {
   now?: Date | string | number
   locale?: string
   messages?: AimdRecorderMessagesInput
+  presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
   stepDetailDisplay: AimdStepDetailDisplay
   fieldMeta?: Record<string, AimdFieldMeta>
   fieldState?: Record<string, AimdFieldState>

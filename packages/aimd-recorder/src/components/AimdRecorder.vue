@@ -1369,13 +1369,13 @@ defineExpose({
 
 /* ── Field colours ──────────────────────────────────────────────────────── */
 .aimd-protocol-recorder__content :deep(.aimd-field--var) {
-  background: var(--aimd-state-brand-bg);
-  border-color: var(--aimd-state-brand-border);
-  color: var(--aimd-state-brand-text);
+  background: var(--aimd-state-var-bg);
+  border-color: var(--aimd-state-var-border);
+  color: var(--aimd-state-var-text);
 }
 .aimd-protocol-recorder__content :deep(.aimd-field--var .aimd-field__scope) {
-  background: var(--aimd-state-brand-scope-bg);
-  color: var(--aimd-state-brand-scope-text);
+  background: var(--aimd-state-var-scope-bg);
+  color: var(--aimd-state-var-scope-text);
 }
 .aimd-protocol-recorder__content :deep(.aimd-field--step) {
   background: color-mix(in srgb, var(--aimd-state-warning-bg) 78%, var(--aimd-surface-panel));
