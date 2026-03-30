@@ -11,7 +11,7 @@ import {
   type AimdPresentationProfile,
   type AimdPresentationProfileInput,
 } from "@airalogy/aimd-presentation"
-import type { AimdThemeInput } from "@airalogy/aimd-theme"
+import { resolveAimdTheme, type AimdThemeInput } from "@airalogy/aimd-theme"
 import { Fragment, h } from "vue"
 import type { AimdRendererI18nOptions, AimdRendererLocale, AimdRendererMessages } from "../locales"
 import { resolveQuizPreviewOptions, type ResolvedQuizPreviewOptions } from "../common/quiz-preview"
@@ -68,6 +68,7 @@ export interface AimdStepCardRendererOptions {
   bodyClassName?: string
   className?: string
   presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
 }
 
 function resolveQuizPreviewOptionsFromContext(ctx: RenderContext): ResolvedQuizPreviewOptions {
@@ -1083,8 +1084,10 @@ export function createStepCardRenderer(
     bodyClassName = "",
     className = "",
     presentationProfile,
+    theme,
   } = options
   const resolvedProfile = resolveAimdPresentationProfile(presentationProfile)
+  const resolvedTheme = resolveAimdTheme(theme)
   const resolvedShowScopeLabel = showScopeLabel ?? shouldShowOutlineScope(resolvedProfile)
   const resolvedShowOutlineBadge = showOutlineBadge ?? shouldShowOutlineBadge(resolvedProfile)
   const compactDensity = isCompactPresentation(resolvedProfile)
@@ -1098,6 +1101,18 @@ export function createStepCardRenderer(
     const hasCheck = Boolean(stepNode.check)
     const level = Number(stepNode.level || 1)
     const bodyChildren = normalizeStepCardBodyChildren(children)
+    const rootBorder = isResult
+      ? resolvedTheme.state.warning.border
+      : resolvedTheme.state.success.border
+    const rootBackground = isResult
+      ? `linear-gradient(180deg, ${resolvedTheme.state.warning.background} 0%, ${resolvedTheme.surface.panel} 100%)`
+      : `linear-gradient(180deg, ${resolvedTheme.state.success.background} 0%, ${resolvedTheme.surface.panel} 100%)`
+    const badgeBackground = hasCheck
+      ? resolvedTheme.state.success.scopeBackground || resolvedTheme.state.success.background
+      : resolvedTheme.state.info.scopeBackground || resolvedTheme.state.info.background
+    const badgeColor = hasCheck
+      ? resolvedTheme.state.success.scopeText || resolvedTheme.state.success.text
+      : resolvedTheme.state.info.scopeText || resolvedTheme.state.info.text
 
     const rootClasses = [
       "aimd-step-card",
@@ -1119,11 +1134,9 @@ export function createStepCardRenderer(
           : (compactDensity ? "14px 16px" : "18px 20px"),
         margin: compactDensity ? "8px 0" : "12px 0",
         borderRadius: compactDensity ? "14px" : "18px",
-        border: "1px solid rgba(26, 39, 31, 0.12)",
-        background: isResult
-          ? "linear-gradient(180deg, rgba(255,248,233,0.98) 0%, rgba(255,252,245,0.98) 100%)"
-          : "linear-gradient(180deg, rgba(248,252,249,0.98) 0%, rgba(255,255,255,0.98) 100%)",
-        boxShadow: "0 18px 40px rgba(15, 31, 23, 0.08)",
+        border: `1px solid ${rootBorder}`,
+        background: rootBackground,
+        boxShadow: resolvedTheme.codeBlock.shadow,
         position: "relative",
         overflow: "hidden",
       },
@@ -1157,11 +1170,9 @@ export function createStepCardRenderer(
                   justifyContent: "center",
                   fontWeight: "700",
                   fontSize: compactDensity ? "13px" : "14px",
-                  color: "#0d5139",
-                  background: hasCheck
-                    ? "linear-gradient(180deg, rgba(212,242,227,1) 0%, rgba(184,233,208,1) 100%)"
-                    : "linear-gradient(180deg, rgba(232,241,236,1) 0%, rgba(216,232,222,1) 100%)",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+                  color: badgeColor,
+                  background: badgeBackground,
+                  boxShadow: `inset 0 1px 0 ${resolvedTheme.surface.overlay}`,
                   flexShrink: 0,
                 },
               }, stepLabel)
@@ -1180,20 +1191,20 @@ export function createStepCardRenderer(
                     fontWeight: "700",
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
-                    color: "#5d7066",
+                    color: resolvedTheme.text.muted,
                   },
                 }, ctx.messages.scope.step)
               : null,
             h("div", {
               class: "aimd-step-card__title",
-              style: {
-                fontSize: compactDensity ? "16px" : "18px",
-                fontWeight: "700",
-                lineHeight: "1.2",
-                color: "#1b2b22",
-                wordBreak: "break-word",
-              },
-            }, [
+                style: {
+                  fontSize: compactDensity ? "16px" : "18px",
+                  fontWeight: "700",
+                  lineHeight: "1.2",
+                  color: resolvedTheme.text.strong,
+                  wordBreak: "break-word",
+                },
+              }, [
               title,
               secondaryId
                 ? h("span", {
@@ -1203,9 +1214,9 @@ export function createStepCardRenderer(
                       marginLeft: "8px",
                       padding: "2px 8px",
                       borderRadius: "999px",
-                      border: "1px solid rgba(148, 163, 184, 0.22)",
-                      background: "rgba(255,255,255,0.72)",
-                      color: "#5c6f65",
+                      border: `1px solid ${resolvedTheme.border.default}`,
+                      background: resolvedTheme.surface.panelSubtle,
+                      color: resolvedTheme.text.muted,
                       fontSize: "11px",
                       fontWeight: "600",
                       verticalAlign: "middle",
@@ -1217,12 +1228,12 @@ export function createStepCardRenderer(
             subtitle
               ? h("div", {
                   class: "aimd-step-card__subtitle",
-                  style: {
-                    fontSize: "13px",
-                    lineHeight: "1.45",
-                    color: "#5c6f65",
-                  },
-                }, subtitle)
+                style: {
+                  fontSize: "13px",
+                  lineHeight: "1.45",
+                  color: resolvedTheme.text.muted,
+                },
+              }, subtitle)
               : null,
           ]),
         ]),
@@ -1243,8 +1254,8 @@ export function createStepCardRenderer(
                   gap: "6px",
                   padding: "6px 10px",
                   borderRadius: "999px",
-                  background: "rgba(22, 114, 79, 0.10)",
-                  color: "#0d5139",
+                  background: resolvedTheme.state.success.background,
+                  color: resolvedTheme.state.success.scopeText || resolvedTheme.state.success.text,
                   fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.04em",
@@ -1259,8 +1270,8 @@ export function createStepCardRenderer(
                   alignItems: "center",
                   padding: "6px 10px",
                   borderRadius: "999px",
-                  background: "rgba(181, 118, 0, 0.10)",
-                  color: "#8a4f00",
+                  background: resolvedTheme.state.warning.background,
+                  color: resolvedTheme.state.warning.scopeText || resolvedTheme.state.warning.text,
                   fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.04em",
@@ -1276,7 +1287,7 @@ export function createStepCardRenderer(
             style: {
               display: "grid",
               gap: compactDensity ? "8px" : "10px",
-              color: "#24352c",
+              color: resolvedTheme.text.primary,
               fontSize: compactDensity ? "13px" : "14px",
               lineHeight: "1.75",
             },

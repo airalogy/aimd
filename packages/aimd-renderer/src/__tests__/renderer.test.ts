@@ -388,6 +388,58 @@ describe('renderToVue', () => {
     expect(collectVNodeText(contentStack.children[1])).toContain('verify_output')
   })
 
+  it('lets the step-card renderer derive chrome from a semantic theme override', async () => {
+    const { nodes } = await renderToVue(
+      "{{step|verify_output, title='Verify Output', check=True}}\n\nBody content.",
+      {
+        groupStepBodies: true,
+        aimdRenderers: {
+          step: createStepCardRenderer({
+            theme: {
+              state: {
+                success: {
+                  background: '#112233',
+                  border: '#445566',
+                  scopeBackground: '#778899',
+                  scopeText: '#aabbcc',
+                  text: '#ccddee',
+                },
+              },
+              text: {
+                strong: '#ddeeff',
+                primary: '#eeff00',
+                muted: '#ccddaa',
+              },
+              surface: {
+                panel: '#ffffff',
+                panelSubtle: '#f8fafc',
+                overlay: 'rgba(255,255,255,0.9)',
+              },
+              border: {
+                default: '#123123',
+              },
+            },
+          }),
+        },
+      },
+    )
+
+    const card = findVNodeByType(nodes[0], 'article') as any
+    expect(card.props.style.border).toContain('#445566')
+    expect(card.props.style.background).toContain('#112233')
+
+    const header = card.children[0] as any
+    const leftCluster = header.children[0] as any
+    const badge = leftCluster.children[0] as any
+    expect(badge.props.style.background).toBe('#778899')
+    expect(badge.props.style.color).toBe('#aabbcc')
+
+    const contentStack = leftCluster.children[1] as any
+    expect(contentStack.children[1].props.style.color).toBe('#ddeeff')
+    const body = card.children[1] as any
+    expect(body.props.style.color).toBe('#eeff00')
+  })
+
   it('keeps consecutive inline checks as separate siblings when they appear in one markdown paragraph', async () => {
     const { nodes } = await renderToVue(
       [

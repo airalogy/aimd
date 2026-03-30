@@ -53,6 +53,16 @@ describe('@airalogy/aimd-theme', () => {
     expect(vars['--aimd-var-bg']).toBe(defaultLight.state.var.background)
   })
 
+  it('keeps light defaults visually neutral at the package baseline', () => {
+    expect(defaultLight.surface.panel).toBe('#ffffff')
+    expect(defaultLight.surface.panelRaised).toBe('#ffffff')
+    expect(defaultLight.surface.editor).toBe('#ffffff')
+    expect(defaultLight.codeBlock.headerSurface).toBe('#ffffff')
+    expect(defaultLight.codeBlock.neutral.surface).toBe('#ffffff')
+    expect(defaultLight.codeBlock.client.surface).toBe('#ffffff')
+    expect(defaultLight.codeBlock.server.surface).toBe('#ffffff')
+  })
+
   it('creates a syntax theme registration from semantic syntax tokens', () => {
     const theme = createAimdSyntaxTheme(scopes, {
       syntax: {

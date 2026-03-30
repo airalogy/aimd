@@ -38,6 +38,7 @@ describe('AimdRecorder render stability', () => {
     expect(source).toMatch(/const codeBlockRenderer = createCodeBlockRenderer\(/)
     expect(source).toMatch(/resolvedTheme\.value\.mode === "dark" \? "github-dark" : "github-light"/)
     expect(source).toMatch(/assignerVisibility: resolvePresentationAssignerVisibility/)
+    expect(source).not.toMatch(/assigners: "collapsed"/)
     expect(source).toMatch(/pre: codeBlockRenderer/)
     expect(source).toMatch(/img: node => renderResolvedImage\(node as \{ properties\?: Record<string, unknown> \}\)/)
     expect(source).toMatch(/function renderInlineFigure\(node: AimdFigNode\): VNode/)
