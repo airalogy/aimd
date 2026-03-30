@@ -199,21 +199,27 @@ export const BUILT_IN_AIMD_TYPE_PLUGINS: AimdTypePlugin[] = [
       extraClasses,
       emitChange,
       emitBlur,
-    }) => h(AimdAssetField, {
-      class: ['aimd-rec-inline--var', ...extraClasses],
-      varId: node.id,
-      title: getVarTitle(node),
-      description: getVarDescription(node),
-      typeLabel: type || 'FileId',
-      enhancedAppearance,
-      modelValue: value,
-      accept: getFileTypeAccept(type),
-      previewMode: getFileTypePreviewMode(type),
-      resolveSrc: resolveFile,
-      disabled,
-      'onUpdate:modelValue': (nextValue: unknown) => emitChange(nextValue),
-      onBlur: emitBlur,
-    }),
+    }) => {
+      if (!enhancedAppearance) {
+        return null
+      }
+
+      return h(AimdAssetField, {
+        class: ['aimd-rec-inline--var', ...extraClasses],
+        varId: node.id,
+        title: getVarTitle(node),
+        description: getVarDescription(node),
+        typeLabel: type || 'FileId',
+        enhancedAppearance,
+        modelValue: value,
+        accept: getFileTypeAccept(type),
+        previewMode: getFileTypePreviewMode(type),
+        resolveSrc: resolveFile,
+        disabled,
+        'onUpdate:modelValue': (nextValue: unknown) => emitChange(nextValue),
+        onBlur: emitBlur,
+      })
+    },
   },
 ]
 
