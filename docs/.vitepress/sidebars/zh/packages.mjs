@@ -12,10 +12,33 @@ export default [
           { text: '迁移说明', link: '/zh/packages/aimd-core/compatibility' },
         ],
       },
+      { text: '@airalogy/aimd-presentation', link: '/zh/packages/aimd-presentation' },
+      { text: '@airalogy/aimd-theme', link: '/zh/packages/aimd-theme' },
       { text: '类型插件', link: '/zh/packages/type-plugins' },
-      { text: '@airalogy/aimd-editor', link: '/zh/packages/aimd-editor' },
-      { text: '@airalogy/aimd-renderer', link: '/zh/packages/aimd-renderer' },
-      { text: '@airalogy/aimd-recorder', link: '/zh/packages/aimd-recorder' },
+      {
+        text: '@airalogy/aimd-editor',
+        items: [
+          { text: '总览', link: '/zh/packages/aimd-editor/' },
+          { text: 'Vue 编辑器', link: '/zh/packages/aimd-editor/vue-editor' },
+          { text: '内嵌编辑面', link: '/zh/packages/aimd-editor/embedded' },
+        ],
+      },
+      {
+        text: '@airalogy/aimd-renderer',
+        items: [
+          { text: '总览', link: '/zh/packages/aimd-renderer/' },
+          { text: '宿主集成', link: '/zh/packages/aimd-renderer/host-integration' },
+        ],
+      },
+      {
+        text: '@airalogy/aimd-recorder',
+        items: [
+          { text: '总览', link: '/zh/packages/aimd-recorder/' },
+          { text: 'AimdRecorder', link: '/zh/packages/aimd-recorder/recorder' },
+          { text: 'AimdRecorderEditor', link: '/zh/packages/aimd-recorder/recorder-editor' },
+          { text: '自定义', link: '/zh/packages/aimd-recorder/customization' },
+        ],
+      },
     ],
   },
   {

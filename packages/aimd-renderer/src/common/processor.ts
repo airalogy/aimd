@@ -255,7 +255,6 @@ function splitCheckParagraph(paragraph: Element): Array<Element | HastText> | nu
   flushCurrentCheck()
   return nextNodes.length > 0 ? nextNodes : null
 }
-
 function groupCheckBodiesInParent(parent: HastRoot | Element): void {
   const originalChildren = (parent.children || []) as Array<Element | HastText>
   const nextChildren: Array<Element | HastText> = []

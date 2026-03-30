@@ -301,7 +301,6 @@ describe('AimdStepField', () => {
 
     expect(wrapper.find('.aimd-field__name').text()).toBe('verify_tube_label')
   })
-
   it('renders check cards as lightweight cards that absorb body text and checked state messaging', () => {
     const node: AimdCheckNode = {
       id: 'verify_tube_label',

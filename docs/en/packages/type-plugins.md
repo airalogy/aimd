@@ -93,5 +93,5 @@ This keeps the system extensible without making it opaque.
 ## Related Docs
 
 - [`airalogy` type plugins](https://airalogy.github.io/airalogy/en/apis/type-plugins)
-- [`@airalogy/aimd-recorder`](/en/packages/aimd-recorder)
-- [`@airalogy/aimd-editor`](/en/packages/aimd-editor)
+- [`@airalogy/aimd-recorder`](/en/packages/aimd-recorder/)
+- [`@airalogy/aimd-editor`](/en/packages/aimd-editor/)

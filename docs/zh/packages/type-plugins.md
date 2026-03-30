@@ -93,5 +93,5 @@ const varTypePlugins: AimdVarTypePresetOption[] = [
 ## 相关文档
 
 - [`airalogy` type plugins](https://airalogy.github.io/airalogy/zh/apis/type-plugins)
-- [`@airalogy/aimd-recorder`](/zh/packages/aimd-recorder)
-- [`@airalogy/aimd-editor`](/zh/packages/aimd-editor)
+- [`@airalogy/aimd-recorder`](/zh/packages/aimd-recorder/)
+- [`@airalogy/aimd-editor`](/zh/packages/aimd-editor/)

@@ -52,6 +52,7 @@ const resolvedMessages = computed(() => createAimdEditorMessages(props.locale, p
 const {
   editorMode,
   content,
+  commitUserContent,
   monacoEditor,
   monacoInstance,
   milkdownEditorRef,
@@ -127,7 +128,7 @@ const sourceEditorRef = ref<InstanceType<typeof AimdSourceEditor> | null>(null)
 const wysiwygEditorRef = ref<InstanceType<typeof AimdWysiwygEditor> | null>(null)
 
 function onSourceContentChange(val: string) {
-  content.value = val
+  commitUserContent(val)
 }
 
 function onSourceReady(editor: any) {

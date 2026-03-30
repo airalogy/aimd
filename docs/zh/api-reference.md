@@ -491,6 +491,7 @@ import {
 ```ts
 import {
   AimdRecorder,
+  AimdRecorderEditor,
   AimdQuizRecorder,
   AimdDnaSequenceField,
 } from "@airalogy/aimd-recorder"
@@ -499,6 +500,7 @@ import {
 | 组件 | 说明 |
 |------|------|
 | `AimdRecorder` | 完整协议 recorder：在 AIMD 内容中内联渲染输入控件。 |
+| `AimdRecorderEditor` | 组合式 protocol 编辑 + recorder 录入界面。用 `v-model:content` 绑定源码、用 `v-model` 绑定 record，适合一边调整 AIMD 结构一边继续填数据，并内建 recorder field 结构编辑与 recorder 内可视化编辑能力。 |
 | `AimdQuizRecorder` | 可独立复用的题目作答组件，支持 choice / blank / open。 |
 | `AimdDnaSequenceField` | 专用 DNA 序列输入控件，包含 SeqViz 视图、注释编辑与 GenBank 导入导出。 |
 

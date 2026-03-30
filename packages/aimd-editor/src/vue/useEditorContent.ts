@@ -1,11 +1,12 @@
 import { ref, shallowRef, computed, watch, nextTick } from 'vue'
-import { protectAimdInlineTemplates } from '@airalogy/aimd-core'
+import { protectAimdInlineTemplates, restoreAimdInlineTemplates } from '@airalogy/aimd-core'
 import { parseAndExtract } from '@airalogy/aimd-renderer'
 import type { Editor } from '@milkdown/kit/core'
 import { replaceAll, getMarkdown, insert } from '@milkdown/kit/utils'
 import { insertTableCommand } from '@milkdown/kit/preset/gfm'
 import { callCommand } from '@milkdown/kit/utils'
 import type { AimdEditorMessages } from './locales'
+import { normalizeAimdInlineTemplateMarkdownEscapes } from './aimdInlineMarkdownNormalization'
 
 export interface UseEditorContentOptions {
   initialContent: string
@@ -27,16 +28,54 @@ export function useEditorContent(options: UseEditorContentOptions) {
 
   let isSyncing = false
 
+  function commitUserContent(nextContent: string) {
+    if (nextContent === content.value) {
+      return
+    }
+
+    content.value = nextContent
+    emitModelValue(nextContent)
+  }
+
   function toMilkdownMarkdown(markdown: string): string {
     return protectAimdInlineTemplates(markdown).content
   }
 
-  // Emit content changes
-  watch(content, (val) => {
-    if (!isSyncing) {
-      emitModelValue(val)
+  function isLikelyCorruptedMilkdownMarkdown(markdown: string): boolean {
+    return /class="ProseMirror milkdown-editor-content editor"/.test(markdown)
+      || /<div class="milkdown">/.test(markdown)
+      || (/<\/?[a-z][^>]*>/i.test(markdown) && /AIMDINLINETEMPLATE[0-9a-f]+TOKEN/.test(markdown))
+  }
+
+  function normalizeMilkdownMarkdown(markdown: string, fallback: string): string {
+    const restored = normalizeAimdInlineTemplateMarkdownEscapes(restoreAimdInlineTemplates(markdown))
+    if (isLikelyCorruptedMilkdownMarkdown(restored)) {
+      return fallback
     }
-  })
+
+    return restored
+  }
+
+  function shouldReparseInsertedText(text: string): boolean {
+    return /\{\{(?:var_table|var|quiz|step|check|ref_step|ref_var|ref_fig|cite|fig)\|/.test(text)
+      || /```(?:quiz|fig|assigner)\b/.test(text)
+  }
+
+  function reparseMilkdownMarkdown() {
+    if (!milkdownEditorRef.value) {
+      return
+    }
+
+    try {
+      const markdown = milkdownEditorRef.value.action(getMarkdown())
+      if (typeof markdown !== 'string') {
+        return
+      }
+
+      const normalizedMarkdown = normalizeMilkdownMarkdown(markdown, content.value)
+      milkdownEditorRef.value.action(replaceAll(toMilkdownMarkdown(normalizedMarkdown)))
+    } catch {}
+  }
 
   // --- Extracted fields for reference suggestions ---
   const extractedFields = computed(() => {
@@ -54,7 +93,9 @@ export function useEditorContent(options: UseEditorContentOptions) {
     if (editorMode.value === 'wysiwyg' && milkdownEditorRef.value) {
       try {
         const md = milkdownEditorRef.value.action(getMarkdown())
-        if (typeof md === 'string') content.value = md
+        if (typeof md === 'string') {
+          content.value = normalizeMilkdownMarkdown(md, content.value)
+        }
       } catch {}
     }
 
@@ -105,7 +146,12 @@ export function useEditorContent(options: UseEditorContentOptions) {
       }])
       monacoEditor.value.focus()
     } else if (editorMode.value === 'wysiwyg' && milkdownEditorRef.value) {
-      try { milkdownEditorRef.value.action(insert(text)) } catch {}
+      try {
+        milkdownEditorRef.value.action(insert(text))
+        if (shouldReparseInsertedText(text)) {
+          reparseMilkdownMarkdown()
+        }
+      } catch {}
     }
   }
 
@@ -192,11 +238,11 @@ export function useEditorContent(options: UseEditorContentOptions) {
   }
 
   function onMilkdownMarkdownUpdated(_ctx: any, markdown: string, _prev: string) {
-    if (!isSyncing) {
-      isSyncing = true
-      content.value = markdown
-      isSyncing = false
+    if (isSyncing) {
+      return
     }
+
+    commitUserContent(normalizeMilkdownMarkdown(markdown, content.value))
   }
 
   function onMilkdownReady(editor: Editor) {
@@ -206,6 +252,7 @@ export function useEditorContent(options: UseEditorContentOptions) {
   return {
     editorMode,
     content,
+    commitUserContent,
     monacoEditor,
     monacoInstance,
     monacoLoading,

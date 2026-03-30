@@ -7,12 +7,13 @@
 
 import { defineAsyncComponent } from "vue"
 import AimdRecorder from "./AimdRecorder.vue"
+import AimdRecorderEditor from "./AimdRecorderEditor.vue"
 import AimdQuizRecorder from "./AimdQuizRecorder.vue"
 
 const AimdDnaSequenceField = defineAsyncComponent(() => import("./AimdDnaSequenceField.vue"))
 const AimdMarkdownField = defineAsyncComponent(() => import("./AimdMarkdownField.vue"))
 
-export { AimdRecorder, AimdQuizRecorder, AimdDnaSequenceField, AimdMarkdownField }
+export { AimdRecorder, AimdRecorderEditor, AimdQuizRecorder, AimdDnaSequenceField, AimdMarkdownField }
 
 /**
  * @deprecated Use `AimdRecorder` instead.

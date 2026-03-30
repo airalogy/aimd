@@ -360,7 +360,6 @@ describe('renderToVue', () => {
     expect(collectVNodeText(card)).toContain('确认所有孔位的量子共振值已记录完毕')
     expect(collectVNodeText(card)).not.toContain('measurement_complete')
   })
-
   it('lets the step-card renderer hide outline chrome and expose the raw id via presentation profile', async () => {
     const { nodes } = await renderToVue(
       "{{step|verify_output, title='Verify Output'}}\n\nBody content.",

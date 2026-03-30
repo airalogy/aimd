@@ -3,7 +3,7 @@ import { ref, shallowRef, computed, watch, nextTick, defineComponent, h, toRef, 
 import type { Editor } from '@milkdown/kit/core'
 import { MilkdownProvider, Milkdown, useEditor, useInstance } from '@milkdown/vue'
 import { defaultValueCtx, Editor as MilkdownEditor, rootCtx, editorViewOptionsCtx, editorViewCtx } from '@milkdown/kit/core'
-import type { Ctx } from '@milkdown/kit/ctx'
+import type { Ctx, MilkdownPlugin } from '@milkdown/kit/ctx'
 import { createTable } from '@milkdown/kit/preset/gfm'
 import { commonmark, paragraphSchema, headingSchema, blockquoteSchema, bulletListSchema, orderedListSchema, codeBlockSchema, hrSchema, listItemSchema } from '@milkdown/kit/preset/commonmark'
 import { commandsCtx } from '@milkdown/kit/core'
@@ -22,7 +22,12 @@ import { Decoration, DecorationSet } from '@milkdown/kit/prose/view'
 import { findParent } from '@milkdown/kit/prose'
 import { protectAimdInlineTemplates } from '@airalogy/aimd-core'
 
+import '@milkdown/theme-nord/style.css'
+import '@milkdown/kit/prose/tables/style/tables.css'
+
 import { aimdMilkdownPlugins } from './milkdown-aimd-plugin'
+import { createProgrammaticMarkdownSyncGuard } from './programmaticMarkdownSyncGuard'
+import { normalizeComparableAimdMarkdown } from './comparableAimdMarkdown'
 import type { AimdFieldType } from './types'
 import type { AimdEditorMessages } from './locales'
 
@@ -34,9 +39,11 @@ const props = withDefaults(defineProps<{
   readonly?: boolean
   resolvedMessages: AimdEditorMessages
   localizedFieldTypes: AimdFieldType[]
+  milkdownPlugins?: MilkdownPlugin[]
 }>(), {
   active: true,
   readonly: false,
+  milkdownPlugins: undefined,
 })
 
 const emit = defineEmits<{
@@ -274,7 +281,10 @@ const tableIcons = {
 
 const milkdownEditorRef = shallowRef<Editor | null>(null)
 let isSyncingContent = false
-let lastKnownMarkdown = props.content
+let lastKnownMarkdown = normalizeComparableAimdMarkdown(props.content)
+const programmaticMarkdownSyncGuard = createProgrammaticMarkdownSyncGuard()
+const PROGRAMMATIC_MARKDOWN_SUPPRESSION_MS = 420
+let suppressProgrammaticMarkdownUpdatedUntil = 0
 
 // --- Milkdown inner component ---
 const MilkdownEditorInner = defineComponent({
@@ -283,6 +293,7 @@ const MilkdownEditorInner = defineComponent({
     defaultValue: { type: String, default: '' },
     enableBlockHandle: { type: Boolean, default: true },
     readonly: { type: Boolean, default: false },
+    milkdownPlugins: { type: Array as () => MilkdownPlugin[] | undefined, default: undefined },
   },
   emits: ['ready', 'markdown-updated'],
   setup(innerProps, { emit: innerEmit }) {
@@ -308,7 +319,7 @@ const MilkdownEditorInner = defineComponent({
         .use(clipboard)
         .use(indent)
         .use(trailing)
-        .use(aimdMilkdownPlugins)
+        .use(innerProps.milkdownPlugins ?? aimdMilkdownPlugins)
         .use(tableBlock)
         .use(placeholderPlugin)
         .config((ctx) => {
@@ -429,16 +440,25 @@ const MilkdownEditorInner = defineComponent({
 
 function onInnerReady(editor: Editor) {
   milkdownEditorRef.value = editor
-  lastKnownMarkdown = props.content
+  lastKnownMarkdown = normalizeComparableAimdMarkdown(props.content)
   emit('ready', editor)
 }
 
 function onInnerMarkdownUpdated(ctx: any, markdown: string, prev: string) {
-  if (isSyncingContent) {
+  const isWithinProgrammaticSuppressionWindow = Date.now() < suppressProgrammaticMarkdownUpdatedUntil
+  const comparableMarkdown = normalizeComparableAimdMarkdown(markdown)
+  if (
+    isSyncingContent
+    || isWithinProgrammaticSuppressionWindow
+    || programmaticMarkdownSyncGuard.consume(comparableMarkdown)
+  ) {
+    lastKnownMarkdown = isWithinProgrammaticSuppressionWindow
+      ? normalizeComparableAimdMarkdown(props.content)
+      : comparableMarkdown
     return
   }
 
-  lastKnownMarkdown = markdown
+  lastKnownMarkdown = comparableMarkdown
   emit('markdown-updated', ctx, markdown, prev)
 }
 
@@ -449,8 +469,11 @@ function syncMilkdownContent(content: string): boolean {
 
   isSyncingContent = true
   try {
+    const comparableContent = normalizeComparableAimdMarkdown(content)
+    suppressProgrammaticMarkdownUpdatedUntil = Date.now() + PROGRAMMATIC_MARKDOWN_SUPPRESSION_MS
+    programmaticMarkdownSyncGuard.track(comparableContent)
     milkdownEditorRef.value.action(replaceAll(toMilkdownMarkdown(content)))
-    lastKnownMarkdown = content
+    lastKnownMarkdown = comparableContent
   } catch {
     isSyncingContent = false
     return false
@@ -460,7 +483,8 @@ function syncMilkdownContent(content: string): boolean {
 }
 
 watch(() => props.content, (content) => {
-  if (!props.active || !milkdownEditorRef.value || content === lastKnownMarkdown) {
+  const comparableContent = normalizeComparableAimdMarkdown(content)
+  if (!props.active || !milkdownEditorRef.value || comparableContent === lastKnownMarkdown) {
     return
   }
 
@@ -480,7 +504,11 @@ watch(() => props.readonly, (readonly) => {
 }, { immediate: true })
 
 watch(() => props.active, async (active) => {
-  if (!active || !milkdownEditorRef.value || props.content === lastKnownMarkdown) {
+  if (
+    !active
+    || !milkdownEditorRef.value
+    || normalizeComparableAimdMarkdown(props.content) === lastKnownMarkdown
+  ) {
     return
   }
 
@@ -489,6 +517,7 @@ watch(() => props.active, async (active) => {
 })
 
 onBeforeUnmount(() => {
+  programmaticMarkdownSyncGuard.clear()
   blockProviderRef.value?.destroy()
   if (blockMenuListenerTimer !== null) {
     clearTimeout(blockMenuListenerTimer)
@@ -512,6 +541,7 @@ defineExpose({
         :default-value="content"
         :enable-block-handle="enableBlockHandle"
         :readonly="!!readonly"
+        :milkdown-plugins="milkdownPlugins"
         @ready="onInnerReady"
         @markdown-updated="onInnerMarkdownUpdated"
       />

@@ -4,7 +4,7 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 ## [Unreleased]
 
-## [1.7.0] - 2026-03-29
+## [1.8.0] - 2026-03-29
 
 ### Added
 
@@ -14,6 +14,28 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 - Replaced the editor-local hardcoded AIMD token palette with syntax colors derived from the shared semantic theme core so editor integrations stay aligned with recorder and renderer theming.
 - Exported editor-side scope mappings that can be paired with `@airalogy/aimd-presentation` / `@airalogy/aimd-theme` host configuration flows, keeping syntax theming separate from presentation-policy decisions.
+
+## [1.7.0] - 2026-03-26
+
+### Added
+
+- Added low-level `AimdWysiwygEditor` support for injected Milkdown plugin chains so host packages can swap the default AIMD node views for richer embedded experiences.
+- Added `allowedTypes` on `AimdFieldDialog` so host packages can constrain the insertion UI to a focused subset of AIMD field kinds.
+
+### Changed
+
+- AIMD syntax inserted into WYSIWYG now reparses immediately, so host-defined Milkdown node views can hydrate custom AIMD widgets right after toolbar/dialog insertion instead of waiting for a later full-document round trip.
+
+### Fixed
+
+- Fixed WYSIWYG content syncing so protected AIMD inline-template tokens are restored before being emitted back to host state, and obviously corrupted Milkdown DOM snapshots are ignored instead of being written into the markdown model.
+- Fixed AIMD WYSIWYG markdown serialization so inline AIMD fields round-trip as markdown text instead of mdast html nodes, preventing protected inline-template tokens from resurfacing as literal `<p>...AIMDINLINETEMPLATE...` output during editor sync.
+- Hardened WYSIWYG content normalization so HTML-wrapped protected AIMD tokens are rejected as corrupted editor output instead of being written back into host markdown state.
+- Fixed WYSIWYG-to-source markdown normalization so AIMD inline templates no longer keep stray Markdown escape characters like `\_` in field ids after switching editor modes, and added a dedicated regression test for that round-trip.
+- Fixed source/WYSIWYG sync echo behavior so `syncFromProp(...)` updates no longer re-emit stale intermediate markdown back to host state; this prevents rapid typing from flickering between partial and newer content when a host keeps both AIMD source and a live WYSIWYG surface mounted at the same time.
+- Fixed delayed Milkdown `markdownUpdated` callbacks after programmatic `replaceAll(...)` syncs by suppressing tracked sync-target echoes, preventing controlled split-view hosts such as `AimdRecorderEditor` from getting stuck oscillating between older and newer markdown states after fast typing.
+- Fixed delayed Milkdown `markdownUpdated` callbacks after programmatic content sync by adding a short suppression window on top of tracked sync-target filtering, preventing split-view hosts from oscillating between older and newer markdown states when source typing and a live WYSIWYG surface are mounted together.
+- Fixed controlled WYSIWYG sync comparisons so protected AIMD inline-template placeholders and restored AIMD markdown now normalize to the same comparable content before programmatic sync guards and external-prop equality checks run, preventing right-side recorder/editor typing from repeatedly `replaceAll(...)`-resetting the caret to the end of the document.
 
 ## [1.6.1] - 2026-03-21
 

@@ -3,11 +3,11 @@
 This site organizes docs by package:
 
 - [`@airalogy/aimd-core`](/en/packages/aimd-core/)
+- [`@airalogy/aimd-editor`](/en/packages/aimd-editor/)
+- [`@airalogy/aimd-renderer`](/en/packages/aimd-renderer/)
+- [`@airalogy/aimd-recorder`](/en/packages/aimd-recorder/)
 - [`@airalogy/aimd-presentation`](/en/packages/aimd-presentation)
 - [`@airalogy/aimd-theme`](/en/packages/aimd-theme)
-- [`@airalogy/aimd-editor`](/en/packages/aimd-editor)
-- [`@airalogy/aimd-renderer`](/en/packages/aimd-renderer)
-- [`@airalogy/aimd-recorder`](/en/packages/aimd-recorder)
 
 Interactive demo:
 

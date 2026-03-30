@@ -204,7 +204,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
         },
       },
       recorder: {
-        desc: 'AIMD protocol recorder with built-in inline data-entry components',
+        desc: 'AIMD protocol recorder with inline data entry, source-linked recorder editing, and recorder-side visual field editing',
         inlineFormTitle: 'Inline Record Form',
       },
       tutorial: {
@@ -309,7 +309,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
         },
       },
       recorder: {
-        desc: 'AIMD 数据记录器 — 使用包内置协议内联录入组件',
+        desc: 'AIMD 数据记录器 — 支持协议内联录入、源码联动编辑器，以及 recorder 内可视化 field 编辑',
         inlineFormTitle: '数据记录表单（内联）',
       },
       tutorial: {

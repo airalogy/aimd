@@ -4,7 +4,7 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
-## [1.12.0] - 2026-03-29
+## [1.13.0] - 2026-03-29
 
 ### Added
 
@@ -15,6 +15,39 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 - Moved recorder root surfaces, field tags, markdown shells, and code-field chrome onto semantic theme tokens so host apps can theme recorder UI from one scoped root instead of patching hardcoded colors piecemeal.
 - Routed recorder-rendered code blocks and markdown note previews through the shared semantic theme so code presentation stays aligned with the rest of the recorder surface.
 - Added shared `presentationProfile` handling so recorder hosts can formally control assigner visibility, step detail disclosure, outline chrome, technical id surfacing, label preference, and compact density from one strategy object.
+
+## [1.12.0] - 2026-03-26
+
+### Added
+
+- Added `AimdRecorderEditor`, a combined protocol editor + recorder surface that binds AIMD source editing and recorder entry to the same `content` / `record` state.
+- Added detached-record visibility in `AimdRecorderEditor` so hosts can surface values whose field ids are no longer present after protocol restructuring, renaming, or field removal.
+- Added recorder-side field structure editing in `AimdRecorderEditor`, including kind switching, id editing, inline `var` value-type editing, add/delete actions, and source-fragment reordering.
+- Added a recorder-aware WYSIWYG mode in `AimdRecorderEditor`, so users can place the caret anywhere, keep writing normal Markdown, and see `var`, `var_table`, `step`, `check`, and `quiz` fields rendered as their real recorder widgets while filling the same live `record`.
+- Added in-place recorder-widget controls so fields can be edited or deleted directly from the rendered WYSIWYG surface instead of relying only on a separate structure panel.
+- Added `allowRawFieldSourceEditing` so hosts can disable raw AIMD snippet editing inside the recorder-side field dialog while still allowing structured kind/id/value-type edits.
+- Added viewport-fitting layout behavior, including `fitViewport` and `viewportOffset`, so editor and recorder columns can expand to the remaining browser height by default while still allowing fixed-height layouts.
+
+### Changed
+
+- Renamed the unpublished combined protocol-authoring surface from `AimdRecorderWorkbench` to `AimdRecorderEditor` before release, without keeping a compatibility alias for the unpublished old export.
+- Reworked the right-side workflow into a tabbed recorder/editor workspace so `Recorder`, `Record Data`, detached-data inspection, and optional structure editing stay near the main workflow instead of being pushed below long AIMD documents.
+- Made the separate `Field Structure` helper tab opt-in (`showFieldStructure` defaults to `false`) so the main workflow stays focused on source editing, recorder entry, and the caret-based WYSIWYG authoring mode.
+- Reworked recorder-side WYSIWYG insertion and dragging to follow Milkdown/ProseMirror document positions so field widgets can be moved to arbitrary caret-valid locations inside the rendered AIMD flow instead of only reordering source fragments in a side list.
+- Reworked recorder-aware WYSIWYG field controls into contextual field-attached hover/focus toolbars so edit, delete, and drag actions stay close to each rendered widget without polluting normal recorder mode.
+- Added a visible recorder-side WYSIWYG drop indicator during drag operations so users can place rendered field widgets more precisely.
+
+### Fixed
+
+- Fixed `AimdRecorderEditor` source-side typing stability by buffering AIMD content locally and ignoring stale parent echo updates, so rapid typing in the left source editor no longer snaps the cursor back to the start or causes visible flicker.
+- Fixed split source + recorder-aware visual editing so the right-side WYSIWYG now batches incoming source updates instead of rebuilding the Milkdown surface on every keystroke, reducing left/right flicker while typing in the source editor with visual mode enabled.
+- Fixed split source + recorder-aware visual editing feedback loops by treating the currently focused content surface as authoritative and ignoring stale recorder-side visual echoes of recent source drafts, preventing left/right oscillation between older and newer markdown states after fast source typing.
+- Fixed right-side recorder/editor panels so long content stays inside a fixed-height internal scroll area instead of expanding the entire layout.
+- Fixed viewport-fitting layout so the recorder-side visual edit workflow keeps the left and right columns balanced, with the WYSIWYG editor sized to the remaining panel height instead of stretching past its scroll area.
+- Fixed recorder-aware WYSIWYG inline field rendering so recorder-editable AIMD nodes now mount their real recorder inputs/widgets instead of falling back to the generic AIMD chip view.
+- Fixed recorder-aware WYSIWYG syncing so opening visual edit mode no longer leaks protected AIMD placeholder tokens or accidental Milkdown editor DOM markup back into the shared AIMD content.
+- Fixed recorder-aware WYSIWYG parsing by layering recorder widget plugins on top of the base AIMD Milkdown plugin chain with recorder-specific mdast node types, so inline recorder fields no longer regress into protected placeholder tokens when visual edit mode opens.
+- Fixed recorder-aware WYSIWYG serialization so inline recorder fields round-trip as markdown text and quiz widgets round-trip as real ` ```quiz ` code blocks, preventing visual edit mode from regressing into literal `<p>...AIMDINLINETEMPLATE...` output on reopen.
 
 ## [1.11.1] - 2026-03-21
 
