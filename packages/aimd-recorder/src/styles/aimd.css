@@ -4,12 +4,12 @@
 
 /* CSS Variables */
 :root {
-  --aimd-border-color: #90caf9;
-  --aimd-border-color-focus: #4181fd;
-  --aimd-var-bg: #e3f2fd;
-  --aimd-var-scope-bg: #bbdefb;
-  --aimd-var-text: #1565c0;
-  --aimd-var-scope-text: #1976d2;
+  --aimd-border-color: var(--aimd-state-var-border, #90caf9);
+  --aimd-border-color-focus: var(--aimd-color-focus, #4181fd);
+  --aimd-var-bg: var(--aimd-state-var-bg, #e3f2fd);
+  --aimd-var-scope-bg: var(--aimd-state-var-scope-bg, #bbdefb);
+  --aimd-var-text: var(--aimd-state-var-text, #1565c0);
+  --aimd-var-scope-text: var(--aimd-state-var-scope-text, #1976d2);
 }
 
 /* Base field styles */
@@ -35,8 +35,8 @@
 .aimd-field--var .aimd-field__scope {
   font-size: 12px;
   font-weight: 600;
-  color: #1976d2;
-  background-color: #bbdefb;
+  color: var(--aimd-var-scope-text);
+  background-color: var(--aimd-var-scope-bg);
   padding: 0 4px;
   border-radius: 2px;
   text-transform: lowercase;
@@ -48,7 +48,7 @@
 
 .aimd-field--var .aimd-field__type {
   font-size: 12px;
-  color: #7b1fa2;
+  color: var(--aimd-state-var-muted-text, #7b1fa2);
   font-style: italic;
 }
 
@@ -56,9 +56,9 @@
 .aimd-field--var-table {
   display: block;
   width: fit-content;
-  background-color: #e8f5e9;
-  border: 1px solid #a5d6a7;
-  color: #2e7d32;
+  background-color: var(--aimd-state-var-table-bg, #e8f5e9);
+  border: 1px solid var(--aimd-state-var-table-border, #a5d6a7);
+  color: var(--aimd-state-var-table-text, #2e7d32);
   padding: 6px 8px;
   border-radius: 4px;
   font-size: 14px;
@@ -68,8 +68,8 @@
 .aimd-field--var-table .aimd-field__scope {
   font-size: 12px;
   font-weight: 600;
-  color: #388e3c;
-  background-color: #c8e6c9;
+  color: var(--aimd-state-var-table-scope-text, #388e3c);
+  background-color: var(--aimd-state-var-table-scope-bg, #c8e6c9);
   padding: 0 4px;
   border-radius: 2px;
   text-transform: lowercase;
@@ -98,18 +98,18 @@
 .aimd-field--var-table .aimd-field__table-preview th,
 .aimd-field--var-table .aimd-field__table-preview td {
   padding: 4px 8px;
-  border: 1px solid #c8e6c9;
+  border: 1px solid var(--aimd-state-var-table-scope-bg, #c8e6c9);
   text-align: left;
 }
 
 .aimd-field--var-table .aimd-field__table-preview th {
-  background: #cfeed0;
+  background: color-mix(in srgb, var(--aimd-state-var-table-scope-bg, #c8e6c9) 82%, white);
   font-weight: 600;
-  color: #2e7d32;
+  color: var(--aimd-state-var-table-text, #2e7d32);
 }
 
 .aimd-field--var-table .aimd-field__table-preview td {
-  color: #666;
+  color: var(--aimd-state-var-table-muted-text, #666);
   font-style: italic;
 }
 
@@ -118,9 +118,9 @@
   display: block;
   width: 100%;
   max-width: 860px;
-  background-color: #fff8e1;
-  border: 1px solid #ffe082;
-  color: #4e342e;
+  background-color: var(--aimd-state-quiz-bg, #fff8e1);
+  border: 1px solid var(--aimd-state-quiz-border, #ffe082);
+  color: var(--aimd-state-quiz-text, #4e342e);
   padding: 8px 10px;
   border-radius: 6px;
   margin: 10px 0;
@@ -136,8 +136,8 @@
 .aimd-field--quiz .aimd-field__scope {
   font-size: 12px;
   font-weight: 700;
-  color: #8d6e63;
-  background-color: #ffecb3;
+  color: var(--aimd-state-quiz-scope-text, #8d6e63);
+  background-color: var(--aimd-state-quiz-scope-bg, #ffecb3);
   border-radius: 2px;
   padding: 0 4px;
 }
@@ -149,7 +149,7 @@
 .aimd-field--quiz .aimd-field__type,
 .aimd-field--quiz .aimd-quiz__score {
   font-size: 12px;
-  color: #6d4c41;
+  color: var(--aimd-state-quiz-muted-text, #6d4c41);
 }
 
 .aimd-field--quiz .aimd-quiz__stem {
@@ -165,10 +165,10 @@
   min-width: 44px;
   margin: 0 2px;
   padding: 0 6px;
-  border-bottom: 2px solid #f9a825;
+  border-bottom: 2px solid var(--aimd-state-quiz-placeholder-border, #f9a825);
   border-radius: 4px 4px 2px 2px;
-  background: #fffde7;
-  color: #8d6e63;
+  background: var(--aimd-state-quiz-placeholder-bg, #fffde7);
+  color: var(--aimd-state-quiz-scope-text, #8d6e63);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -187,17 +187,17 @@
 .aimd-field--quiz .aimd-quiz__rubric {
   margin-top: 8px;
   padding: 6px 8px;
-  border-left: 3px solid #ffcc80;
-  background: #fff3cd;
+  border-left: 3px solid var(--aimd-state-quiz-rubric-border, #ffcc80);
+  background: var(--aimd-state-quiz-rubric-bg, #fff3cd);
   font-size: 13px;
-  color: #6d4c41;
+  color: var(--aimd-state-quiz-muted-text, #6d4c41);
 }
 
 /* Step field */
 .aimd-field--step {
-  background-color: #fff3e0;
-  border: 1px solid #ffcc80;
-  color: #e65100;
+  background-color: var(--aimd-state-step-bg, #fff3e0);
+  border: 1px solid var(--aimd-state-step-border, #ffcc80);
+  color: var(--aimd-state-step-text, #e65100);
 }
 
 .aimd-field--step .aimd-field__icon {
@@ -214,17 +214,17 @@
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  background-color: #f0f0f0;
-  border: 1px solid #d0d0d0;
+  background-color: var(--aimd-state-check-bg, #f0f0f0);
+  border: 1px solid var(--aimd-state-check-border, #d0d0d0);
   border-radius: 4px;
-  color: #333;
+  color: var(--aimd-state-check-text, #333);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .aimd-field--check:hover {
-  background-color: #e8e8e8;
-  border-color: #b0b0b0;
+  background-color: var(--aimd-state-check-scope-bg, #e8e8e8);
+  border-color: color-mix(in srgb, var(--aimd-state-check-border, #d0d0d0) 78%, black);
 }
 
 .aimd-field--check .aimd-checkbox {
@@ -232,7 +232,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #4181fd;
+  accent-color: var(--aimd-color-focus, #4181fd);
 }
 
 .aimd-field--check .aimd-field__label,
@@ -246,8 +246,8 @@
   display: inline-block;
   padding: 8px 12px;
   margin: 4px 0;
-  border-left: 4px solid #dfe2e5;
-  background-color: #f6f8fa;
+  border-left: 4px solid var(--aimd-border-muted, #dfe2e5);
+  background-color: var(--aimd-surface-panel-subtle, #f6f8fa);
   color: inherit;
   text-decoration: none;
   cursor: default;
@@ -256,8 +256,8 @@
 }
 
 .aimd-ref:hover {
-  border-left-color: #b0b0b0;
-  background-color: #f0f0f0;
+  border-left-color: var(--aimd-border-strong, #b0b0b0);
+  background-color: color-mix(in srgb, var(--aimd-surface-panel-subtle, #f6f8fa) 84%, black);
 }
 
 .aimd-ref--step {
@@ -367,6 +367,37 @@
 
 .aimd-cite__refs {
   font-weight: 500;
+}
+
+/* Markdown / figure media should scale within the recorder document width. */
+.aimd-image,
+.aimd-figure__image {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.aimd-figure {
+  display: grid;
+  gap: 10px;
+  max-width: 100%;
+  width: fit-content;
+  margin: 16px auto;
+}
+
+.aimd-figure__caption {
+  max-width: min(100%, 72ch);
+  margin: 0 auto;
+  color: #5b625f;
+  line-height: 1.6;
+}
+
+.aimd-figure__title {
+  font-weight: 600;
+  color: #24352c;
 }
 
 /* Editable state */

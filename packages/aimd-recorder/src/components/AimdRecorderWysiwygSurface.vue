@@ -16,6 +16,8 @@ import type { ExtractedAimdFields } from '@airalogy/aimd-core/types'
 import type { AimdComponentRenderer } from '@airalogy/aimd-renderer'
 import type { AimdRecorderMessagesInput } from '../locales'
 import type {
+  AimdPresentationProfileInput,
+  AimdThemeInput,
   AimdFieldMeta,
   AimdFieldState,
   AimdProtocolRecordData,
@@ -51,6 +53,8 @@ const props = withDefaults(defineProps<{
   currentUserName?: string
   now?: Date | string | number
   messages?: AimdRecorderMessagesInput
+  presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
   stepDetailDisplay?: AimdStepDetailDisplay
   fieldMeta?: Record<string, AimdFieldMeta>
   fieldState?: Record<string, AimdFieldState>
@@ -68,6 +72,8 @@ const props = withDefaults(defineProps<{
   currentUserName: undefined,
   now: undefined,
   messages: undefined,
+  presentationProfile: undefined,
+  theme: undefined,
   stepDetailDisplay: 'auto',
   fieldMeta: undefined,
   fieldState: undefined,
@@ -164,6 +170,8 @@ const surfaceState = reactive<RecorderMilkdownSurfaceState>({
   now: props.now,
   locale: props.locale,
   messages: props.messages,
+  presentationProfile: props.presentationProfile,
+  theme: props.theme,
   stepDetailDisplay: props.stepDetailDisplay,
   fieldMeta: props.fieldMeta,
   fieldState: props.fieldState,
@@ -188,6 +196,8 @@ watchEffect(() => {
   surfaceState.now = props.now
   surfaceState.locale = props.locale
   surfaceState.messages = props.messages
+  surfaceState.presentationProfile = props.presentationProfile
+  surfaceState.theme = props.theme
   surfaceState.stepDetailDisplay = props.stepDetailDisplay
   surfaceState.fieldMeta = props.fieldMeta
   surfaceState.fieldState = props.fieldState

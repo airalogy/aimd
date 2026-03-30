@@ -4,6 +4,17 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-03-29
+
+### Added
+
+- Added semantic syntax theme derivation through `@airalogy/aimd-theme`, including `createAimdTheme(...)` and exported shared scope mappings for AIMD Monaco/Shiki integrations.
+
+### Changed
+
+- Replaced the editor-local hardcoded AIMD token palette with syntax colors derived from the shared semantic theme core so editor integrations stay aligned with recorder and renderer theming.
+- Exported editor-side scope mappings that can be paired with `@airalogy/aimd-presentation` / `@airalogy/aimd-theme` host configuration flows, keeping syntax theming separate from presentation-policy decisions.
+
 ## [1.7.0] - 2026-03-26
 
 ### Added
@@ -25,6 +36,12 @@ All notable changes to `@airalogy/aimd-editor` will be documented in this file.
 - Fixed delayed Milkdown `markdownUpdated` callbacks after programmatic `replaceAll(...)` syncs by suppressing tracked sync-target echoes, preventing controlled split-view hosts such as `AimdRecorderEditor` from getting stuck oscillating between older and newer markdown states after fast typing.
 - Fixed delayed Milkdown `markdownUpdated` callbacks after programmatic content sync by adding a short suppression window on top of tracked sync-target filtering, preventing split-view hosts from oscillating between older and newer markdown states when source typing and a live WYSIWYG surface are mounted together.
 - Fixed controlled WYSIWYG sync comparisons so protected AIMD inline-template placeholders and restored AIMD markdown now normalize to the same comparable content before programmatic sync guards and external-prop equality checks run, preventing right-side recorder/editor typing from repeatedly `replaceAll(...)`-resetting the caret to the end of the document.
+
+## [1.6.1] - 2026-03-21
+
+### Fixed
+
+- Scoped full-height editor layout to `minHeight={0}` only, so embeds inside fixed-height parents no longer regress when using the default editor height.
 
 ## [1.6.0] - 2026-03-19
 

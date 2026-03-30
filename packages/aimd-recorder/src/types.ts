@@ -1,4 +1,10 @@
+import type {
+  AimdPresentationAppearance,
+  AimdPresentationProfile,
+  AimdPresentationProfileInput,
+} from "@airalogy/aimd-presentation"
 import type { VNode } from "vue"
+import type { AimdThemeInput, AimdThemeTokens } from "@airalogy/aimd-theme"
 import type {
   AimdCheckNode,
   AimdQuizNode,
@@ -59,8 +65,16 @@ export interface AimdProtocolRecordData {
   quiz: Record<string, unknown>
 }
 
+export type {
+  AimdPresentationAppearance,
+  AimdPresentationProfile,
+  AimdPresentationProfileInput,
+  AimdThemeInput,
+  AimdThemeTokens,
+}
+
 export type AimdVarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna" | "code"
-export type AimdStepDetailDisplay = "auto" | "always"
+export type AimdStepDetailDisplay = "auto" | "always" | "hidden"
 
 export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
   return {
@@ -144,9 +158,11 @@ export interface AimdTypePluginParseContext extends AimdTypePluginInitContext {
 export interface AimdTypePluginRenderContext extends AimdTypePluginValueContext {
   readonly: boolean
   disabled: boolean
+  enhancedAppearance: boolean
   locale: string
   messages: AimdRecorderMessages
   record: AimdProtocolRecordData
+  resolveFile?: (src: string) => string | null
   displayValue: string | number
   extraClasses: string[]
   placeholder?: string

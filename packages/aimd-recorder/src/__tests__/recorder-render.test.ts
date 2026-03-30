@@ -28,7 +28,22 @@ describe('AimdRecorder render stability', () => {
   it('defaults step detail disclosure to auto and passes it through to the step field', () => {
     expect(source).toMatch(/stepDetailDisplay\?: AimdStepDetailDisplay/)
     expect(source).toMatch(/stepDetailDisplay: "auto"/)
-    expect(source).toMatch(/detailDisplay: props\.stepDetailDisplay/)
+    expect(source).toMatch(/detailDisplay: effectiveStepDetailDisplay\.value/)
+  })
+
+  it('routes markdown image nodes through resolveFile when a host resolver is provided', () => {
+    expect(source).toMatch(/function renderResolvedImage\(node: \{ properties\?: Record<string, unknown> \}\): VNode/)
+    expect(source).toMatch(/props\.resolveFile\(originalSrc\) \?\? originalSrc/)
+    expect(source).toMatch(/const codeBlockHighlighter = await getDefaultCodeBlockHighlighter\(\)/)
+    expect(source).toMatch(/const codeBlockRenderer = createCodeBlockRenderer\(/)
+    expect(source).toMatch(/resolvedTheme\.value\.mode === "dark" \? "github-dark" : "github-light"/)
+    expect(source).toMatch(/assignerVisibility: resolvePresentationAssignerVisibility/)
+    expect(source).not.toMatch(/assigners: "collapsed"/)
+    expect(source).toMatch(/pre: codeBlockRenderer/)
+    expect(source).toMatch(/img: node => renderResolvedImage\(node as \{ properties\?: Record<string, unknown> \}\)/)
+    expect(source).toMatch(/function renderInlineFigure\(node: AimdFigNode\): VNode/)
+    expect(source).toMatch(/const resolvedSrc = props\.resolveFile\?\.\(node\.src\) \?\? node\.src/)
+    expect(source).toMatch(/fig: node => renderInlineFigure\(node as AimdFigNode\)/)
   })
 
   it('normalizes grouped step body nodes so grouped content does not re-render the step header inside its own body', () => {

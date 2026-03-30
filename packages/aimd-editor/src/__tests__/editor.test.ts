@@ -9,7 +9,7 @@ import {
   DelimiterDefinition,
   scopeName,
 } from '../tokens'
-import { aimdTheme, aimdTokenColors } from '../theme'
+import { aimdTheme, aimdTokenColors, createAimdTheme } from '../theme'
 import {
   getDefaultAimdFields,
   buildAimdSyntax,
@@ -89,6 +89,14 @@ describe('AIMD theme', () => {
       expect(color).toHaveProperty('scope')
       expect(color).toHaveProperty('settings')
     }
+  })
+
+  it('can derive a dark syntax theme from the shared semantic theme package', () => {
+    const darkTheme = createAimdTheme({ mode: 'dark' }, 'aimd-dark')
+
+    expect(darkTheme.name).toBe('aimd-dark')
+    expect(darkTheme.type).toBe('dark')
+    expect(darkTheme.settings?.length ?? 0).toBeGreaterThan(0)
   })
 })
 
@@ -268,6 +276,7 @@ describe('MD toolbar item definitions', () => {
     const actions = MD_TOOLBAR_ITEM_DEFINITIONS.map(d => d.action)
     expect(actions).toContain('h1')
     expect(actions).toContain('bold')
+    expect(actions).toContain('assignerClient')
   })
 
   it('createMdToolbarItems localizes items', () => {

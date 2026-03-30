@@ -7,7 +7,13 @@
  */
 
 export { language, conf, completionItemProvider } from './language-config'
-export { aimdTokenColors, aimdTheme, createAimdExtendedTheme } from './theme'
+export {
+  AIMD_EDITOR_SYNTAX_SCOPES,
+  aimdTokenColors,
+  aimdTheme,
+  createAimdTheme,
+  createAimdExtendedTheme,
+} from './theme'
 export {
   AimdToken,
   AimdTokenDefinition,

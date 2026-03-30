@@ -6,6 +6,8 @@
 - [`@airalogy/aimd-editor`](/zh/packages/aimd-editor/)
 - [`@airalogy/aimd-renderer`](/zh/packages/aimd-renderer/)
 - [`@airalogy/aimd-recorder`](/zh/packages/aimd-recorder/)
+- [`@airalogy/aimd-presentation`](/zh/packages/aimd-presentation)
+- [`@airalogy/aimd-theme`](/zh/packages/aimd-theme)
 
 交互式演示：
 
@@ -23,6 +25,8 @@
 aimd/
   packages/
     aimd-core/
+    aimd-presentation/
+    aimd-theme/
     aimd-editor/
     aimd-renderer/
     aimd-recorder/

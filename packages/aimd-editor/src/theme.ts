@@ -1,166 +1,73 @@
-import type { ThemeRegistration } from "shiki"
-import { AimdToken } from "./tokens"
+import type { ThemeRegistration } from 'shiki'
+import {
+  createAimdSyntaxTheme,
+  createAimdSyntaxTokenColors,
+  resolveAimdTheme,
+  type AimdSyntaxScopes,
+  type AimdThemeInput,
+} from '@airalogy/aimd-theme'
+import { AimdToken } from './tokens'
 
-/**
- * AIMD token color settings
- * These can be merged into any base theme
- */
-export const aimdTokenColors = [
-  // {{ and }} brackets - green
-  {
-    scope: [
-      AimdToken.PUNCTUATION_DEFINITION_BEGIN_AIMD,
-      AimdToken.PUNCTUATION_DEFINITION_END_AIMD,
-    ],
-    settings: {
-      foreground: "#059669",
-    },
-  },
-  // var keyword - blue italic
-  {
-    scope: [
-      AimdToken.KEYWORD_VARIABLE_AIMD,
-    ],
-    settings: {
-      foreground: "#2563EB",
-      fontStyle: "italic",
-    },
-  },
-  // var_table keyword - green italic
-  {
-    scope: [AimdToken.KEYWORD_VARIABLE_TABLE_AIMD],
-    settings: {
-      foreground: "#059669",
-      fontStyle: "italic",
-    },
-  },
-  // step, check keywords - orange italic
-  {
-    scope: [
-      AimdToken.KEYWORD_STEP_AIMD,
-      AimdToken.KEYWORD_CHECKPOINT_AIMD,
-      AimdToken.KEYWORD_CONTROL_AIMD,
-    ],
-    settings: {
-      foreground: "#D97706",
-      fontStyle: "italic",
-    },
-  },
-  // ref_var, ref_step reference keywords - cyan italic
-  {
-    scope: [
-      AimdToken.KEYWORD_REFERENCE_VARIABLE_AIMD,
-      AimdToken.KEYWORD_REFERENCE_STEP_AIMD,
-    ],
-    settings: {
-      foreground: "#0891B2",
-      fontStyle: "italic",
-    },
-  },
-  // Variable names (title, name, age etc) - purple
-  {
-    scope: [AimdToken.VARIABLE_OTHER_AIMD],
-    settings: {
-      foreground: "#7C3AED",
-    },
-  },
-  // Types (str, int, list[Student] etc) - dark purple italic
-  {
-    scope: [AimdToken.SUPPORT_TYPE_AIMD],
-    settings: {
-      foreground: "#6D28D9",
-      fontStyle: "italic",
-    },
-  },
-  // Parameter variables - purple bold
-  {
-    scope: [AimdToken.VARIABLE_PARAMETER_AIMD],
-    settings: {
-      foreground: "#7C3AED",
-      fontStyle: "bold",
-    },
-  },
-  // | pipe delimiter - gray
-  {
-    scope: [AimdToken.DELIMITER_PIPE_AIMD],
-    settings: {
-      foreground: "#6B7280",
-    },
-  },
-  // : colon - gray
-  {
-    scope: [AimdToken.DELIMITER_COLON_AIMD],
-    settings: {
-      foreground: "#9CA3AF",
-    },
-  },
-  // = , and other delimiters - gray
-  {
-    scope: [AimdToken.DELIMITER_PARAMETER_AIMD],
-    settings: {
-      foreground: "#9CA3AF",
-    },
-  },
-  // Strings - green
-  {
-    scope: [AimdToken.STRING_QUOTED_AIMD],
-    settings: {
-      foreground: "#059669",
-    },
-  },
-  // Numbers - teal
-  {
-    scope: [AimdToken.CONSTANT_NUMERIC_AIMD],
-    settings: {
-      foreground: "#0D9488",
-    },
-  },
-  // Boolean/null - blue
-  {
-    scope: [AimdToken.CONSTANT_LANGUAGE_AIMD],
-    settings: {
-      foreground: "#1D4ED8",
-    },
-  },
-  // subvars keyword - dark purple bold
-  {
-    scope: [AimdToken.KEYWORD_OTHER_SUBVARS_AIMD],
-    settings: {
-      foreground: "#5B21B6",
-      fontStyle: "bold",
-    },
-  },
-  // Brackets [] () - gray
-  {
-    scope: [AimdToken.DELIMITER_BRACKET_AIMD],
-    settings: {
-      foreground: "#6B7280",
-    },
-  },
-]
-
-/**
- * AIMD standalone theme
- * Use this when you want a complete theme with only AIMD colors
- */
-export const aimdTheme: ThemeRegistration = {
-  name: "aimd-theme",
-  type: "light",
-  settings: aimdTokenColors,
-  colors: {},
+export const AIMD_EDITOR_SYNTAX_SCOPES: AimdSyntaxScopes = {
+  punctuation: [
+    AimdToken.PUNCTUATION_DEFINITION_BEGIN_AIMD,
+    AimdToken.PUNCTUATION_DEFINITION_END_AIMD,
+  ],
+  variableKeyword: [AimdToken.KEYWORD_VARIABLE_AIMD],
+  variableTableKeyword: [AimdToken.KEYWORD_VARIABLE_TABLE_AIMD],
+  stepKeyword: [
+    AimdToken.KEYWORD_STEP_AIMD,
+    AimdToken.KEYWORD_CHECKPOINT_AIMD,
+    AimdToken.KEYWORD_CONTROL_AIMD,
+  ],
+  referenceKeyword: [
+    AimdToken.KEYWORD_REFERENCE_VARIABLE_AIMD,
+    AimdToken.KEYWORD_REFERENCE_STEP_AIMD,
+  ],
+  variable: [AimdToken.VARIABLE_OTHER_AIMD],
+  type: [AimdToken.SUPPORT_TYPE_AIMD],
+  parameter: [AimdToken.VARIABLE_PARAMETER_AIMD],
+  delimiterStrong: [
+    AimdToken.DELIMITER_PIPE_AIMD,
+    AimdToken.DELIMITER_BRACKET_AIMD,
+  ],
+  delimiterMuted: [
+    AimdToken.DELIMITER_COLON_AIMD,
+    AimdToken.DELIMITER_PARAMETER_AIMD,
+  ],
+  string: [AimdToken.STRING_QUOTED_AIMD],
+  number: [AimdToken.CONSTANT_NUMERIC_AIMD],
+  boolean: [AimdToken.CONSTANT_LANGUAGE_AIMD],
+  subvars: [AimdToken.KEYWORD_OTHER_SUBVARS_AIMD],
 }
 
-/**
- * Create a theme that extends a base theme with AIMD token colors
- */
+export const aimdTokenColors = createAimdSyntaxTokenColors(AIMD_EDITOR_SYNTAX_SCOPES)
+
+export const aimdTheme: ThemeRegistration = createAimdSyntaxTheme(
+  AIMD_EDITOR_SYNTAX_SCOPES,
+) as ThemeRegistration
+
+export function createAimdTheme(
+  theme?: AimdThemeInput,
+  name = 'aimd-theme',
+): ThemeRegistration {
+  return createAimdSyntaxTheme(AIMD_EDITOR_SYNTAX_SCOPES, theme, name) as ThemeRegistration
+}
+
 export function createAimdExtendedTheme(
   baseTheme: ThemeRegistration,
-  name = "aimd-extended",
+  name = 'aimd-extended',
+  theme?: AimdThemeInput,
 ): ThemeRegistration {
   const baseSettings = baseTheme.settings || baseTheme.tokenColors || []
+
   return {
     ...baseTheme,
     name,
-    settings: [...baseSettings, ...aimdTokenColors],
+    type: resolveAimdTheme(theme).mode,
+    settings: [
+      ...baseSettings,
+      ...createAimdSyntaxTokenColors(AIMD_EDITOR_SYNTAX_SCOPES, theme),
+    ],
   }
 }

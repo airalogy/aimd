@@ -27,11 +27,32 @@ export {
 } from '../common/processor'
 
 export {
+  defaultAimdPresentationProfile,
+  isCompactPresentation as isCompactAimdPresentation,
+  resolveAimdPresentationProfile,
+  resolvePresentationAssignerVisibility,
+  resolvePresentationPrimaryLabel,
+  resolvePresentationSecondaryId,
+  resolvePresentationStepDetails,
+  shouldShowOutlineBadge as shouldShowAimdOutlineBadge,
+  shouldShowOutlineScope as shouldShowAimdOutlineScope,
+} from '@airalogy/aimd-presentation'
+export {
   createAimdRendererMessages,
   DEFAULT_AIMD_RENDERER_LOCALE,
   resolveAimdRendererLocale,
 } from '../locales'
 
+export type {
+  AimdPresentationAssignerVisibility,
+  AimdPresentationDensity,
+  AimdPresentationIdVisibility,
+  AimdPresentationLabelStrategy,
+  AimdPresentationOutline,
+  AimdPresentationProfile,
+  AimdPresentationProfileInput,
+  AimdPresentationStepDetails,
+} from '@airalogy/aimd-presentation'
 export type {
   RenderContext,
   RenderMode,

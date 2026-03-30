@@ -2,6 +2,14 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.4.0] - 2026-03-29
+
+### Changed
+
+- Updated renderer code-block presentation helpers to consume semantic theme tokens from `@airalogy/aimd-theme` instead of relying on renderer-local hardcoded palettes.
+- Extended `createCodeBlockRenderer(...)` to accept an optional AIMD semantic theme input so host apps can keep rendered code cards consistent with recorder/editor theme roots.
+- Added shared `presentationProfile` support across renderer options and step-card rendering so assigner visibility, outline chrome, technical ids, label preference, and density can be controlled independently from theme tokens.
+
 ## [2.3.0] - 2026-03-19
 
 ### Changed

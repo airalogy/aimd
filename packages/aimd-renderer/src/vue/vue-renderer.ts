@@ -1,6 +1,17 @@
 import type { Element, Root as HastRoot, Text as HastText, RootContent } from "hast"
 import type { Component, VNode, VNodeChild } from "vue"
 import type { AimdNode, AimdQuizNode, AimdStepNode, RenderContext } from "@airalogy/aimd-core/types"
+import {
+  isCompactPresentation,
+  resolveAimdPresentationProfile,
+  resolvePresentationPrimaryLabel,
+  resolvePresentationSecondaryId,
+  shouldShowOutlineBadge,
+  shouldShowOutlineScope,
+  type AimdPresentationProfile,
+  type AimdPresentationProfileInput,
+} from "@airalogy/aimd-presentation"
+import { resolveAimdTheme, type AimdThemeInput } from "@airalogy/aimd-theme"
 import { Fragment, h } from "vue"
 import type { AimdRendererI18nOptions, AimdRendererLocale, AimdRendererMessages } from "../locales"
 import { resolveQuizPreviewOptions, type ResolvedQuizPreviewOptions } from "../common/quiz-preview"
@@ -11,6 +22,12 @@ import {
   getAimdRendererScopeLabel,
   resolveAimdRendererLocale,
 } from "../locales"
+import {
+  decorateHighlightedCodeHtml,
+  getCodeBlockPresentation,
+  resolveCodeLanguageBadge,
+  resolveCodeLanguageLabel,
+} from "../common/codeBlockPresentation"
 
 /**
  * Extended Element data type
@@ -41,17 +58,31 @@ export type ElementRenderer = (
 export interface AimdRendererContext extends RenderContext {
   locale: AimdRendererLocale
   messages: AimdRendererMessages
+  presentationProfile: AimdPresentationProfile
 }
 
 export interface AimdStepCardRendererOptions {
   showScopeLabel?: boolean
+  showOutlineBadge?: boolean
   showCheckBadge?: boolean
   bodyClassName?: string
   className?: string
+  presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
 }
 
 function resolveQuizPreviewOptionsFromContext(ctx: RenderContext): ResolvedQuizPreviewOptions {
   return resolveQuizPreviewOptions(ctx.mode, ctx.quizPreview)
+}
+
+function resolveRenderableLabel(
+  id: string,
+  label: string | null | undefined,
+  profile: AimdPresentationProfile,
+) {
+  const primary = resolvePresentationPrimaryLabel({ id, label }, profile)
+  const secondaryId = resolvePresentationSecondaryId({ id, label }, primary, profile)
+  return { primary, secondaryId }
 }
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
@@ -310,6 +341,9 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
     const { id, scope } = node
     const stepNode = node as AimdStepNode
     const stepNum = stepNode.step || "1"
+    const { primary, secondaryId } = resolveRenderableLabel(id, stepNode.title, ctx.presentationProfile)
+    const showScopeLabel = shouldShowOutlineScope(ctx.presentationProfile)
+    const showOutlineBadge = shouldShowOutlineBadge(ctx.presentationProfile)
 
     if (ctx.mode === "preview") {
       // Preview mode: render as localized step label + sequence + id
@@ -320,9 +354,10 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
         "data-aimd-step": stepNum,
         "id": `step-${id}`,
       }, [
-        h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)),
-        h("span", { class: "aimd-field__step-num" }, stepNum),
-        h("span", { class: "aimd-field__name" }, id),
+        showScopeLabel ? h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)) : null,
+        showOutlineBadge ? h("span", { class: "aimd-field__step-num" }, stepNum) : null,
+        h("span", { class: "aimd-field__name" }, primary),
+        secondaryId ? h("span", { class: "aimd-field__meta-id" }, secondaryId) : null,
       ])
     }
 
@@ -346,7 +381,8 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
 
   check: (node, ctx, children) => {
     const { id, scope } = node
-    const label = "label" in node ? node.label : id
+    const { primary, secondaryId } = resolveRenderableLabel(id, "label" in node ? node.label : id, ctx.presentationProfile)
+    const showScopeLabel = shouldShowOutlineScope(ctx.presentationProfile)
 
     if (ctx.mode === "preview") {
       // Preview mode: render with checkbox (disabled)
@@ -361,7 +397,9 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
           disabled: true,
           class: "aimd-checkbox",
         }),
-        h("span", { class: "aimd-field__label" }, label),
+        showScopeLabel ? h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)) : null,
+        h("span", { class: "aimd-field__label" }, primary),
+        secondaryId ? h("span", { class: "aimd-field__meta-id" }, secondaryId) : null,
       ])
     }
 
@@ -397,7 +435,9 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
           }
         },
       }),
-      h("span", { class: "aimd-field__label" }, label),
+      showScopeLabel ? h("span", { class: "aimd-field__scope" }, getAimdRendererScopeLabel(scope, ctx.messages)) : null,
+      h("span", { class: "aimd-field__label" }, primary),
+      secondaryId ? h("span", { class: "aimd-field__meta-id" }, secondaryId) : null,
       children && children.length > 0 ? children : null,
     ])
   },
@@ -564,6 +604,7 @@ export interface VueRendererOptions {
    * Render context
    */
   context?: RenderContext & Partial<Pick<AimdRendererContext, "locale" | "messages">>
+  presentationProfile?: AimdPresentationProfileInput
   /**
    * Custom AIMD component renderers
    * Override default renderers or add new ones
@@ -589,6 +630,7 @@ const defaultContext: AimdRendererContext = {
   readonly: false,
   locale: DEFAULT_AIMD_RENDERER_LOCALE,
   messages: createAimdRendererMessages(DEFAULT_AIMD_RENDERER_LOCALE),
+  presentationProfile: resolveAimdPresentationProfile(),
 }
 
 function resolveRenderContext(options: VueRendererOptions): AimdRendererContext {
@@ -597,6 +639,7 @@ function resolveRenderContext(options: VueRendererOptions): AimdRendererContext 
   const context = options.context
   const locale = context?.locale ?? resolveAimdRendererLocale(options.locale)
   const messages = context?.messages ?? createAimdRendererMessages(locale, options.messages)
+  const presentationProfile = resolveAimdPresentationProfile(options.presentationProfile)
 
   return {
     ...defaultContext,
@@ -605,6 +648,7 @@ function resolveRenderContext(options: VueRendererOptions): AimdRendererContext 
     quizPreview: context?.quizPreview ?? topLevelQuizPreview ?? undefined,
     locale,
     messages,
+    presentationProfile,
   }
 }
 
@@ -1034,21 +1078,41 @@ export function createStepCardRenderer(
   options: AimdStepCardRendererOptions = {},
 ): AimdComponentRenderer {
   const {
-    showScopeLabel = true,
+    showScopeLabel,
+    showOutlineBadge,
     showCheckBadge = true,
     bodyClassName = "",
     className = "",
+    presentationProfile,
+    theme,
   } = options
+  const resolvedProfile = resolveAimdPresentationProfile(presentationProfile)
+  const resolvedTheme = resolveAimdTheme(theme)
+  const resolvedShowScopeLabel = showScopeLabel ?? shouldShowOutlineScope(resolvedProfile)
+  const resolvedShowOutlineBadge = showOutlineBadge ?? shouldShowOutlineBadge(resolvedProfile)
+  const compactDensity = isCompactPresentation(resolvedProfile)
 
   return (node, ctx, children) => {
     const stepNode = node as AimdStepNode
     const stepLabel = stepNode.step || "?"
-    const title = stepNode.title || stepNode.id
+    const { primary: title, secondaryId } = resolveRenderableLabel(stepNode.id, stepNode.title, resolvedProfile)
     const subtitle = stepNode.subtitle || ""
     const isResult = Boolean(stepNode.result)
     const hasCheck = Boolean(stepNode.check)
     const level = Number(stepNode.level || 1)
     const bodyChildren = normalizeStepCardBodyChildren(children)
+    const rootBorder = isResult
+      ? resolvedTheme.state.warning.border
+      : resolvedTheme.state.success.border
+    const rootBackground = isResult
+      ? `linear-gradient(180deg, ${resolvedTheme.state.warning.background} 0%, ${resolvedTheme.surface.panel} 100%)`
+      : `linear-gradient(180deg, ${resolvedTheme.state.success.background} 0%, ${resolvedTheme.surface.panel} 100%)`
+    const badgeBackground = hasCheck
+      ? resolvedTheme.state.success.scopeBackground || resolvedTheme.state.success.background
+      : resolvedTheme.state.info.scopeBackground || resolvedTheme.state.info.background
+    const badgeColor = hasCheck
+      ? resolvedTheme.state.success.scopeText || resolvedTheme.state.success.text
+      : resolvedTheme.state.info.scopeText || resolvedTheme.state.info.text
 
     const rootClasses = [
       "aimd-step-card",
@@ -1064,15 +1128,15 @@ export function createStepCardRenderer(
       "data-aimd-step-level": String(level),
       style: {
         display: "grid",
-        gap: "14px",
-        padding: level > 1 ? "16px 18px 16px 20px" : "18px 20px",
-        margin: "12px 0",
-        borderRadius: "18px",
-        border: "1px solid rgba(26, 39, 31, 0.12)",
-        background: isResult
-          ? "linear-gradient(180deg, rgba(255,248,233,0.98) 0%, rgba(255,252,245,0.98) 100%)"
-          : "linear-gradient(180deg, rgba(248,252,249,0.98) 0%, rgba(255,255,255,0.98) 100%)",
-        boxShadow: "0 18px 40px rgba(15, 31, 23, 0.08)",
+        gap: compactDensity ? "10px" : "14px",
+        padding: level > 1
+          ? (compactDensity ? "12px 14px 12px 16px" : "16px 18px 16px 20px")
+          : (compactDensity ? "14px 16px" : "18px 20px"),
+        margin: compactDensity ? "8px 0" : "12px 0",
+        borderRadius: compactDensity ? "14px" : "18px",
+        border: `1px solid ${rootBorder}`,
+        background: rootBackground,
+        boxShadow: resolvedTheme.codeBlock.shadow,
         position: "relative",
         overflow: "hidden",
       },
@@ -1094,25 +1158,25 @@ export function createStepCardRenderer(
             minWidth: "0",
           },
         }, [
-          h("div", {
-            class: "aimd-step-card__badge",
-            style: {
-              minWidth: "42px",
-              height: "42px",
-              borderRadius: "14px",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "700",
-              fontSize: "14px",
-              color: "#0d5139",
-              background: hasCheck
-                ? "linear-gradient(180deg, rgba(212,242,227,1) 0%, rgba(184,233,208,1) 100%)"
-                : "linear-gradient(180deg, rgba(232,241,236,1) 0%, rgba(216,232,222,1) 100%)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
-              flexShrink: 0,
-            },
-          }, stepLabel),
+          resolvedShowOutlineBadge
+            ? h("div", {
+                class: "aimd-step-card__badge",
+                style: {
+                  minWidth: compactDensity ? "36px" : "42px",
+                  height: compactDensity ? "36px" : "42px",
+                  borderRadius: compactDensity ? "12px" : "14px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "700",
+                  fontSize: compactDensity ? "13px" : "14px",
+                  color: badgeColor,
+                  background: badgeBackground,
+                  boxShadow: `inset 0 1px 0 ${resolvedTheme.surface.overlay}`,
+                  flexShrink: 0,
+                },
+              }, stepLabel)
+            : null,
           h("div", {
             style: {
               display: "grid",
@@ -1120,36 +1184,56 @@ export function createStepCardRenderer(
               minWidth: "0",
             },
           }, [
-            showScopeLabel
+            resolvedShowScopeLabel
               ? h("div", {
                   style: {
                     fontSize: "11px",
                     fontWeight: "700",
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
-                    color: "#5d7066",
+                    color: resolvedTheme.text.muted,
                   },
                 }, ctx.messages.scope.step)
               : null,
             h("div", {
               class: "aimd-step-card__title",
-              style: {
-                fontSize: "18px",
-                fontWeight: "700",
-                lineHeight: "1.2",
-                color: "#1b2b22",
-                wordBreak: "break-word",
-              },
-            }, title),
+                style: {
+                  fontSize: compactDensity ? "16px" : "18px",
+                  fontWeight: "700",
+                  lineHeight: "1.2",
+                  color: resolvedTheme.text.strong,
+                  wordBreak: "break-word",
+                },
+              }, [
+              title,
+              secondaryId
+                ? h("span", {
+                    class: "aimd-step-card__id",
+                    style: {
+                      display: "inline-flex",
+                      marginLeft: "8px",
+                      padding: "2px 8px",
+                      borderRadius: "999px",
+                      border: `1px solid ${resolvedTheme.border.default}`,
+                      background: resolvedTheme.surface.panelSubtle,
+                      color: resolvedTheme.text.muted,
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      verticalAlign: "middle",
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace",
+                    },
+                  }, secondaryId)
+                : null,
+            ]),
             subtitle
               ? h("div", {
                   class: "aimd-step-card__subtitle",
-                  style: {
-                    fontSize: "13px",
-                    lineHeight: "1.45",
-                    color: "#5c6f65",
-                  },
-                }, subtitle)
+                style: {
+                  fontSize: "13px",
+                  lineHeight: "1.45",
+                  color: resolvedTheme.text.muted,
+                },
+              }, subtitle)
               : null,
           ]),
         ]),
@@ -1170,8 +1254,8 @@ export function createStepCardRenderer(
                   gap: "6px",
                   padding: "6px 10px",
                   borderRadius: "999px",
-                  background: "rgba(22, 114, 79, 0.10)",
-                  color: "#0d5139",
+                  background: resolvedTheme.state.success.background,
+                  color: resolvedTheme.state.success.scopeText || resolvedTheme.state.success.text,
                   fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.04em",
@@ -1186,8 +1270,8 @@ export function createStepCardRenderer(
                   alignItems: "center",
                   padding: "6px 10px",
                   borderRadius: "999px",
-                  background: "rgba(181, 118, 0, 0.10)",
-                  color: "#8a4f00",
+                  background: resolvedTheme.state.warning.background,
+                  color: resolvedTheme.state.warning.scopeText || resolvedTheme.state.warning.text,
                   fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.04em",
@@ -1202,9 +1286,9 @@ export function createStepCardRenderer(
             class: ["aimd-step-card__body", bodyClassName].filter(Boolean),
             style: {
               display: "grid",
-              gap: "10px",
-              color: "#24352c",
-              fontSize: "14px",
+              gap: compactDensity ? "8px" : "10px",
+              color: resolvedTheme.text.primary,
+              fontSize: compactDensity ? "13px" : "14px",
               lineHeight: "1.75",
             },
           }, bodyChildren)
@@ -1228,9 +1312,23 @@ export interface ShikiHighlighter {
  */
 export function createCodeBlockRenderer(
   highlighter: ShikiHighlighter | null | (() => ShikiHighlighter | null),
-  defaultTheme = "github-dark",
+  defaultTheme = "github-light",
+  theme?: AimdThemeInput,
 ): ElementRenderer {
   return (node, children, ctx) => {
+    const collectCodeContent = (currentNode: Element): string =>
+      currentNode.children
+        .map((child) => {
+          if (child.type === "text") {
+            return child.value
+          }
+          if (child.type === "element") {
+            return collectCodeContent(child)
+          }
+          return ""
+        })
+        .join("")
+
     // Find code element inside pre
     const codeNode = node.children.find(
       (child): child is Element => child.type === "element" && child.tagName === "code",
@@ -1238,6 +1336,14 @@ export function createCodeBlockRenderer(
 
     if (!codeNode) {
       return h("pre", {}, children)
+    }
+
+    const skipCard = node.properties?.["data-aimd-skip-code-card"] === "true"
+      || node.properties?.dataAimdSkipCodeCard === "true"
+      || codeNode.properties?.["data-aimd-skip-code-card"] === "true"
+      || codeNode.properties?.dataAimdSkipCodeCard === "true"
+    if (skipCard) {
+      return h("pre", convertProperties(node.properties as Record<string, unknown>), children)
     }
 
     // Get language from class
@@ -1254,12 +1360,13 @@ export function createCodeBlockRenderer(
     }
 
     // Get code content
-    const codeContent = codeNode.children
-      .map(child => (child.type === "text" ? child.value : ""))
-      .join("")
+    const codeContent = collectCodeContent(codeNode)
 
     // Get highlighter
     const hl = typeof highlighter === "function" ? highlighter() : highlighter
+    const presentation = getCodeBlockPresentation("neutral", theme)
+    const title = resolveCodeLanguageLabel(lang)
+    const badge = resolveCodeLanguageBadge(lang)
 
     // Use Shiki if available
     if (hl) {
@@ -1269,11 +1376,31 @@ export function createCodeBlockRenderer(
           theme: defaultTheme,
         })
 
-        return h("div", {
-          "class": "shiki-code-block",
+        return h("details", {
+          class: ["aimd-code-block-card", "aimd-code-block-card--highlighted"],
           "data-lang": lang,
-          "innerHTML": highlightedHtml,
-        })
+          style: presentation.containerStyle,
+          open: true,
+        }, [
+          h("summary", {
+            style: [
+              presentation.headerStyle,
+              "cursor:pointer",
+              "list-style:none",
+            ].join(";"),
+          }, [
+            h("span", { style: presentation.headerMainStyle }, [
+              h("span", { style: presentation.titleStyle }, title),
+              h("span", { style: presentation.metaStyle }, "Code block"),
+            ]),
+            h("span", { style: presentation.badgeStyle }, badge),
+          ]),
+          h("div", {
+            class: "shiki-code-block",
+            style: presentation.preShellStyle,
+            innerHTML: decorateHighlightedCodeHtml(highlightedHtml, presentation),
+          }),
+        ])
       }
       catch (error) {
         console.error("Failed to highlight code:", error)
@@ -1281,8 +1408,31 @@ export function createCodeBlockRenderer(
     }
 
     // Fallback: render without highlighting
-    return h("pre", { class: `language-${lang}` }, h("code", { class: `language-${lang}` }, codeContent),
-    )
+    return h("details", {
+      class: ["aimd-code-block-card", "aimd-code-block-card--plain"],
+      "data-lang": lang,
+      style: presentation.containerStyle,
+      open: true,
+    }, [
+      h("summary", {
+        style: [
+          presentation.headerStyle,
+          "cursor:pointer",
+          "list-style:none",
+        ].join(";"),
+      }, [
+        h("span", { style: presentation.headerMainStyle }, [
+          h("span", { style: presentation.titleStyle }, title),
+          h("span", { style: presentation.metaStyle }, "Code block"),
+        ]),
+        h("span", { style: presentation.badgeStyle }, badge),
+      ]),
+      h("div", { style: presentation.preShellStyle }, [
+        h("pre", { class: `language-${lang}`, style: presentation.preStyle }, [
+          h("code", { class: `language-${lang}`, style: presentation.codeStyle }, codeContent),
+        ]),
+      ]),
+    ])
   }
 }
 

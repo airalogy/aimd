@@ -59,3 +59,17 @@
   - Ask for confirmation, or
   - Do at least a `patch` bump.
 - If you do bump a package version, treat updating that package changelog as required release metadata, not optional follow-up work.
+
+## Pull Request Workflow For AI Agents
+
+- Prefer **one user-visible feature, one bug fix, or one narrowly scoped refactor per PR**.
+- Do not bundle unrelated fixes, cleanup, or follow-up ideas into the same PR just because they touch nearby files.
+- When a larger effort contains multiple independent fixes/features, split them into separate branches and separate PRs in the order they can be reviewed safely.
+- Before opening a PR, make sure the diff is focused and explainable as a single reviewable change.
+- Use a dedicated branch for each PR; do not keep stacking unrelated work on the same branch.
+- When opening PRs from this workspace, prefer using `gh pr create` so the resulting branch/PR linkage is explicit and reproducible.
+- In the PR body, state:
+  - what changed,
+  - why it changed,
+  - and exactly which tests/build checks were run.
+- If a change fixes a regression introduced by an earlier branch or PR, submit that regression fix as its own PR unless the user explicitly asks to fold it back into a larger branch.

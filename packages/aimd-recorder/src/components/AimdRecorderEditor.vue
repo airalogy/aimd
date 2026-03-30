@@ -4,6 +4,7 @@ import type { ExtractedAimdFields } from '@airalogy/aimd-core/types'
 import { AimdEditor } from '@airalogy/aimd-editor/vue'
 import type { AimdEditorProps } from '@airalogy/aimd-editor/vue'
 import type { AimdComponentRenderer } from '@airalogy/aimd-renderer'
+import type { AimdPresentationProfileInput, AimdThemeInput } from '../types'
 import type { AimdRecorderMessagesInput } from '../locales'
 import type {
   AimdFieldMeta,
@@ -52,6 +53,8 @@ const props = withDefaults(defineProps<{
   currentUserName?: string
   now?: Date | string | number
   messages?: AimdRecorderMessagesInput
+  presentationProfile?: AimdPresentationProfileInput
+  theme?: AimdThemeInput
   stepDetailDisplay?: AimdStepDetailDisplay
   fieldMeta?: Record<string, AimdFieldMeta>
   fieldState?: Record<string, AimdFieldState>
@@ -87,6 +90,8 @@ const props = withDefaults(defineProps<{
   currentUserName: undefined,
   now: undefined,
   messages: undefined,
+  presentationProfile: undefined,
+  theme: undefined,
   stepDetailDisplay: 'auto',
   fieldMeta: undefined,
   fieldState: undefined,
@@ -1220,6 +1225,8 @@ defineExpose({
             :current-user-name="currentUserName"
             :now="now"
             :messages="messages"
+            :presentation-profile="presentationProfile"
+            :theme="theme"
             :step-detail-display="stepDetailDisplay"
             :field-meta="fieldMeta"
             :field-state="fieldState"
@@ -1254,6 +1261,8 @@ defineExpose({
             :now="now"
             :locale="locale"
             :messages="messages"
+            :presentation-profile="presentationProfile"
+            :theme="theme"
             :step-detail-display="stepDetailDisplay"
             :field-meta="fieldMeta"
             :field-state="fieldState"

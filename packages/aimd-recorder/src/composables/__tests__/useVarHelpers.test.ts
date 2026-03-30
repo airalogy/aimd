@@ -56,6 +56,11 @@ describe('getVarInputKind', () => {
     expect(getVarInputKind('str')).toBe('text')
   })
 
+  it('falls back to text for file id aliases while built-in plugins provide the widget', () => {
+    expect(getVarInputKind('FileIdPNG')).toBe('text')
+    expect(getVarInputKind('FileIdMP4')).toBe('text')
+  })
+
   it('returns "number" for numeric types', () => {
     expect(getVarInputKind('float')).toBe('number')
     expect(getVarInputKind('int')).toBe('number')
@@ -367,6 +372,12 @@ describe('calculateVarStackWidth', () => {
     const result = calculateVarStackWidth('x', 'dna')
     const px = parseInt(result)
     expect(px).toBeGreaterThanOrEqual(160)
+  })
+
+  it('applies a sensible minimum width to plain text controls', () => {
+    const result = calculateVarStackWidth('', 'text')
+    const px = parseInt(result)
+    expect(px).toBeGreaterThanOrEqual(136)
   })
 })
 

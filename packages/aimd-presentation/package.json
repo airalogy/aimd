@@ -1,0 +1,37 @@
+{
+  "name": "@airalogy/aimd-presentation",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Presentation profile rules for AIMD UI packages",
+  "keywords": [
+    "aimd",
+    "presentation",
+    "visibility",
+    "density",
+    "profile"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
+    "build": "vite build && pnpm run build:types",
+    "dev": "vite build --watch",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3",
+    "vite": "^7.1.3",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}

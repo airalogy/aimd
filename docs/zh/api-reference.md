@@ -173,6 +173,66 @@ type AimdNode =
 
 ---
 
+## @airalogy/aimd-theme
+
+AIMD UI 包共享的语义主题 token。
+
+### 入口
+
+| Entry | Path |
+|-------|------|
+| Root | `@airalogy/aimd-theme` |
+
+### 主题核心
+
+```ts
+import {
+  createAimdSyntaxTheme,
+  createAimdSyntaxTokenColors,
+  createCssVars,
+  defaultDark,
+  defaultLight,
+  resolveAimdTheme,
+} from "@airalogy/aimd-theme"
+```
+
+| Export | 说明 |
+|--------|------|
+| `defaultLight` | 默认浅色 AIMD 语义主题。 |
+| `defaultDark` | 默认深色 AIMD 语义主题。 |
+| `resolveAimdTheme(theme?)` | 将部分主题输入合并到浅色/深色基础主题上。 |
+| `createCssVars(theme?)` | 生成 recorder / 宿主组件可直接挂载的 scoped CSS 变量。 |
+| `createAimdSyntaxTokenColors(scopes, theme?)` | 从语义语法 token 派生 TextMate/Shiki 风格的 AIMD token colors。 |
+| `createAimdSyntaxTheme(scopes, theme?, name?)` | 从语义主题 token 生成完整的 light/dark syntax theme registration。 |
+
+---
+
+## @airalogy/aimd-presentation
+
+AIMD UI 包共享的展示策略 profile。
+
+### 入口
+
+| Entry | Path |
+|-------|------|
+| Root | `@airalogy/aimd-presentation` |
+
+### Profile 核心
+
+```ts
+import {
+  defaultAimdPresentationProfile,
+  resolveAimdPresentationProfile,
+} from "@airalogy/aimd-presentation"
+```
+
+| Export | 说明 |
+|--------|------|
+| `defaultAimdPresentationProfile` | 默认展示策略基线。 |
+| `resolveAimdPresentationProfile(profile?, defaults?)` | 将部分展示策略输入合并到默认值和包级默认覆盖上。 |
+
+---
+
 ## @airalogy/aimd-editor
 
 Monaco 语言集成与 Vue WYSIWYG 编辑器。
@@ -200,13 +260,14 @@ import { language, conf, completionItemProvider } from "@airalogy/aimd-editor/mo
 ### Monaco Theme
 
 ```ts
-import { aimdTheme, aimdTokenColors, createAimdExtendedTheme } from "@airalogy/aimd-editor/monaco"
+import { aimdTheme, aimdTokenColors, createAimdTheme, createAimdExtendedTheme } from "@airalogy/aimd-editor/monaco"
 ```
 
 | 导出 | 说明 |
 |------|------|
 | `aimdTheme` | 独立 Monaco 主题定义。 |
 | `aimdTokenColors` | AIMD scope 的 token 颜色映射。 |
+| `createAimdTheme(theme?, name?)` | 从 `@airalogy/aimd-theme` 语义 token 创建独立 AIMD 语法主题。 |
 | `createAimdExtendedTheme(base)` | 基于 `"vs"` 或 `"vs-dark"` 构造 AIMD 主题。 |
 
 ### Vue 编辑器组件
@@ -351,7 +412,9 @@ import {
 | `hastToVue(node)` | 将单个 HAST 节点转换为 Vue VNode。 |
 | `createComponentRenderer(renderers)` | 根据字段类型处理器映射构造组件 renderer。 |
 | `createAssetRenderer(resolver)` | 构造资源（图片 / 文件）renderer。 |
-| `createCodeBlockRenderer(highlighter)` | 构造带语法高亮的代码块 renderer（基于 Shiki）。 |
+| `createCodeBlockRenderer(highlighter, defaultTheme?, theme?)` | 构造带语法高亮的代码块 renderer（基于 Shiki），并可选接入 AIMD 语义主题输入。 |
+
+`AimdRendererOptions` 现在也支持 `presentationProfile`，可以用一份共享策略对象统一驱动 `assignerVisibility` 和下游 renderer 的展示规则。
 | `createMermaidRenderer()` | 构造 Mermaid 图表 renderer。 |
 | `createStepCardRenderer(options?)` | 构造可复用的 Vue step-card renderer。 |
 

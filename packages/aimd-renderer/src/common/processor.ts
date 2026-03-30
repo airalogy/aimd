@@ -10,6 +10,7 @@ import type {
   RenderContext,
 } from "@airalogy/aimd-core/types"
 import type { ExtractedAimdFields } from "@airalogy/aimd-core/types"
+import type { AimdPresentationProfileInput } from "@airalogy/aimd-presentation"
 import type { AimdRendererI18nOptions } from "../locales"
 import type { VueRendererOptions } from "../vue/vue-renderer"
 import { resolveQuizPreviewOptions } from "./quiz-preview"
@@ -50,6 +51,7 @@ export type AimdHtmlNodeRenderer = (
 
 export interface AimdRendererOptions extends ProcessorOptions, AimdRendererI18nOptions {
   assignerVisibility?: AimdAssignerVisibility
+  presentationProfile?: AimdPresentationProfileInput
   aimdElementRenderers?: Partial<Record<AimdFieldType, AimdHtmlNodeRenderer>>
   groupStepBodies?: boolean
   groupCheckBodies?: boolean
@@ -182,6 +184,77 @@ function cloneNodeForStepBody<T extends Element | HastText>(node: T): T {
   return JSON.parse(JSON.stringify(node)) as T
 }
 
+function createGroupedCheckElement(
+  checkElement: Element,
+  trailingChildren: Array<Element | HastText>,
+): Element {
+  const clonedCheck = cloneNodeForStepBody(checkElement)
+  const tailChildren = trailingChildren
+    .map((child) => cloneNodeForStepBody(child as Element | HastText))
+    .filter((child) => !isWhitespaceTextNode(child))
+
+  clonedCheck.properties = {
+    ...(clonedCheck.properties || {}),
+    "data-aimd-check-container": "true",
+    "data-aimd-strip-default-children": "true",
+  }
+
+  clonedCheck.children = tailChildren.length > 0
+    ? [{
+        type: "element",
+        tagName: "div",
+        properties: {
+          className: ["aimd-check-body"],
+          "data-aimd-check-body": "true",
+        },
+        children: tailChildren,
+      }]
+    : []
+
+  return clonedCheck
+}
+
+function splitCheckParagraph(paragraph: Element): Array<Element | HastText> | null {
+  const paragraphChildren = (paragraph.children || []) as Array<Element | HastText>
+  const meaningfulChildren = paragraphChildren.filter((child) => !isWhitespaceTextNode(child))
+  const checkCount = meaningfulChildren.filter((child) => isAimdCheckElement(child)).length
+
+  if (checkCount === 0) {
+    return null
+  }
+
+  if (!isAimdCheckElement(meaningfulChildren[0])) {
+    return null
+  }
+
+  const nextNodes: Array<Element | HastText> = []
+  let currentCheck: Element | null = null
+  let currentTail: Array<Element | HastText> = []
+
+  const flushCurrentCheck = () => {
+    if (!currentCheck) {
+      return
+    }
+    nextNodes.push(createGroupedCheckElement(currentCheck, currentTail))
+    currentCheck = null
+    currentTail = []
+  }
+
+  for (const child of paragraphChildren) {
+    if (isAimdCheckElement(child)) {
+      flushCurrentCheck()
+      currentCheck = child
+      continue
+    }
+
+    if (currentCheck) {
+      currentTail.push(child)
+    }
+  }
+
+  flushCurrentCheck()
+  return nextNodes.length > 0 ? nextNodes : null
+}
 function groupCheckBodiesInParent(parent: HastRoot | Element): void {
   const originalChildren = (parent.children || []) as Array<Element | HastText>
   const nextChildren: Array<Element | HastText> = []
@@ -204,47 +277,13 @@ function groupCheckBodiesInParent(parent: HastRoot | Element): void {
     }
 
     const paragraph = currentNode as Element
-    const paragraphChildren = (paragraph.children || []) as Array<Element | HastText>
-    const meaningfulChildren = paragraphChildren.filter((child) => !isWhitespaceTextNode(child))
-
-    if (meaningfulChildren.length < 2 || !isAimdCheckElement(meaningfulChildren[0])) {
+    const splitNodes = splitCheckParagraph(paragraph)
+    if (!splitNodes) {
       nextChildren.push(currentNode)
       continue
     }
 
-    const checkElement = meaningfulChildren[0] as Element
-    const checkIndex = paragraphChildren.indexOf(checkElement)
-    if (checkIndex < 0) {
-      nextChildren.push(currentNode)
-      continue
-    }
-
-    const tailChildren = paragraphChildren
-      .slice(checkIndex + 1)
-      .map((child) => cloneNodeForStepBody(child as Element | HastText))
-      .filter((child) => !isWhitespaceTextNode(child))
-
-    if (tailChildren.length === 0) {
-      nextChildren.push(currentNode)
-      continue
-    }
-
-    checkElement.properties = {
-      ...(checkElement.properties || {}),
-      "data-aimd-check-container": "true",
-      "data-aimd-strip-default-children": "true",
-    }
-    checkElement.children = [{
-      type: "element",
-      tagName: "div",
-      properties: {
-        className: ["aimd-check-body"],
-        "data-aimd-check-body": "true",
-      },
-      children: tailChildren,
-    }]
-
-    nextChildren.push(checkElement)
+    nextChildren.push(...splitNodes)
   }
 
   parent.children = nextChildren

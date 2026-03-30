@@ -12,6 +12,8 @@ export default [
           { text: 'Migration', link: '/en/packages/aimd-core/compatibility' },
         ],
       },
+      { text: '@airalogy/aimd-presentation', link: '/en/packages/aimd-presentation' },
+      { text: '@airalogy/aimd-theme', link: '/en/packages/aimd-theme' },
       { text: 'Type Plugins', link: '/en/packages/type-plugins' },
       {
         text: '@airalogy/aimd-editor',

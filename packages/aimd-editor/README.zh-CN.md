@@ -34,10 +34,11 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 也可以通过 `messages` 覆盖内建文案。
 
+如果希望编辑器填满一个已明确高度的父容器，可以设置 `:min-height="0"`。保留正数 `minHeight` 时，编辑器仍会维持默认的固定最小高度行为。
 如果要做更底层的嵌入式集成，`AimdWysiwygEditor` 现在支持注入自定义 Milkdown plugin 链，`AimdFieldDialog` 也支持通过 `allowedTypes` 限定可插入的 AIMD 字段类型。
 
 ## 文档
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-editor>
 - 中文: <https://airalogy.github.io/aimd/zh/packages/aimd-editor>
-- 文档源码：`aimd/docs/en/packages/aimd-editor.md`、`aimd/docs/zh/packages/aimd-editor.md`
+- 文档源码：`aimd/docs/en/packages/aimd-editor/index.md`、`aimd/docs/zh/packages/aimd-editor/index.md`

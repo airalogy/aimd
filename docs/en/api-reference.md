@@ -173,6 +173,66 @@ type AimdNode =
 
 ---
 
+## @airalogy/aimd-theme
+
+Semantic theme tokens shared by AIMD UI packages.
+
+### Entry Points
+
+| Entry | Path |
+|-------|------|
+| Root | `@airalogy/aimd-theme` |
+
+### Theme Core
+
+```ts
+import {
+  createAimdSyntaxTheme,
+  createAimdSyntaxTokenColors,
+  createCssVars,
+  defaultDark,
+  defaultLight,
+  resolveAimdTheme,
+} from "@airalogy/aimd-theme"
+```
+
+| Export | Description |
+|--------|-------------|
+| `defaultLight` | Default light semantic AIMD theme. |
+| `defaultDark` | Default dark semantic AIMD theme. |
+| `resolveAimdTheme(theme?)` | Merge a partial theme input against the light/dark base theme. |
+| `createCssVars(theme?)` | Generate scoped CSS variables for recorder / host surfaces. |
+| `createAimdSyntaxTokenColors(scopes, theme?)` | Derive TextMate/Shiki-style AIMD token colors from semantic syntax tokens. |
+| `createAimdSyntaxTheme(scopes, theme?, name?)` | Create a complete light/dark syntax theme registration from semantic theme tokens. |
+
+---
+
+## @airalogy/aimd-presentation
+
+Presentation-profile rules shared by AIMD UI packages.
+
+### Entry Points
+
+| Entry | Path |
+|-------|------|
+| Root | `@airalogy/aimd-presentation` |
+
+### Profile Core
+
+```ts
+import {
+  defaultAimdPresentationProfile,
+  resolveAimdPresentationProfile,
+} from "@airalogy/aimd-presentation"
+```
+
+| Export | Description |
+|--------|-------------|
+| `defaultAimdPresentationProfile` | Default presentation-profile baseline. |
+| `resolveAimdPresentationProfile(profile?, defaults?)` | Merge a partial presentation profile against defaults and optional package-specific overrides. |
+
+---
+
 ## @airalogy/aimd-editor
 
 Monaco language integration and Vue WYSIWYG editor.
@@ -200,13 +260,14 @@ import { language, conf, completionItemProvider } from "@airalogy/aimd-editor/mo
 ### Monaco Theme
 
 ```ts
-import { aimdTheme, aimdTokenColors, createAimdExtendedTheme } from "@airalogy/aimd-editor/monaco"
+import { aimdTheme, aimdTokenColors, createAimdTheme, createAimdExtendedTheme } from "@airalogy/aimd-editor/monaco"
 ```
 
 | Export | Description |
 |--------|-------------|
 | `aimdTheme` | Standalone Monaco theme definition. |
 | `aimdTokenColors` | Token color map for AIMD scopes. |
+| `createAimdTheme(theme?, name?)` | Create a standalone AIMD syntax theme from `@airalogy/aimd-theme` semantic tokens. |
 | `createAimdExtendedTheme(base)` | Create an AIMD theme extending `"vs"` or `"vs-dark"`. |
 
 ### Vue Editor Component
@@ -351,7 +412,9 @@ import {
 | `hastToVue(node)` | Convert a single HAST node to a Vue VNode. |
 | `createComponentRenderer(renderers)` | Build a component renderer from a map of field-type handlers. |
 | `createAssetRenderer(resolver)` | Build an asset (image/file) renderer. |
-| `createCodeBlockRenderer(highlighter)` | Build a syntax-highlighted code block renderer (uses Shiki). |
+| `createCodeBlockRenderer(highlighter, defaultTheme?, theme?)` | Build a syntax-highlighted code block renderer (uses Shiki) with optional semantic AIMD theme input. |
+
+`AimdRendererOptions` also accepts `presentationProfile`, which can drive `assignerVisibility` and downstream renderer presentation rules from one shared strategy object.
 | `createMermaidRenderer()` | Build a Mermaid diagram renderer. |
 | `createStepCardRenderer(options?)` | Build a reusable Vue step-card renderer for AIMD step nodes. |
 
