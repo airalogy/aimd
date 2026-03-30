@@ -591,58 +591,70 @@ defineExpose({
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence) {
-  background: rgba(248, 250, 252, 0.78);
+  background: color-mix(in srgb, var(--aimd-code-neutral-surface, #ffffff) 72%, transparent);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence--neutral) {
-  background: rgba(248, 250, 252, 0.82);
+  background: color-mix(in srgb, var(--aimd-code-neutral-surface, #ffffff) 82%, transparent);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence--client) {
-  background: rgba(240, 253, 250, 0.92);
+  background: color-mix(in srgb, var(--aimd-code-client-surface, #ffffff) 88%, transparent);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence--server) {
-  background: rgba(255, 247, 237, 0.92);
+  background: color-mix(in srgb, var(--aimd-code-server-surface, #ffffff) 88%, transparent);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence--open) {
-  border-top: 1px solid rgba(148, 163, 184, 0.24);
+  border-top: 1px solid var(--aimd-code-neutral-border, rgba(148, 163, 184, 0.24));
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence--close) {
-  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  border-bottom: 1px solid var(--aimd-code-neutral-border, rgba(148, 163, 184, 0.24));
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence-gutter) {
   margin-left: 6px;
-  border-left: 3px solid rgba(100, 116, 139, 0.22);
+  border-left: 3px solid var(--aimd-code-neutral-border, rgba(100, 116, 139, 0.22));
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence-gutter--client) {
-  border-left-color: rgba(13, 148, 136, 0.55);
+  border-left-color: var(--aimd-code-client-accent, rgba(13, 148, 136, 0.55));
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-fence-gutter--server) {
-  border-left-color: rgba(217, 119, 6, 0.55);
+  border-left-color: var(--aimd-code-server-accent, rgba(217, 119, 6, 0.55));
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone) {
   box-sizing: border-box;
   margin: 0 12px 0 18px;
   padding: 6px 10px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--aimd-code-neutral-border, rgba(148, 163, 184, 0.18));
   border-bottom: 0;
   border-radius: 12px 12px 0 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--aimd-code-neutral-surface, #ffffff) 96%, white) 0%,
+    color-mix(in srgb, var(--aimd-surface-panel-subtle, #f8fafc) 96%, transparent) 100%
+  );
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone--client) {
-  background: linear-gradient(180deg, rgba(240, 253, 250, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--aimd-code-client-surface, #ffffff) 98%, white) 0%,
+    color-mix(in srgb, var(--aimd-surface-panel-subtle, #f8fafc) 96%, transparent) 100%
+  );
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone--server) {
-  background: linear-gradient(180deg, rgba(255, 247, 237, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--aimd-code-server-surface, #ffffff) 98%, white) 0%,
+    color-mix(in srgb, var(--aimd-surface-panel-subtle, #f8fafc) 96%, transparent) 100%
+  );
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__header) {
@@ -660,7 +672,7 @@ defineExpose({
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__title) {
-  color: #0f172a;
+  color: var(--aimd-code-title, #0f172a);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
@@ -669,7 +681,7 @@ defineExpose({
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__meta),
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__group-label) {
-  color: #64748b;
+  color: var(--aimd-code-meta, #64748b);
   font-size: 9px;
   font-weight: 700;
   line-height: 1.3;
@@ -683,8 +695,8 @@ defineExpose({
   justify-content: center;
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(71, 84, 103, 0.08);
-  color: #475467;
+  background: var(--aimd-code-neutral-accent-soft, rgba(71, 84, 103, 0.08));
+  color: var(--aimd-code-neutral-accent, #475467);
   font-size: 9px;
   font-weight: 800;
   line-height: 1;
@@ -693,13 +705,13 @@ defineExpose({
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone--client .aimd-source-block-zone__badge) {
-  background: rgba(13, 148, 136, 0.10);
-  color: #0f766e;
+  background: var(--aimd-code-client-accent-soft, rgba(13, 148, 136, 0.10));
+  color: var(--aimd-code-client-accent, #0f766e);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone--server .aimd-source-block-zone__badge) {
-  background: rgba(217, 119, 6, 0.10);
-  color: #b45309;
+  background: var(--aimd-code-server-accent-soft, rgba(217, 119, 6, 0.10));
+  color: var(--aimd-code-server-accent, #b45309);
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__flow) {
@@ -722,16 +734,16 @@ defineExpose({
   align-items: center;
   padding: 1px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  color: #0f172a;
+  background: var(--aimd-code-chip-surface, rgba(255, 255, 255, 0.92));
+  border: 1px solid var(--aimd-code-neutral-border, rgba(148, 163, 184, 0.18));
+  color: var(--aimd-code-chip-text, #0f172a);
   font-size: 10px;
   font-weight: 600;
   line-height: 1.25;
 }
 
 .aimd-editor-source-mode :deep(.aimd-source-block-zone__arrow) {
-  color: #667085;
+  color: var(--aimd-code-neutral-accent, #667085);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;

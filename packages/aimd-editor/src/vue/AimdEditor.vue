@@ -4,6 +4,7 @@ import type { Editor } from '@milkdown/kit/core'
 import { replaceAll, getMarkdown } from '@milkdown/kit/utils'
 import { protectAimdInlineTemplates } from '@airalogy/aimd-core'
 import { parseAndExtract } from '@airalogy/aimd-renderer'
+import { createCssVars } from '@airalogy/aimd-theme'
 
 import '@milkdown/theme-nord/style.css'
 import '@milkdown/kit/prose/tables/style/tables.css'
@@ -27,6 +28,7 @@ const props = withDefaults(defineProps<AimdEditorProps>(), {
   messages: () => ({}),
   mode: 'source',
   theme: 'aimd-light',
+  appearanceTheme: undefined,
   showTopBar: true,
   showToolbar: true,
   showAimdToolbar: true,
@@ -91,6 +93,7 @@ const shouldMountWysiwygEditor = computed(() => props.keepInactiveEditorsMounted
 const isFullHeightMode = computed(() => props.minHeight === 0)
 const editorPanelStyle = computed(() => isFullHeightMode.value ? { height: '100%' } : { minHeight: props.minHeight + 'px' })
 const editorPaneStyle = computed(() => isFullHeightMode.value ? { height: '100%' } : undefined)
+const appearanceThemeVars = computed(() => createCssVars(props.appearanceTheme))
 
 // --- Computed toolbar items ---
 const localizedFieldTypes = computed(() => createAimdFieldTypes(resolvedMessages.value))
@@ -165,7 +168,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="aimd-editor" :class="{ 'aimd-editor--full-height': isFullHeightMode }">
+  <div class="aimd-editor" :class="{ 'aimd-editor--full-height': isFullHeightMode }" :style="appearanceThemeVars">
     <!-- Unified toolbar: mode switch + markdown + aimd -->
     <AimdEditorToolbar
       v-if="showToolbar"

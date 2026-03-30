@@ -1,4 +1,5 @@
 import type { Editor } from '@milkdown/kit/core'
+import type { AimdThemeInput } from '@airalogy/aimd-theme'
 import {
   createAimdEditorMessages,
   DEFAULT_AIMD_EDITOR_LOCALE,
@@ -47,6 +48,8 @@ export interface AimdEditorProps {
   mode?: 'source' | 'wysiwyg'
   /** Theme name for Monaco */
   theme?: string
+  /** Optional semantic appearance theme for source/editor chrome */
+  appearanceTheme?: AimdThemeInput
   /** Whether to show the top toolbar (mode switch + theme toggle) */
   showTopBar?: boolean
   /** Whether to show the formatting toolbar */
