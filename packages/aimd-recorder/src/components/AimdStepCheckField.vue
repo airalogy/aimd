@@ -2,6 +2,7 @@
 import { computed, defineAsyncComponent, defineComponent, h, onBeforeUnmount, ref, watch, type PropType, type VNodeChild } from "vue"
 import type { AimdStepNode, AimdCheckNode, AimdStepTimerMode } from "@airalogy/aimd-core/types"
 import {
+  isEnhancedPresentation,
   isCompactPresentation,
   resolvePresentationPrimaryLabel,
   resolvePresentationSecondaryId,
@@ -80,6 +81,7 @@ export const AimdStepField = defineComponent({
 
     const detailsHidden = computed(() => props.detailDisplay === "hidden")
     const alwaysShowDetails = computed(() => props.detailDisplay === "always")
+    const enhancedAppearance = computed(() => isEnhancedPresentation(props.presentationProfile))
     const stepDisplayLabel = computed(() => resolvePresentationPrimaryLabel({
       id: props.node.id,
       label: props.node.title,
@@ -88,9 +90,15 @@ export const AimdStepField = defineComponent({
       id: props.node.id,
       label: props.node.title,
     }, stepDisplayLabel.value, props.presentationProfile))
-    const showScopeLabel = computed(() => shouldShowOutlineScope(props.presentationProfile))
-    const showStepOutline = computed(() => shouldShowOutlineBadge(props.presentationProfile))
-    const compactDensity = computed(() => isCompactPresentation(props.presentationProfile))
+    const showScopeLabel = computed(() => (
+      enhancedAppearance.value ? shouldShowOutlineScope(props.presentationProfile) : true
+    ))
+    const showStepOutline = computed(() => (
+      enhancedAppearance.value ? shouldShowOutlineBadge(props.presentationProfile) : true
+    ))
+    const compactDensity = computed(() => (
+      enhancedAppearance.value ? isCompactPresentation(props.presentationProfile) : false
+    ))
     const timerAvailable = computed(() => hasStepTimerConfig(props.node))
     const actualElapsedMs = computed(() => getStepElapsedMs(props.state, nowMs.value))
     const actualDurationLabel = computed(() => formatStepDuration(actualElapsedMs.value, props.locale))
@@ -341,8 +349,8 @@ export const AimdStepField = defineComponent({
           showStepOutline.value
             ? h("span", { class: "aimd-rec-inline__step-num" }, stepNumber)
             : null,
-          h("span", { class: "aimd-field__name" }, stepDisplayLabel.value),
-          stepSecondaryId.value
+          h("span", { class: "aimd-field__name" }, enhancedAppearance.value ? stepDisplayLabel.value : id),
+          enhancedAppearance.value && stepSecondaryId.value
             ? h("span", { class: "aimd-field__meta-id aimd-step-field__id" }, stepSecondaryId.value)
             : null,
         ]),
@@ -448,6 +456,7 @@ export const AimdCheckField = defineComponent({
       const extraClasses = props.extraClasses
       const hasBody = props.bodyNodes.length > 0
       const showCheckedMessage = Boolean(state.checked && node.checked_message)
+      const enhancedAppearance = isEnhancedPresentation(props.presentationProfile)
       const fallbackLabel = resolvePresentationPrimaryLabel({
         id,
         label: node.label,
@@ -456,8 +465,8 @@ export const AimdCheckField = defineComponent({
         id,
         label: node.label,
       }, fallbackLabel, props.presentationProfile)
-      const showScopeLabel = shouldShowOutlineScope(props.presentationProfile)
-      const compactDensity = isCompactPresentation(props.presentationProfile)
+      const showScopeLabel = enhancedAppearance ? shouldShowOutlineScope(props.presentationProfile) : true
+      const compactDensity = enhancedAppearance ? isCompactPresentation(props.presentationProfile) : false
 
       return h("div", {
         class: [
@@ -488,7 +497,7 @@ export const AimdCheckField = defineComponent({
           !hasBody
             ? h("span", { class: "aimd-field__name aimd-check-field__key" }, fallbackLabel)
             : null,
-          secondaryId
+          enhancedAppearance && secondaryId
             ? h("span", { class: "aimd-field__meta-id aimd-check-field__id" }, secondaryId)
             : null,
         ]),
