@@ -29,6 +29,7 @@ const props = withDefaults(defineProps<AimdEditorProps>(), {
   mode: 'source',
   theme: 'aimd-light',
   appearanceTheme: undefined,
+  showSourceBlockChrome: false,
   showTopBar: true,
   showToolbar: true,
   showAimdToolbar: true,
@@ -193,6 +194,7 @@ defineExpose({
           ref="sourceEditorRef"
           :content="content"
           :theme="currentTheme"
+          :show-source-block-chrome="showSourceBlockChrome"
           :min-height="minHeight"
           :readonly="readonly"
           :monaco-options="monacoOptions"

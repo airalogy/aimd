@@ -8,6 +8,7 @@ import { parseAimdSourceBlocks, type AimdSourceBlock } from './source-blocks'
 const props = defineProps<{
   content: string
   theme: string
+  showSourceBlockChrome: boolean
   minHeight: number
   readonly: boolean
   monacoOptions: Record<string, any>
@@ -148,6 +149,11 @@ function clearSourceBlockChrome() {
 }
 
 function updateSourceBlockChrome() {
+  if (!props.showSourceBlockChrome) {
+    clearSourceBlockChrome()
+    return
+  }
+
   if (!monacoEditorInstance || !monacoModule) {
     return
   }
@@ -219,6 +225,11 @@ function updateSourceBlockChrome() {
 }
 
 function scheduleSourceBlockChromeUpdate() {
+  if (!props.showSourceBlockChrome) {
+    clearSourceBlockChrome()
+    return
+  }
+
   if (sourceBlockUpdateFrame !== null) {
     cancelAnimationFrame(sourceBlockUpdateFrame)
   }
@@ -518,6 +529,15 @@ watch(() => props.theme, (theme) => {
     monacoModule.editor.setTheme(theme)
     scheduleSourceBlockChromeUpdate()
   }
+})
+
+watch(() => props.showSourceBlockChrome, (enabled) => {
+  if (enabled) {
+    scheduleSourceBlockChromeUpdate()
+    return
+  }
+
+  clearSourceBlockChrome()
 })
 
 watch(() => props.readonly, (readonly) => {

@@ -7,6 +7,7 @@ const props = withDefaults(defineProps<{
   modelValue?: string | number
   language: string
   disabled?: boolean
+  enhancedAppearance?: boolean
   title?: string
   description?: string
   fieldId?: string
@@ -14,6 +15,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   modelValue: '',
   disabled: false,
+  enhancedAppearance: false,
   title: '',
   description: '',
   fieldId: '',
@@ -164,8 +166,8 @@ watch(() => props.language, async (language) => {
 </script>
 
 <template>
-  <div class="aimd-code-field" :class="{ 'aimd-code-field--disabled': disabled }">
-    <div class="aimd-code-field__header">
+  <div class="aimd-code-field" :class="{ 'aimd-code-field--disabled': disabled, 'aimd-code-field--enhanced': enhancedAppearance }">
+    <div v-if="enhancedAppearance" class="aimd-code-field__header">
       <div class="aimd-code-field__meta">
         <div class="aimd-code-field__title">
           {{ title || fieldId || "Code" }}
@@ -212,7 +214,13 @@ watch(() => props.language, async (language) => {
   position: relative;
   width: 100%;
   min-width: 0;
+  border-top: 1px solid var(--aimd-border-color, #90caf9);
+  background: #fff;
+}
+
+.aimd-code-field--enhanced {
   border: 1px solid color-mix(in srgb, var(--aimd-state-var-border) 56%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--aimd-state-var-border) 56%, transparent);
   border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(180deg, var(--aimd-surface-panel) 0%, var(--aimd-surface-editor) 100%);
@@ -308,7 +316,7 @@ watch(() => props.language, async (language) => {
   justify-content: center;
   color: var(--aimd-color-text-muted);
   font-size: 13px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--aimd-surface-panel) 94%, transparent) 0%, color-mix(in srgb, var(--aimd-surface-editor) 94%, transparent) 100%);
+  background: linear-gradient(180deg, #fcfdff 0%, #f7fbff 100%);
 }
 
 .aimd-code-field__editor {
@@ -318,11 +326,21 @@ watch(() => props.language, async (language) => {
 
 .aimd-code-field__editor :deep(.monaco-editor),
 .aimd-code-field__editor :deep(.monaco-editor-background) {
+  background: #fff;
+}
+
+.aimd-code-field--enhanced .aimd-code-field__editor :deep(.monaco-editor),
+.aimd-code-field--enhanced .aimd-code-field__editor :deep(.monaco-editor-background) {
   background: transparent;
 }
 
 .aimd-code-field__editor :deep(.margin),
 .aimd-code-field__editor :deep(.monaco-editor .margin) {
+  background: #fff;
+}
+
+.aimd-code-field--enhanced .aimd-code-field__editor :deep(.margin),
+.aimd-code-field--enhanced .aimd-code-field__editor :deep(.monaco-editor .margin) {
   background: color-mix(in srgb, var(--aimd-surface-panel-subtle) 92%, transparent);
 }
 
@@ -334,7 +352,7 @@ watch(() => props.language, async (language) => {
   resize: vertical;
   outline: none;
   box-sizing: border-box;
-  background: transparent;
+  background: #fff;
   color: var(--aimd-color-text-strong);
   font-size: 13px;
   line-height: 1.6;

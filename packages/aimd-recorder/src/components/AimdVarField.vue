@@ -27,6 +27,7 @@ export default defineComponent({
     displayValue: { type: [String, Number] as PropType<string | number>, default: "" },
     inputKind: { type: String as PropType<AimdVarInputKind>, required: true },
     typePlugin: { type: Object as PropType<AimdTypePlugin | undefined>, default: undefined },
+    enhancedAppearance: { type: Boolean, default: false },
     initialized: { type: Boolean, default: false },
   },
   emits: ["change", "blur"],
@@ -48,7 +49,12 @@ export default defineComponent({
       const tooltipType = type
       const tooltipTitle = getVarTooltipTitle(node)
       const tooltipDescription = getVarTooltipDescription(node)
-      const showTooltip = inputKind !== "code" && Boolean(tooltipTitle || tooltipDescription || id)
+      const showTooltip = props.enhancedAppearance && inputKind !== "code" && Boolean(tooltipTitle || tooltipDescription || id)
+
+      const renderDefaultLabel = () => h("span", { class: "aimd-field aimd-field--no-style aimd-field__label" }, [
+        h("span", { class: "aimd-field__scope aimd-field__scope--var" }, getAimdRecorderScopeLabel("var", props.messages)),
+        h("span", { class: "aimd-field__id" }, id),
+      ])
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -79,6 +85,7 @@ export default defineComponent({
             ...extraClasses,
           ],
         }, [
+          props.enhancedAppearance ? null : renderDefaultLabel(),
           h("select", {
             "data-rec-focus-key": `var:${id}`,
             class: "aimd-rec-inline__input aimd-rec-inline__input--stacked aimd-rec-inline__select",
@@ -102,6 +109,7 @@ export default defineComponent({
             ...extraClasses,
           ],
         }, [
+          props.enhancedAppearance ? null : renderDefaultLabel(),
           control,
           showTooltip
             ? h("span", {
@@ -164,6 +172,7 @@ export default defineComponent({
             modelValue: typeof displayValue === "number" ? String(displayValue) : displayValue,
             language: codeLanguage,
             disabled,
+            enhancedAppearance: props.enhancedAppearance,
             title: tooltipTitle,
             description: tooltipDescription,
             fieldId: id,

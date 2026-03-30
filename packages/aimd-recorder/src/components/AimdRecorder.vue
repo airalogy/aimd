@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  isEnhancedPresentation,
   isCompactPresentation,
   resolveAimdPresentationProfile,
   resolvePresentationAssignerVisibility,
@@ -214,6 +215,7 @@ const resolvedTypePlugins = computed(() => createAimdTypePlugins(props.typePlugi
 const resolvedPresentationProfile = computed(() => resolveAimdPresentationProfile(props.presentationProfile))
 const resolvedTheme = computed(() => resolveAimdTheme(props.theme))
 const themeVars = computed(() => createCssVars(resolvedTheme.value))
+const enhancedAppearance = computed(() => isEnhancedPresentation(resolvedPresentationProfile.value))
 const isCompactDensity = computed(() => isCompactPresentation(resolvedPresentationProfile.value))
 const effectiveStepDetailDisplay = computed<AimdStepDetailDisplay>(() => {
   if (props.stepDetailDisplay !== "auto") {
@@ -452,6 +454,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
       now: props.now,
       readonly: props.readonly,
       disabled,
+      enhancedAppearance: enhancedAppearance.value,
       locale: resolvedLocale.value,
       messages: resolvedMessages.value,
       record: localRecord,
@@ -479,6 +482,7 @@ function renderInlineVar(node: AimdVarNode): VNode {
     displayValue,
     inputKind,
     typePlugin,
+    enhancedAppearance: enhancedAppearance.value,
     initialized: id in localRecord.var,
     onChange: (payload: { id: string, value: unknown, type: string, inputKind: string }) => {
       emitVarChange(payload.value)
@@ -928,7 +932,7 @@ async function rebuildInlineNodes(
     return
   }
 
-  inlineNodes.value = normalizeRecorderLayoutNodes(rendered.nodes)
+  inlineNodes.value = enhancedAppearance.value ? normalizeRecorderLayoutNodes(rendered.nodes) : rendered.nodes
   await nextTick()
   restoreFocusSnapshot(contentRoot.value, focusSnapshot ?? null)
 
@@ -1216,6 +1220,7 @@ defineExpose({
   <div
     class="aimd-protocol-recorder"
     :data-aimd-theme="resolvedTheme.mode"
+    :data-aimd-appearance="enhancedAppearance ? 'enhanced' : 'default'"
     :data-aimd-density="isCompactDensity ? 'compact' : 'comfortable'"
     :data-aimd-outline="resolvedPresentationProfile.outline"
     :style="themeVars"

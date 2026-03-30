@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue"
 const props = withDefaults(defineProps<{
   modelValue?: unknown
   varId: string
+  enhancedAppearance?: boolean
   title?: string
   description?: string
   typeLabel?: string
@@ -13,6 +14,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
 }>(), {
   modelValue: undefined,
+  enhancedAppearance: false,
   title: undefined,
   description: undefined,
   typeLabel: undefined,
@@ -211,7 +213,7 @@ function handlePreviewLoad() {
 <template>
   <div
     class="aimd-rec-inline aimd-field-wrapper aimd-asset-field"
-    :class="{ 'aimd-asset-field--filled': hasAsset, 'aimd-asset-field--empty': !hasAsset }"
+    :class="{ 'aimd-asset-field--filled': hasAsset, 'aimd-asset-field--empty': !hasAsset, 'aimd-asset-field--enhanced': enhancedAppearance }"
   >
     <input
       ref="fileInput"
@@ -350,6 +352,41 @@ function handlePreviewLoad() {
 .aimd-asset-field {
   width: 100%;
   max-width: 100%;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__card {
+  border: 1px solid var(--aimd-border-default, #e0e0e0);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__header {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--aimd-border-muted, #f0f0f0);
+  background: #fff;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__badge {
+  display: none;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__preview,
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__placeholder,
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__trigger {
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__trigger:hover,
+.aimd-asset-field:not(.aimd-asset-field--enhanced) .aimd-asset-field__card:hover .aimd-asset-field__preview {
+  background: #fff;
 }
 
 .aimd-asset-field__card {

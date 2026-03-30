@@ -4,6 +4,7 @@ export type AimdPresentationLabelStrategy = 'auto' | 'prefer_label' | 'prefer_id
 export type AimdPresentationAssignerVisibility = 'hidden' | 'collapsed' | 'expanded'
 export type AimdPresentationStepDetails = 'auto' | 'always' | 'hidden'
 export type AimdPresentationOutline = 'full' | 'compact' | 'hidden'
+export type AimdPresentationAppearance = 'default' | 'enhanced'
 
 export interface AimdPresentationProfile {
   density: AimdPresentationDensity
@@ -12,6 +13,7 @@ export interface AimdPresentationProfile {
   assigners: AimdPresentationAssignerVisibility
   stepDetails: AimdPresentationStepDetails
   outline: AimdPresentationOutline
+  appearance: AimdPresentationAppearance
 }
 
 export type AimdPresentationProfileInput = Partial<AimdPresentationProfile>
@@ -28,6 +30,7 @@ export const defaultAimdPresentationProfile: AimdPresentationProfile = {
   assigners: 'hidden',
   stepDetails: 'auto',
   outline: 'full',
+  appearance: 'default',
 }
 
 export function resolveAimdPresentationProfile(
@@ -74,6 +77,20 @@ export function shouldShowOutlineBadge(
   defaults?: Partial<AimdPresentationProfile>,
 ): boolean {
   return resolveAimdPresentationProfile(profile, defaults).outline !== 'hidden'
+}
+
+export function resolvePresentationAppearance(
+  profile?: AimdPresentationProfileInput,
+  defaults?: Partial<AimdPresentationProfile>,
+): AimdPresentationAppearance {
+  return resolveAimdPresentationProfile(profile, defaults).appearance
+}
+
+export function isEnhancedPresentation(
+  profile?: AimdPresentationProfileInput,
+  defaults?: Partial<AimdPresentationProfile>,
+): boolean {
+  return resolvePresentationAppearance(profile, defaults) === 'enhanced'
 }
 
 export function resolvePresentationPrimaryLabel(

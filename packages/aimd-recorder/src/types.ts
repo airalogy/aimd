@@ -1,4 +1,5 @@
 import type {
+  AimdPresentationAppearance,
   AimdPresentationProfile,
   AimdPresentationProfileInput,
 } from "@airalogy/aimd-presentation"
@@ -65,6 +66,7 @@ export interface AimdProtocolRecordData {
 }
 
 export type {
+  AimdPresentationAppearance,
   AimdPresentationProfile,
   AimdPresentationProfileInput,
   AimdThemeInput,
@@ -156,6 +158,7 @@ export interface AimdTypePluginParseContext extends AimdTypePluginInitContext {
 export interface AimdTypePluginRenderContext extends AimdTypePluginValueContext {
   readonly: boolean
   disabled: boolean
+  enhancedAppearance: boolean
   locale: string
   messages: AimdRecorderMessages
   record: AimdProtocolRecordData

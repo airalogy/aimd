@@ -50,6 +50,8 @@ export interface AimdEditorProps {
   theme?: string
   /** Optional semantic appearance theme for source/editor chrome */
   appearanceTheme?: AimdThemeInput
+  /** Whether to render enhanced source-block chrome in source mode */
+  showSourceBlockChrome?: boolean
   /** Whether to show the top toolbar (mode switch + theme toggle) */
   showTopBar?: boolean
   /** Whether to show the formatting toolbar */
