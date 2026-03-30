@@ -103,7 +103,7 @@ export const AimdStepField = defineComponent({
     const actualElapsedMs = computed(() => getStepElapsedMs(props.state, nowMs.value))
     const actualDurationLabel = computed(() => formatStepDuration(actualElapsedMs.value, props.locale))
     const estimatedDurationLabel = computed(() => (
-      timerAvailable.value && typeof props.node.estimated_duration_ms === "number"
+      (enhancedAppearance.value ? timerAvailable.value : true) && typeof props.node.estimated_duration_ms === "number"
         ? formatStepDuration(props.node.estimated_duration_ms, props.locale)
         : ""
     ))
@@ -112,7 +112,7 @@ export const AimdStepField = defineComponent({
     const hasRecordedDuration = computed(() => hasRecordedStepDuration(props.state))
     const hasAnnotation = computed(() => Boolean(props.state.annotation?.trim()))
     const remainingMs = computed(() => (
-      timerAvailable.value
+      (enhancedAppearance.value ? timerAvailable.value : true)
         ? getStepRemainingMs(props.state, props.node.estimated_duration_ms, nowMs.value)
         : undefined
     ))
@@ -147,28 +147,53 @@ export const AimdStepField = defineComponent({
     })
     const autoShowTimerDetails = computed(() => countdownEnabled.value)
     const showAnnotationEditor = computed(() => (
-      !detailsHidden.value
-      && (
-        alwaysShowDetails.value
-        || hasAnnotation.value
-        || annotationExpanded.value
-      )
+      enhancedAppearance.value
+        ? (
+            !detailsHidden.value
+            && (
+              alwaysShowDetails.value
+              || hasAnnotation.value
+              || annotationExpanded.value
+            )
+          )
+        : (
+            alwaysShowDetails.value
+            || hasAnnotation.value
+            || annotationExpanded.value
+          )
     ))
     const showTimerDetails = computed(() => (
-      !detailsHidden.value
-      && timerAvailable.value && (
-        alwaysShowDetails.value
-        || autoShowTimerDetails.value
-        || timerRunning.value
-        || hasRecordedDuration.value
-        || timerExpanded.value
-      )
+      enhancedAppearance.value
+        ? (
+            !detailsHidden.value
+            && timerAvailable.value && (
+              alwaysShowDetails.value
+              || autoShowTimerDetails.value
+              || timerRunning.value
+              || hasRecordedDuration.value
+              || timerExpanded.value
+            )
+          )
+        : (
+            alwaysShowDetails.value
+            || autoShowTimerDetails.value
+            || timerRunning.value
+            || hasRecordedDuration.value
+            || timerExpanded.value
+          )
     ))
     const showTimerSummary = computed(() => (
-      !detailsHidden.value
-      && timerAvailable.value
-      && !showTimerDetails.value
-      && (timerRunning.value || hasRecordedDuration.value)
+      enhancedAppearance.value
+        ? (
+            !detailsHidden.value
+            && timerAvailable.value
+            && !showTimerDetails.value
+            && (timerRunning.value || hasRecordedDuration.value)
+          )
+        : (
+            !showTimerDetails.value
+            && (timerRunning.value || hasRecordedDuration.value)
+          )
     ))
     const showDetailRow = computed(() => showAnnotationEditor.value || showTimerDetails.value)
 
@@ -215,7 +240,7 @@ export const AimdStepField = defineComponent({
     }
 
     function openTimerDetail() {
-      if (!timerAvailable.value) {
+      if (enhancedAppearance.value && !timerAvailable.value) {
         return
       }
       timerExpanded.value = true
@@ -389,7 +414,7 @@ export const AimdStepField = defineComponent({
         )
       }
 
-      if (!disabled && !detailsHidden.value && timerAvailable.value && !showTimerDetails.value) {
+      if (!disabled && (enhancedAppearance.value ? (!detailsHidden.value && timerAvailable.value) : true) && !showTimerDetails.value) {
         headerActionChildren.push(
           h("button", {
             type: "button",
