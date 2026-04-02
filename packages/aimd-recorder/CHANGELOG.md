@@ -3,6 +3,8 @@
 All notable changes to `@airalogy/aimd-recorder` will be documented in this file.
 
 ## [Unreleased]
+- Hid built-in step timer UI for steps that do not declare timing metadata, so plain and checkbox-enabled steps stay compact unless `duration` or `timer` is configured.
+- Updated recorder step headers to prefer human-readable AIMD step `title` values while keeping the raw step id as the data key.
 
 ## [1.13.0] - 2026-04-02
 

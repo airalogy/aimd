@@ -6,6 +6,7 @@ import {
   getProtocolEstimatedDurationMs,
   getStepElapsedMs,
   getStepRemainingMs,
+  hasStepTimerConfig,
   isStepTimerWarning,
   pauseStepTimer,
   resetStepTimer,
@@ -37,9 +38,14 @@ describe('useStepTimers', () => {
   })
 
   it('resolves countdown modes only when an estimate exists', () => {
+    expect(hasStepTimerConfig({ estimated_duration_ms: 30_000 })).toBe(true)
+    expect(hasStepTimerConfig({ timer_mode: 'elapsed' })).toBe(true)
+    expect(hasStepTimerConfig({})).toBe(false)
+
     expect(resolveStepTimerMode({ timer_mode: 'countdown', estimated_duration_ms: 30_000 })).toBe('countdown')
     expect(resolveStepTimerMode({ timer_mode: 'both', estimated_duration_ms: 30_000 })).toBe('both')
     expect(resolveStepTimerMode({ timer_mode: 'countdown' })).toBe('elapsed')
+    expect(resolveStepTimerMode({})).toBe(null)
   })
 
   it('computes remaining time and warning thresholds for countdown timers', () => {
