@@ -369,6 +369,37 @@
   font-weight: 500;
 }
 
+/* Markdown / figure media should scale within the recorder document width. */
+.aimd-image,
+.aimd-figure__image {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.aimd-figure {
+  display: grid;
+  gap: 10px;
+  max-width: 100%;
+  width: fit-content;
+  margin: 16px auto;
+}
+
+.aimd-figure__caption {
+  max-width: min(100%, 72ch);
+  margin: 0 auto;
+  color: #5b625f;
+  line-height: 1.6;
+}
+
+.aimd-figure__title {
+  font-weight: 600;
+  color: #24352c;
+}
+
 /* Editable state */
 .aimd-field--editable {
   cursor: text;
