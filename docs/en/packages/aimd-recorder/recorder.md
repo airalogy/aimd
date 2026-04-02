@@ -120,3 +120,62 @@ const quiz = {
   <AimdQuizRecorder v-model="answer" :quiz="quiz" />
 </template>
 ```
+
+## Showing Grade Results
+
+If the host has already graded the answers elsewhere, pass the result back into `AimdRecorder` or `AimdQuizRecorder` for inline display.
+
+Whole recorder:
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :quiz-grades="quizGrades"
+  choice-option-explanation-mode="selected"
+/>
+```
+
+Standalone quiz:
+
+```vue
+<AimdQuizRecorder
+  v-model="answer"
+  :quiz="quiz"
+  choice-option-explanation-mode="graded"
+  :grade="{
+    quiz_id: 'quiz_single_1',
+    earned_score: 4,
+    max_score: 5,
+    status: 'partial',
+    method: 'keyword_rubric',
+    feedback: 'The answer is mostly correct but still misses one point.',
+    review_required: true,
+  }"
+/>
+```
+
+Recommended usage:
+
+- grade `choice` and standard `blank` items locally
+- use a backend provider for `open` items or highly flexible blanks
+- for practice, pass `quizGrades` in real time so learners can immediately see status, score, and feedback
+- if a `choice` option defines `explanation`, use `choiceOptionExplanationMode="selected"` to show that explanation immediately after the learner selects the option
+- if option explanations should appear only after the learner submits, combine `:submitted="isSubmitted"` with `choiceOptionExplanationMode="submitted"`
+- if you want option explanations to appear only after grading is available, use `choiceOptionExplanationMode="graded"`
+- for exams, omit `quizGrades` until grading is finalized
+- unanswered quizzes with status `ungraded` do not show a grading panel by default
+- do not expose real model secrets in the browser for formal assessment flows
+
+Homework / reveal-after-submit example:
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :submitted="isSubmitted"
+  choice-option-explanation-mode="submitted"
+/>
+```
+
+`submitted` is controlled by the host app. `AimdRecorder` does not infer submission state on its own and does not include a built-in submit button.

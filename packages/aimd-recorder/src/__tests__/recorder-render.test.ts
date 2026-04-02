@@ -36,4 +36,22 @@ describe('AimdRecorder render stability', () => {
     expect(source).toMatch(/const groupedBody = bodyNodes\.find\(\(child\) => isGroupedStepBodyNode\(child\)\)/)
     expect(source).toMatch(/bodyNodes: normalizedBodyNodes/)
   })
+
+  it('rebuilds inline quiz nodes when quizGrades change so grading feedback can update reactively', () => {
+    expect(source).toMatch(/watch\(\s*\(\) => props\.quizGrades,\s*\(\) => \{\s*scheduleInlineRebuild\(\)\s*\},\s*\{ deep: true \},\s*\)/)
+  })
+
+  it('passes choice option explanation display mode through to quiz widgets', () => {
+    expect(source).toMatch(/choiceOptionExplanationMode\?: AimdChoiceOptionExplanationMode/)
+    expect(source).toMatch(/choiceOptionExplanationMode: "hidden"/)
+    expect(source).toMatch(/choiceOptionExplanationMode: props\.choiceOptionExplanationMode/)
+    expect(source).toMatch(/watch\(\s*\(\) => props\.choiceOptionExplanationMode,\s*\(\) => \{\s*scheduleInlineRebuild\(\)\s*\},\s*\)/)
+  })
+
+  it('passes submission state through to quiz widgets so explanation visibility can switch after submit', () => {
+    expect(source).toMatch(/submitted\?: boolean/)
+    expect(source).toMatch(/submitted: false/)
+    expect(source).toMatch(/submitted: props\.submitted/)
+    expect(source).toMatch(/watch\(\s*\(\) => props\.submitted,\s*\(\) => \{\s*scheduleInlineRebuild\(\)\s*\},\s*\)/)
+  })
 })

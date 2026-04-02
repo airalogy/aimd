@@ -4,6 +4,17 @@ All notable changes to `@airalogy/aimd-core` will be documented in this file.
 
 Earlier historical releases were not backfilled yet. This changelog currently starts from the `2.x` release line.
 
+## [Unreleased]
+
+## [2.4.0] - 2026-04-02
+
+### Added
+
+- Added first-class `quiz.grading` metadata for choice, blank, and open questions, including partial credit, normalized blank matching, rubric items, and provider-oriented LLM grading configuration.
+- Added `choice.grading.option_points` so single-choice and multiple-choice items can award score directly from selected options without relying on a separate answer key.
+- Added optional `choice.options[].explanation` parsing so AIMD choice items can carry per-option explanation text for downstream learning-oriented UIs.
+- Added exported grading helpers `gradeQuizAnswer()`, `gradeQuizRecordAnswers()`, and `resolveQuizMaxScore()` so host apps can score AIMD quiz submissions without reimplementing quiz semantics.
+
 ## [2.3.0] - 2026-03-19
 
 ### Added

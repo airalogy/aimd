@@ -77,6 +77,27 @@ import {
 | `normalizeSubvars` | `(subvars) => AimdSubvar[]` | 把 subvar 定义标准化为规范格式。 |
 | `toTemplateEnv` | `(fields) => AimdTemplateEnv` | 由提取结果构造模板环境。 |
 
+### Quiz 评分
+
+```ts
+import {
+  gradeQuizAnswer,
+  gradeQuizRecordAnswers,
+  resolveQuizMaxScore,
+  type AimdQuizGradingConfig,
+  type AimdQuizGradeResult,
+  type AimdQuizGradeReport,
+} from "@airalogy/aimd-core"
+```
+
+| API | 说明 |
+|-----|------|
+| `gradeQuizAnswer(quiz, answer, options?)` | 对单道题评分。支持选择题精确匹配、填空题规范化/数值容差，以及开放题 rubric/provider 流程。 |
+| `gradeQuizRecordAnswers(fields.quiz, record.quiz, options?)` | 对整份 quiz 作答批量评分，返回 `{ quiz, summary }`，其中 `summary` 包含总分与复核数量。 |
+| `resolveQuizMaxScore(quiz)` | 解析题目的最大分值；若未显式写 `score`，会按题型给出合理默认值。 |
+| `AimdQuizGradingConfig` | `quiz.grading` 的类型，支持 `partial_credit`、`normalized_match`、`keyword_rubric`、`llm_rubric` 等策略。 |
+| `AimdQuizGradeResult` | 单题评分结果。包含 `earned_score`、`max_score`、`status`、`feedback`、`review_required` 等字段。 |
+
 ### Schema 工具
 
 ```ts
@@ -436,9 +457,9 @@ import {
 
 | 组件 | 说明 |
 |------|------|
-| `AimdRecorder` | 完整协议 recorder：在 AIMD 内容中内联渲染输入控件。 |
+| `AimdRecorder` | 完整协议 recorder：在 AIMD 内容中内联渲染输入控件，也可以通过 `quizGrades` 显示题目得分、状态和反馈，并通过 `choiceOptionExplanationMode` / `submitted` 控制选择题讲解何时显示。 |
 | `AimdRecorderEditor` | 组合式 protocol 编辑 + recorder 录入界面。用 `v-model:content` 绑定源码、用 `v-model` 绑定 record，适合一边调整 AIMD 结构一边继续填数据，并内建 recorder field 结构编辑与 recorder 内可视化编辑能力。 |
-| `AimdQuizRecorder` | 可独立复用的题目作答组件，支持 choice / blank / open。 |
+| `AimdQuizRecorder` | 可独立复用的题目作答组件，支持 choice / blank / open，也支持通过 `grade` 展示评分结果，并可按选中、提交后或评分后显示选择题选项讲解。 |
 | `AimdDnaSequenceField` | 专用 DNA 序列输入控件，包含 SeqViz 视图、注释编辑与 GenBank 导入导出。 |
 
 ### 记录数据

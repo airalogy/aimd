@@ -131,6 +131,75 @@ const fields = parseAndExtract(content.value)
 // fields.fig       — list of figure definitions
 ```
 
+## Quiz Auto Grading
+
+If the host wants score, status, and feedback to appear directly in the recorder, first extract `fields.quiz` with `parseAndExtract()`, then build a grade report with the grading helpers exported from `@airalogy/aimd-core`.
+
+```ts
+import { gradeQuizRecordAnswers } from "@airalogy/aimd-core"
+import { parseAndExtract } from "@airalogy/aimd-renderer"
+
+const fields = parseAndExtract(content.value)
+
+const report = await gradeQuizRecordAnswers(
+  fields.quiz,
+  record.value.quiz,
+  {
+    provider: async ({ quiz, answer, config, max_score }) => {
+      // Recommended: call your own backend grading endpoint here.
+      // The backend can map config.provider to the real model + secret.
+      const response = await fetch("/api/grade-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quiz, answer, config, max_score }),
+      })
+      return await response.json()
+    },
+  },
+)
+
+const quizGrades = report.quiz
+```
+
+Here, `config.provider` is only the configuration name written in AIMD, such as `teacher_default`. The recommended pattern is to let your backend use that name to choose the real model, secret, and grading flow, rather than binding the browser directly to an external model service.
+
+Also note: the backend response consumed by `gradeQuizAnswer()` / `gradeQuizRecordAnswers()` must be a structured grade result object. Do not return raw free-form model text directly. At minimum, return something like:
+
+```json
+{
+  "earned_score": 4,
+  "max_score": 5,
+  "status": "partial",
+  "method": "llm",
+  "feedback": "Mostly correct, but one key point is missing."
+}
+```
+
+If the provider returns unstructured text instead, the current implementation marks that quiz as `needs_review` rather than trying to extract a reliable score from free text.
+
+Then pass the result map into `AimdRecorder`:
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :quiz-grades="quizGrades"
+  choice-option-explanation-mode="selected"
+/>
+```
+
+Notes:
+
+- `choice` and most `blank` items can be graded locally
+- `open` items are usually better with rubric logic or a backend provider
+- for practice, you can recompute `quizGrades` on each answer change to provide immediate feedback
+- for homework, if explanations should appear only after submission, pass `:submitted="isSubmitted"` and set `choiceOptionExplanationMode="submitted"`
+- for exams, you can omit `quizGrades` until submission or teacher review is complete
+- unanswered quizzes with status `ungraded` do not render a grading panel by default
+- if a choice option includes `explanation`, `choiceOptionExplanationMode` controls whether the option explanation is shown
+- `submitted` is owned by the host app; the recorder does not infer submission state automatically
+- do not expose real model keys in the browser for high-stakes grading
+
 ## Configuration Options
 
 ### Editor Options
@@ -204,6 +273,7 @@ const { nodes, fields } = await renderToVue(content, {
   :content="content"
   locale="en-US"
   current-user-name="Alice"
+  choice-option-explanation-mode="selected"
   :field-meta="fieldMetaMap"
   :field-state="fieldStateMap"
   :messages="customRecorderMessages"
@@ -216,6 +286,9 @@ const { nodes, fields } = await renderToVue(content, {
 | `content` | `string` | AIMD source content |
 | `locale` | `"en-US" \| "zh-CN"` | UI language |
 | `currentUserName` | `string` | Auto-fills `UserName` var fields |
+| `quizGrades` | `Record<string, AimdQuizGradeResult>` | Quiz grade map; when provided, the recorder renders score, status, and feedback below each quiz |
+| `submitted` | `boolean` | Marks whether the current attempt has been submitted; combine with `choiceOptionExplanationMode="submitted"` to reveal option explanations after submit |
+| `choiceOptionExplanationMode` | `"hidden" \| "selected" \| "submitted" \| "graded"` | Controls when `explanation` text on choice options is shown: hidden, immediately after selection, after submission, or only after the quiz has a grade result |
 | `fieldMeta` | `Record<string, AimdFieldMeta>` | Per-field metadata overrides |
 | `fieldState` | `Record<string, AimdFieldState>` | Per-field runtime state |
 | `fieldAdapters` | `AimdRecorderFieldAdapters` | Replace or wrap built-in recorder field UIs with host components |

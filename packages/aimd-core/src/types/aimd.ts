@@ -5,7 +5,14 @@
  * All AIMD-related code should use these types to ensure consistency.
  */
 
-import type { AimdStepTimerMode } from "./nodes"
+import type {
+  AimdQuizBlank,
+  AimdQuizMode,
+  AimdQuizOption,
+  AimdQuizType,
+  AimdStepTimerMode,
+} from "./nodes"
+import type { AimdQuizGradingConfig } from "./grading"
 
 // ===== Base Types for Compatibility =====
 
@@ -253,32 +260,6 @@ export interface AimdVarField {
 }
 
 /**
- * Quiz type
- */
-export type AimdQuizType = "choice" | "blank" | "open"
-
-/**
- * Choice mode for choice quiz
- */
-export type AimdQuizMode = "single" | "multiple"
-
-/**
- * Choice option definition
- */
-export interface AimdQuizOption {
-  key: string
-  text: string
-}
-
-/**
- * Blank item definition
- */
-export interface AimdQuizBlank {
-  key: string
-  answer: string
-}
-
-/**
  * Quiz field definition
  */
 export interface AimdQuizField {
@@ -300,6 +281,8 @@ export interface AimdQuizField {
   blanks?: AimdQuizBlank[]
   /** Open question rubric */
   rubric?: string
+  /** Optional grading policy */
+  grading?: AimdQuizGradingConfig
   /** Optional default value */
   default?: unknown
   /** Extra unreserved metadata */

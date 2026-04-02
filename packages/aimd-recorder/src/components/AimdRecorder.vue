@@ -4,6 +4,7 @@ import type {
   AimdCheckNode,
   AimdClientAssignerField,
   AimdQuizField,
+  AimdQuizGradeResult,
   AimdQuizNode,
   AimdStepNode,
   AimdVarNode,
@@ -18,6 +19,7 @@ import {
   resolveAimdRecorderLocale,
 } from "../locales"
 import type {
+  AimdChoiceOptionExplanationMode,
   AimdFieldMeta,
   AimdFieldState,
   AimdRecorderFieldAdapters,
@@ -86,6 +88,9 @@ const props = withDefaults(defineProps<{
   now?: Date | string | number
   locale?: string
   messages?: AimdRecorderMessagesInput
+  quizGrades?: Record<string, AimdQuizGradeResult | null | undefined>
+  submitted?: boolean
+  choiceOptionExplanationMode?: AimdChoiceOptionExplanationMode
   /** Controls whether step timer / note details stay expanded */
   stepDetailDisplay?: AimdStepDetailDisplay
 
@@ -140,6 +145,9 @@ const props = withDefaults(defineProps<{
   now: undefined,
   locale: undefined,
   messages: undefined,
+  quizGrades: undefined,
+  submitted: false,
+  choiceOptionExplanationMode: "hidden",
   stepDetailDisplay: "auto",
   fieldMeta: undefined,
   fieldState: undefined,
@@ -773,10 +781,13 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     class: "aimd-rec-inline aimd-rec-inline--quiz",
     quiz: quizField,
     modelValue: localRecord.quiz[quizId],
+    grade: props.quizGrades?.[quizId] ?? null,
+    submitted: props.submitted,
     readonly: props.readonly,
     focusKeyPrefix: `quiz:${quizId}`,
     locale: resolvedLocale.value,
     messages: props.messages,
+    choiceOptionExplanationMode: props.choiceOptionExplanationMode,
     "onUpdate:modelValue": (value: unknown) => {
       localRecord.quiz[quizId] = value
       markRecordChanged()
@@ -903,6 +914,28 @@ watch(
     void parseAndBuild()
   },
   { immediate: true, deep: true },
+)
+
+watch(
+  () => props.quizGrades,
+  () => {
+    scheduleInlineRebuild()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.choiceOptionExplanationMode,
+  () => {
+    scheduleInlineRebuild()
+  },
+)
+
+watch(
+  () => props.submitted,
+  () => {
+    scheduleInlineRebuild()
+  },
 )
 
 onBeforeUnmount(() => {

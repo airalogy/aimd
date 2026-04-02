@@ -48,7 +48,11 @@ export type {
   AimdCiteNode,
   AimdFigNode,
   AimdNode,
+  AimdQuizBlank,
+  AimdQuizMode,
   AimdQuizNode,
+  AimdQuizOption,
+  AimdQuizType,
   AimdRefNode,
   AimdScope,
   AimdStepNode,
@@ -59,6 +63,27 @@ export type {
   BaseNode,
   IndentNode,
 } from './types/nodes'
+
+export type {
+  AimdBlankQuizGradingConfig,
+  AimdChoiceQuizGradingConfig,
+  AimdOpenQuizGradingConfig,
+  AimdQuizBlankGradeDetail,
+  AimdQuizBlankGradingRule,
+  AimdQuizGradeMethod,
+  AimdQuizGradeReport,
+  AimdQuizGradeResult,
+  AimdQuizGradeSummary,
+  AimdQuizGradeStatus,
+  AimdQuizGradingConfig,
+  AimdQuizGradingOptions,
+  AimdQuizGradingProvider,
+  AimdQuizNumericRule,
+  AimdQuizProviderRequest,
+  AimdQuizRubricItem,
+  AimdQuizRubricItemGradeDetail,
+  AimdQuizTextNormalizeRule,
+} from './types/grading'
 
 export type {
   // Compatibility types for business logic
@@ -123,3 +148,9 @@ export {
   schemaToInputType,
   validator,
 } from './utils/schema'
+
+export {
+  gradeQuizAnswer,
+  gradeQuizRecordAnswers,
+  resolveQuizMaxScore,
+} from './grading'

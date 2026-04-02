@@ -30,6 +30,7 @@ export type {
   AimdTypePluginValueContext,
   AimdVarInputKind,
   AimdStepDetailDisplay,
+  AimdChoiceOptionExplanationMode,
   AimdRecorderFieldAdapter,
   AimdRecorderFieldAdapterContext,
   AimdRecorderFieldAdapters,

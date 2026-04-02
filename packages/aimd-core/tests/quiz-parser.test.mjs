@@ -55,6 +55,28 @@ answer: b
   assert.equal(q.answer, 'b')
 })
 
+test('quiz choice single: option explanations are parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q1_explanation
+type: choice
+mode: single
+stem: "What is 1+1?"
+options:
+  - key: a
+    text: "1"
+    explanation: "Too small."
+  - key: b
+    text: "2"
+    explanation: "Correct."
+\`\`\`
+`)
+  assert.deepEqual(fields.quiz[0].options, [
+    { key: 'a', text: '1', explanation: 'Too small.' },
+    { key: 'b', text: '2', explanation: 'Correct.' },
+  ])
+})
+
 test('quiz choice single: default value', () => {
   const { fields } = parseAimd(`
 \`\`\`quiz
@@ -140,6 +162,71 @@ hint: "Think carefully"
   assert.equal(fields.quiz[0].extra?.hint, 'Think carefully')
 })
 
+test('quiz choice: grading config is parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q5_grading
+type: choice
+mode: multiple
+stem: "Choose the right answers"
+options:
+  - key: a
+    text: "A"
+  - key: b
+    text: "B"
+answer:
+  - a
+grading:
+  strategy: partial_credit
+\`\`\`
+`)
+  assert.deepEqual(fields.quiz[0].grading, { strategy: 'partial_credit' })
+})
+
+test('quiz choice: option_points grading is parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q5_option_points
+type: choice
+mode: single
+stem: "Choose the best answer"
+options:
+  - key: a
+    text: "A"
+  - key: b
+    text: "B"
+grading:
+  strategy: option_points
+  option_points:
+    a: 1
+    b: 3
+\`\`\`
+`)
+  assert.deepEqual(fields.quiz[0].grading, {
+    strategy: 'option_points',
+    option_points: { a: 1, b: 3 },
+  })
+})
+
+test('quiz choice: invalid option_points key is rejected', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q5_option_points_bad
+type: choice
+mode: single
+stem: "Choose the best answer"
+options:
+  - key: a
+    text: "A"
+grading:
+  strategy: option_points
+  option_points:
+    b: 2
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 0)
+})
+
 // ── Blank quiz ───────────────────────────────────────────────────────────────
 
 test('quiz blank: basic parsing', () => {
@@ -207,6 +294,38 @@ default: "initial"
   assert.deepEqual(fields.quiz[0].default, { b1: 'initial' })
 })
 
+test('quiz blank: grading config is parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q9_grading
+type: blank
+stem: "Answer: [[b1]]"
+blanks:
+  - key: b1
+    answer: "42"
+grading:
+  strategy: normalized_match
+  blanks:
+    - key: b1
+      accepted_answers: ["42", "42.0"]
+      normalize: ["trim", "remove_spaces"]
+      numeric:
+        target: 42
+        tolerance: 0.5
+\`\`\`
+`)
+  assert.equal(fields.quiz[0].grading.strategy, 'normalized_match')
+  assert.deepEqual(fields.quiz[0].grading.blanks, [{
+    key: 'b1',
+    accepted_answers: ['42', '42.0'],
+    normalize: ['trim', 'remove_spaces'],
+    numeric: {
+      target: 42,
+      tolerance: 0.5,
+    },
+  }])
+})
+
 // ── Open quiz ────────────────────────────────────────────────────────────────
 
 test('quiz open: basic parsing', () => {
@@ -244,6 +363,34 @@ default: "Type here..."
 \`\`\`
 `)
   assert.equal(fields.quiz[0].default, 'Type here...')
+})
+
+test('quiz open: grading config is parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q12_grading
+type: open
+stem: "Explain why."
+grading:
+  strategy: llm_rubric
+  provider: teacher_default
+  require_review_below: 0.8
+  rubric_items:
+    - id: rate
+      points: 2
+      desc: "Mention rate"
+      keywords: ["rate", "speed"]
+\`\`\`
+`)
+  assert.equal(fields.quiz[0].grading.strategy, 'llm_rubric')
+  assert.equal(fields.quiz[0].grading.provider, 'teacher_default')
+  assert.equal(fields.quiz[0].grading.require_review_below, 0.8)
+  assert.deepEqual(fields.quiz[0].grading.rubric_items, [{
+    id: 'rate',
+    points: 2,
+    desc: 'Mention rate',
+    keywords: ['rate', 'speed'],
+  }])
 })
 
 // ── YAML validation errors (errors are caught internally, quiz is skipped) ───
@@ -389,6 +536,20 @@ id: q_bad
 type: open
 stem: "bad score"
 score: -1
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 0)
+})
+
+test('quiz: invalid grading config is skipped', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_bad_grading
+type: open
+stem: "Explain"
+grading:
+  strategy: llm_rubric
+  require_review_below: 2
 \`\`\`
 `)
   assert.equal(fields.quiz.length, 0)

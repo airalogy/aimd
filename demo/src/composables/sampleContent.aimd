@@ -98,11 +98,19 @@ score: 2
 options:
   - key: A
     text: -20°C
+    explanation: This is too cold for the initial storage step and may complicate the next handling stage.
   - key: B
     text: 4°C
+    explanation: Correct. Initial short-term storage is usually kept at 4°C to preserve stability without freezing the sample.
   - key: C
     text: Room temperature
-answer: B
+    explanation: Room temperature increases the risk of sample degradation before the next step.
+grading:
+  strategy: option_points
+  option_points:
+    A: 0
+    B: 2
+    C: 1
 ```
 
 ```quiz
@@ -114,12 +122,16 @@ score: 3
 options:
   - key: A
     text: Sample ID
+    explanation: Correct. The sample identifier is required for traceability.
   - key: B
     text: Operation time
+    explanation: Correct. The operation time is part of the core experiment record.
   - key: C
     text: Operator
+    explanation: Correct. The operator name is needed for accountability and review.
   - key: D
     text: Weather conditions
+    explanation: Usually not required for this record, so selecting it would be unnecessary here.
 answer: [A, B, C]
 ```
 
@@ -131,6 +143,12 @@ score: 2
 blanks:
   - key: b1
     answer: 0.9%
+grading:
+  strategy: normalized_match
+  blanks:
+    - key: b1
+      accepted_answers: ["0.9%", "0.9 %", "0.009"]
+      normalize: ["trim", "remove_spaces"]
 ```
 
 ```quiz
@@ -139,6 +157,17 @@ type: open
 stem: Explain why temperature control is required in this step and provide at least two reasons.
 score: 5
 rubric: Mention both reaction rate and sample stability.
+grading:
+  strategy: keyword_rubric
+  rubric_items:
+    - id: rate
+      points: 2
+      desc: Mention reaction rate.
+      keywords: ["reaction rate", "rate"]
+    - id: stability
+      points: 3
+      desc: Mention sample stability.
+      keywords: ["sample stability", "stability"]
 ```
 
 ## References

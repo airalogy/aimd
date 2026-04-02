@@ -6,9 +6,26 @@ import type {
   AimdQuizType,
 } from "../types/nodes"
 import type { AimdQuizField } from "../types/aimd"
+import type {
+  AimdBlankQuizGradingConfig,
+  AimdChoiceQuizGradingConfig,
+  AimdOpenQuizGradingConfig,
+  AimdQuizBlankGradingRule,
+  AimdQuizGradingConfig,
+  AimdQuizNumericRule,
+  AimdQuizRubricItem,
+  AimdQuizTextNormalizeRule,
+} from "../types/grading"
 import { parseDocument } from "yaml"
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
+const TEXT_NORMALIZE_RULES = new Set<AimdQuizTextNormalizeRule>([
+  "trim",
+  "lowercase",
+  "collapse_whitespace",
+  "remove_spaces",
+  "fullwidth_to_halfwidth",
+])
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -60,16 +77,27 @@ function normalizeChoiceMode(value: unknown): AimdQuizMode {
   throw new Error("Invalid choice mode, expected one of: single, multiple")
 }
 
-function normalizeQuizKeyedItems<K extends string>(
+type NormalizedQuizKeyedItem<
+  RequiredField extends string,
+  OptionalField extends string = never,
+> = {
+  key: string
+} & Record<RequiredField, string> & Partial<Record<OptionalField, string>>
+
+function normalizeQuizKeyedItems<
+  RequiredField extends string,
+  OptionalField extends string = never,
+>(
   value: unknown,
   sectionName: string,
-  requiredFields: readonly ["key", ...K[]],
-): Array<Record<"key" | K, string>> {
+  requiredFields: readonly ["key", ...RequiredField[]],
+  optionalFields: readonly OptionalField[] = [],
+): Array<NormalizedQuizKeyedItem<RequiredField, OptionalField>> {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error(`${sectionName} must be a non-empty list`)
   }
 
-  const normalizedItems: Array<Record<"key" | K, string>> = []
+  const normalizedItems: Array<NormalizedQuizKeyedItem<RequiredField, OptionalField>> = []
   const seenKeys = new Set<string>()
 
   for (const item of value) {
@@ -77,7 +105,7 @@ function normalizeQuizKeyedItems<K extends string>(
       throw new Error(`${sectionName} must be a list of objects`)
     }
 
-    const normalizedItem = {} as Record<"key" | K, string>
+    const normalizedItem: Record<string, string> = {}
     for (const field of requiredFields) {
       const rawField = item[field]
       const normalizedField = rawField === undefined || rawField === null
@@ -89,15 +117,273 @@ function normalizeQuizKeyedItems<K extends string>(
       normalizedItem[field] = normalizedField
     }
 
+    for (const field of optionalFields) {
+      const rawField = item[field]
+      if (rawField === undefined || rawField === null) {
+        continue
+      }
+      const normalizedField = String(rawField).trim()
+      if (normalizedField) {
+        normalizedItem[field] = normalizedField
+      }
+    }
+
     const itemKey = normalizedItem.key
     if (seenKeys.has(itemKey)) {
       throw new Error(`Duplicate key in ${sectionName}: ${itemKey}`)
     }
     seenKeys.add(itemKey)
-    normalizedItems.push(normalizedItem)
+    normalizedItems.push(normalizedItem as NormalizedQuizKeyedItem<RequiredField, OptionalField>)
   }
 
   return normalizedItems
+}
+
+function normalizeStringList(value: unknown, fieldName: string): string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty list of strings`)
+  }
+
+  const normalized: string[] = []
+  for (const item of value) {
+    if (typeof item !== "string" || !item.trim()) {
+      throw new Error(`${fieldName} must contain only non-empty strings`)
+    }
+    normalized.push(item.trim())
+  }
+  return normalized
+}
+
+function normalizeTextNormalizeRules(value: unknown, fieldName: string): AimdQuizTextNormalizeRule[] {
+  const rules = normalizeStringList(value, fieldName)
+  const normalized: AimdQuizTextNormalizeRule[] = []
+  for (const rule of rules) {
+    if (!TEXT_NORMALIZE_RULES.has(rule as AimdQuizTextNormalizeRule)) {
+      throw new Error(`Invalid ${fieldName} item: ${rule}`)
+    }
+    normalized.push(rule as AimdQuizTextNormalizeRule)
+  }
+  return normalized
+}
+
+function normalizeNumericRule(value: unknown, fieldName: string): AimdQuizNumericRule {
+  if (!isPlainObject(value)) {
+    throw new Error(`${fieldName} must be an object`)
+  }
+
+  const target = value.target
+  if (typeof target !== "number" || Number.isNaN(target)) {
+    throw new Error(`${fieldName}.target must be a number`)
+  }
+
+  const numericRule: AimdQuizNumericRule = { target }
+  if (value.tolerance !== undefined) {
+    if (typeof value.tolerance !== "number" || Number.isNaN(value.tolerance) || value.tolerance < 0) {
+      throw new Error(`${fieldName}.tolerance must be a non-negative number`)
+    }
+    numericRule.tolerance = value.tolerance
+  }
+  if (value.unit !== undefined) {
+    if (typeof value.unit !== "string" || !value.unit.trim()) {
+      throw new Error(`${fieldName}.unit must be a non-empty string`)
+    }
+    numericRule.unit = value.unit.trim()
+  }
+
+  return numericRule
+}
+
+function normalizeBlankGradingRules(value: unknown, blankKeys: string[]): AimdQuizBlankGradingRule[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error("grading.blanks must be a non-empty list")
+  }
+
+  const normalized: AimdQuizBlankGradingRule[] = []
+  const seenKeys = new Set<string>()
+  for (const item of value) {
+    if (!isPlainObject(item)) {
+      throw new Error("grading.blanks must be a list of objects")
+    }
+    const key = typeof item.key === "string" ? item.key.trim() : ""
+    if (!key) {
+      throw new Error("Each grading.blanks item must include a non-empty key")
+    }
+    if (!blankKeys.includes(key)) {
+      throw new Error(`grading.blanks contains unknown blank key: ${key}`)
+    }
+    if (seenKeys.has(key)) {
+      throw new Error(`Duplicate key in grading.blanks: ${key}`)
+    }
+    seenKeys.add(key)
+
+    const rule: AimdQuizBlankGradingRule = { key }
+    if (item.accepted_answers !== undefined) {
+      rule.accepted_answers = normalizeStringList(item.accepted_answers, `grading.blanks.${key}.accepted_answers`)
+    }
+    if (item.normalize !== undefined) {
+      rule.normalize = normalizeTextNormalizeRules(item.normalize, `grading.blanks.${key}.normalize`)
+    }
+    if (item.numeric !== undefined) {
+      rule.numeric = normalizeNumericRule(item.numeric, `grading.blanks.${key}.numeric`)
+    }
+    normalized.push(rule)
+  }
+  return normalized
+}
+
+function normalizeRubricItems(value: unknown): AimdQuizRubricItem[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error("grading.rubric_items must be a non-empty list")
+  }
+
+  const normalized: AimdQuizRubricItem[] = []
+  const seenIds = new Set<string>()
+  for (const item of value) {
+    if (!isPlainObject(item)) {
+      throw new Error("grading.rubric_items must be a list of objects")
+    }
+    const id = typeof item.id === "string" ? item.id.trim() : ""
+    const desc = typeof item.desc === "string" ? item.desc.trim() : ""
+    const points = item.points
+
+    if (!id) {
+      throw new Error("Each grading.rubric_items item must include a non-empty id")
+    }
+    if (seenIds.has(id)) {
+      throw new Error(`Duplicate id in grading.rubric_items: ${id}`)
+    }
+    seenIds.add(id)
+    if (!desc) {
+      throw new Error(`grading.rubric_items.${id}.desc must be a non-empty string`)
+    }
+    if (typeof points !== "number" || Number.isNaN(points) || points < 0) {
+      throw new Error(`grading.rubric_items.${id}.points must be a non-negative number`)
+    }
+
+    const rubricItem: AimdQuizRubricItem = { id, desc, points }
+    if (item.keywords !== undefined) {
+      rubricItem.keywords = normalizeStringList(item.keywords, `grading.rubric_items.${id}.keywords`)
+    }
+    normalized.push(rubricItem)
+  }
+
+  return normalized
+}
+
+function normalizeProviderName(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${fieldName} must be a non-empty string`)
+  }
+  return value.trim()
+}
+
+function normalizePrompt(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${fieldName} must be a non-empty string`)
+  }
+  return value.trim()
+}
+
+function normalizeChoiceOptionPoints(
+  value: unknown,
+  optionKeys: string[],
+): Record<string, number> {
+  if (!isPlainObject(value) || Object.keys(value).length === 0) {
+    throw new Error("grading.option_points must be a non-empty mapping from option key to score")
+  }
+
+  const normalized: Record<string, number> = {}
+  for (const [key, scoreValue] of Object.entries(value)) {
+    if (!optionKeys.includes(key)) {
+      throw new Error(`grading.option_points contains unknown option key: ${key}`)
+    }
+    if (typeof scoreValue !== "number" || Number.isNaN(scoreValue) || !Number.isFinite(scoreValue)) {
+      throw new Error(`grading.option_points.${key} must be a finite number`)
+    }
+    normalized[key] = scoreValue
+  }
+
+  return normalized
+}
+
+function normalizeGradingConfig(
+  value: unknown,
+  quizType: AimdQuizType,
+  context: { blankKeys?: string[], optionKeys?: string[] } = {},
+): AimdQuizGradingConfig {
+  if (!isPlainObject(value)) {
+    throw new Error("grading must be a YAML mapping/object")
+  }
+
+  const strategyValue = value.strategy
+  const strategy = typeof strategyValue === "string" && strategyValue.trim()
+    ? strategyValue.trim()
+    : undefined
+
+  if (quizType === "choice") {
+    if (strategy !== undefined && strategy !== "auto" && strategy !== "exact_match" && strategy !== "partial_credit" && strategy !== "option_points") {
+      throw new Error("choice grading.strategy must be one of: auto, exact_match, partial_credit, option_points")
+    }
+    const config: AimdChoiceQuizGradingConfig = {}
+    if (strategy !== undefined) {
+      config.strategy = strategy as AimdChoiceQuizGradingConfig["strategy"]
+    }
+    if (value.option_points !== undefined) {
+      if (strategy !== undefined && strategy !== "auto" && strategy !== "option_points") {
+        throw new Error("grading.option_points can only be used with choice grading strategy auto or option_points")
+      }
+      config.option_points = normalizeChoiceOptionPoints(value.option_points, context.optionKeys || [])
+    }
+    if (strategy === "option_points" && !config.option_points) {
+      throw new Error("grading.option_points is required when choice grading.strategy is option_points")
+    }
+    return config
+  }
+
+  if (quizType === "blank") {
+    if (strategy !== undefined && strategy !== "auto" && strategy !== "normalized_match" && strategy !== "llm") {
+      throw new Error("blank grading.strategy must be one of: auto, normalized_match, llm")
+    }
+    const config: AimdBlankQuizGradingConfig = {}
+    if (strategy !== undefined) {
+      config.strategy = strategy as AimdBlankQuizGradingConfig["strategy"]
+    }
+    if (value.provider !== undefined) {
+      config.provider = normalizeProviderName(value.provider, "grading.provider")
+    }
+    if (value.prompt !== undefined) {
+      config.prompt = normalizePrompt(value.prompt, "grading.prompt")
+    }
+    if (value.blanks !== undefined) {
+      config.blanks = normalizeBlankGradingRules(value.blanks, context.blankKeys || [])
+    }
+    return config
+  }
+
+  if (strategy !== undefined && strategy !== "manual" && strategy !== "keyword_rubric" && strategy !== "llm_rubric" && strategy !== "llm") {
+    throw new Error("open grading.strategy must be one of: manual, keyword_rubric, llm_rubric, llm")
+  }
+  const config: AimdOpenQuizGradingConfig = {}
+  if (strategy !== undefined) {
+    config.strategy = strategy as AimdOpenQuizGradingConfig["strategy"]
+  }
+  if (value.provider !== undefined) {
+    config.provider = normalizeProviderName(value.provider, "grading.provider")
+  }
+  if (value.prompt !== undefined) {
+    config.prompt = normalizePrompt(value.prompt, "grading.prompt")
+  }
+  if (value.rubric_items !== undefined) {
+    config.rubric_items = normalizeRubricItems(value.rubric_items)
+  }
+  if (value.require_review_below !== undefined) {
+    const threshold = value.require_review_below
+    if (typeof threshold !== "number" || Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
+      throw new Error("grading.require_review_below must be a number between 0 and 1")
+    }
+    config.require_review_below = threshold
+  }
+  return config
 }
 
 function normalizeChoiceAnswer(
@@ -211,6 +497,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
       data.options,
       "options",
       ["key", "text"] as const,
+      ["explanation"] as const,
     )
     const optionKeys = options.map(option => option.key)
 
@@ -232,6 +519,11 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
     field.options = options
     node.mode = mode
     node.options = options
+    if (data.grading !== undefined) {
+      const grading = normalizeGradingConfig(data.grading, quizType, { optionKeys })
+      field.grading = grading
+      node.grading = grading
+    }
 
     const reservedKeys = new Set([
       "id",
@@ -242,6 +534,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
       "options",
       "answer",
       "default",
+      "grading",
     ])
     const extraEntries = Object.entries(data).filter(([key]) => !reservedKeys.has(key))
     if (extraEntries.length > 0) {
@@ -291,6 +584,11 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
 
     field.blanks = blanks
     node.blanks = blanks
+    if (data.grading !== undefined) {
+      const grading = normalizeGradingConfig(data.grading, quizType, { blankKeys })
+      field.grading = grading
+      node.grading = grading
+    }
 
     const reservedKeys = new Set([
       "id",
@@ -299,6 +597,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
       "score",
       "blanks",
       "default",
+      "grading",
     ])
     const extraEntries = Object.entries(data).filter(([key]) => !reservedKeys.has(key))
     if (extraEntries.length > 0) {
@@ -327,6 +626,11 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
     field.default = defaultValue
     node.default = defaultValue
   }
+  if (data.grading !== undefined) {
+    const grading = normalizeGradingConfig(data.grading, quizType)
+    field.grading = grading
+    node.grading = grading
+  }
 
   const reservedKeys = new Set([
     "id",
@@ -335,6 +639,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
     "score",
     "rubric",
     "default",
+    "grading",
   ])
   const extraEntries = Object.entries(data).filter(([key]) => !reservedKeys.has(key))
   if (extraEntries.length > 0) {

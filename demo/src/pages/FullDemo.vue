@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { gradeQuizRecordAnswers, type AimdQuizField, type AimdQuizGradeReport, type AimdQuizGradeResult } from '@airalogy/aimd-core'
 import { renderToHtml, parseAndExtract } from '@airalogy/aimd-renderer'
 import {
   AimdRecorder,
   createEmptyProtocolRecordData,
+  type AimdChoiceOptionExplanationMode,
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
 import '@airalogy/aimd-recorder/styles'
@@ -21,6 +23,10 @@ const renderError = ref('')
 
 // --- Record Data ---
 const recordData = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
+const quizGrades = ref<Record<string, AimdQuizGradeResult>>({})
+const gradeReport = ref<AimdQuizGradeReport | null>(null)
+const choiceOptionExplanationMode = ref<AimdChoiceOptionExplanationMode>('selected')
+const isSubmitted = ref(false)
 
 // Active panel on the right side
 const activeRightTab = ref<'preview' | 'form' | 'data'>('preview')
@@ -36,14 +42,24 @@ async function processContent() {
 
     const extracted = parseAndExtract(content.value)
     fields.value = extracted
+    await updateQuizGrades(extracted.quiz || [])
   } catch (e: any) {
     renderError.value = e.message
   }
 }
 
 watch([content, locale], processContent, { immediate: true })
+watch(recordData, () => {
+  updateQuizGrades(fields.value?.quiz || [])
+}, { deep: true })
 
 const collectedJson = computed(() => JSON.stringify(recordData.value, null, 2))
+const gradeSummary = computed(() => {
+  if (!gradeReport.value) {
+    return ''
+  }
+  return `${gradeReport.value.summary.total_earned_score} / ${gradeReport.value.summary.total_max_score}`
+})
 
 const fieldCount = computed(() => {
   const f = fields.value
@@ -52,6 +68,19 @@ const fieldCount = computed(() => {
 
 function resetForm() {
   recordData.value = createEmptyProtocolRecordData()
+}
+
+async function updateQuizGrades(rawQuizFields: unknown) {
+  const quizFields = Array.isArray(rawQuizFields) ? rawQuizFields as AimdQuizField[] : []
+  if (quizFields.length === 0) {
+    quizGrades.value = {}
+    gradeReport.value = null
+    return
+  }
+
+  const report = await gradeQuizRecordAnswers(quizFields, recordData.value.quiz)
+  gradeReport.value = report
+  quizGrades.value = report.quiz
 }
 </script>
 
@@ -117,11 +146,41 @@ function resetForm() {
         <!-- Form Tab -->
         <div v-if="activeRightTab === 'form'" class="tab-content">
           <div class="form-toolbar">
-            <button class="reset-btn" @click="resetForm">{{ messages.common.resetForm }}</button>
+            <div class="form-toolbar__main">
+              <button class="reset-btn" @click="resetForm">{{ messages.common.resetForm }}</button>
+              <span v-if="gradeReport" class="grade-summary">
+                Score {{ gradeSummary }}
+                <template v-if="gradeReport.summary.review_required_count">
+                  · Review {{ gradeReport.summary.review_required_count }}
+                </template>
+              </span>
+            </div>
+            <div class="form-toolbar__controls">
+              <label class="toolbar-control">
+                <span>Explanations</span>
+                <select v-model="choiceOptionExplanationMode" class="toolbar-select">
+                  <option value="hidden">hidden</option>
+                  <option value="selected">selected</option>
+                  <option value="submitted">submitted</option>
+                  <option value="graded">graded</option>
+                </select>
+              </label>
+              <label class="toolbar-control toolbar-control--checkbox">
+                <input v-model="isSubmitted" type="checkbox">
+                <span>Submitted</span>
+              </label>
+            </div>
           </div>
 
           <div class="form-content">
-            <AimdRecorder v-model="recordData" :content="content" :locale="locale" />
+            <AimdRecorder
+              v-model="recordData"
+              :content="content"
+              :locale="locale"
+              :quiz-grades="quizGrades"
+              :submitted="isSubmitted"
+              :choice-option-explanation-mode="choiceOptionExplanationMode"
+            />
           </div>
         </div>
 
@@ -234,6 +293,56 @@ function resetForm() {
   min-height: 0;
 }
 
+.form-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.form-toolbar__main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.grade-summary {
+  font-size: 13px;
+  color: #444;
+}
+
+.toolbar-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #555;
+}
+
+.toolbar-control--checkbox {
+  cursor: pointer;
+}
+
+.toolbar-select {
+  min-width: 108px;
+  border: 1px solid #d0d7e2;
+  border-radius: 6px;
+  background: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #333;
+}
+
 .render-preview {
   padding: 20px;
   line-height: 1.8;
@@ -249,13 +358,6 @@ function resetForm() {
 .render-preview :deep(th) { background: #f5f5f5; font-weight: 600; }
 .render-preview :deep(blockquote) { border-left: 4px solid #dfe2e5; padding: 8px 16px; margin: 8px 0; color: #666; }
 .render-preview :deep(ul), .render-preview :deep(ol) { padding-left: 24px; margin: 4px 0; }
-
-.form-toolbar {
-  padding: 8px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  justify-content: flex-end;
-}
 
 .reset-btn {
   padding: 4px 12px;

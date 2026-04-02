@@ -1,3 +1,5 @@
+import type { AimdQuizGradingConfig } from "./grading"
+
 /**
  * Core AIMD Node Types
  * 
@@ -45,6 +47,7 @@ export type AimdStepTimerMode = "elapsed" | "countdown" | "both"
 export interface AimdQuizOption {
   key: string
   text: string
+  explanation?: string
 }
 
 export interface AimdQuizBlank {
@@ -121,6 +124,7 @@ export interface AimdQuizNode extends BaseNode {
   answer?: string | string[]
   blanks?: AimdQuizBlank[]
   rubric?: string
+  grading?: AimdQuizGradingConfig
   default?: unknown
   extra?: Record<string, unknown>
 }

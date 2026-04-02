@@ -33,6 +33,17 @@ export interface AimdRecorderMessages {
     score: (score: string | number) => string
     answer: (value: string) => string
     rubric: (value: string) => string
+    gradedScore: (earned: string | number, max: string | number) => string
+    feedback: string
+    reviewRequired: string
+    status: {
+      correct: string
+      incorrect: string
+      partial: string
+      needsReview: string
+      error: string
+      ungraded: string
+    }
     openPlaceholder: string
   }
   step: {
@@ -186,6 +197,17 @@ const EN_US_MESSAGES: AimdRecorderMessages = {
     score: score => `${score} pt`,
     answer: value => `Answer: ${value}`,
     rubric: value => `Rubric: ${value}`,
+    gradedScore: (earned, max) => `Score: ${earned} / ${max}`,
+    feedback: "Feedback",
+    reviewRequired: "Review required",
+    status: {
+      correct: "Correct",
+      incorrect: "Incorrect",
+      partial: "Partial",
+      needsReview: "Needs review",
+      error: "Error",
+      ungraded: "Ungraded",
+    },
     openPlaceholder: "Input your answer...",
   },
   step: {
@@ -312,6 +334,17 @@ const ZH_CN_MESSAGES: AimdRecorderMessages = {
     score: score => `${score} 分`,
     answer: value => `答案：${value}`,
     rubric: value => `评分标准：${value}`,
+    gradedScore: (earned, max) => `得分：${earned} / ${max}`,
+    feedback: "反馈",
+    reviewRequired: "需要复核",
+    status: {
+      correct: "正确",
+      incorrect: "错误",
+      partial: "部分得分",
+      needsReview: "待复核",
+      error: "异常",
+      ungraded: "未评分",
+    },
     openPlaceholder: "请输入答案...",
   },
   step: {

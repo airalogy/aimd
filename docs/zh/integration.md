@@ -128,6 +128,75 @@ const fields = parseAndExtract(content.value)
 // fields.fig       — figure 定义列表
 ```
 
+## Quiz 自动评分
+
+如果宿主希望在 recorder 里直接显示每道题的得分、状态和反馈，可以先用 `parseAndExtract()` 拿到 `fields.quiz`，再调用 `@airalogy/aimd-core` 导出的评分函数生成 grade report。
+
+```ts
+import { gradeQuizRecordAnswers } from "@airalogy/aimd-core"
+import { parseAndExtract } from "@airalogy/aimd-renderer"
+
+const fields = parseAndExtract(content.value)
+
+const report = await gradeQuizRecordAnswers(
+  fields.quiz,
+  record.value.quiz,
+  {
+    provider: async ({ quiz, answer, config, max_score }) => {
+      // 推荐做法：调用你自己的后端评分接口
+      // 后端再根据 config.provider 选择真实模型与密钥
+      const response = await fetch("/api/grade-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quiz, answer, config, max_score }),
+      })
+      return await response.json()
+    },
+  },
+)
+
+const quizGrades = report.quiz
+```
+
+这里的 `config.provider` 只是 AIMD 中写的配置名，例如 `teacher_default`。推荐让后端根据这个名字决定真实的模型、密钥和评分流程，而不是把浏览器直接绑定到某个外部模型服务。
+
+同时请注意：后端返回给 `gradeQuizAnswer()` / `gradeQuizRecordAnswers()` 的内容必须是结构化评分结果对象，不要直接返回模型生成的一段自由文本。建议至少包含：
+
+```json
+{
+  "earned_score": 4,
+  "max_score": 5,
+  "status": "partial",
+  "method": "llm",
+  "feedback": "回答基本正确，但缺少一个关键点。"
+}
+```
+
+如果 provider 返回的是非结构化文本，当前实现会把该题标记为 `needs_review`，而不会尝试从自由文本中可靠提取得分。
+
+然后把结果传给 `AimdRecorder`：
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :quiz-grades="quizGrades"
+  choice-option-explanation-mode="selected"
+/>
+```
+
+说明：
+
+- `choice` 与大多数 `blank` 可以直接本地自动评分
+- `open` 题更适合使用 rubric 或后端 provider
+- 练习场景可以在每次作答变化后重新生成 `quizGrades`，实现即时反馈
+- 作业场景如果希望提交后才显示选项讲解，可以传 `:submitted="isSubmitted"` 并设置 `choiceOptionExplanationMode="submitted"`
+- 考试场景可以先不传 `quizGrades`，等交卷或老师复核后再统一传入
+- 对于尚未作答、状态为 `ungraded` 的题目，recorder 默认不会显示评分面板
+- 如果 choice 选项里写了 `explanation`，可以通过 `choiceOptionExplanationMode` 控制是否显示选项讲解
+- `submitted` 由宿主应用自己维护，recorder 不会自动判断“是否已提交”
+- 正式考试场景不要把真实模型 key 放到浏览器端
+
 ## 配置项
 
 ### Editor 配置
@@ -201,6 +270,7 @@ const { nodes, fields } = await renderToVue(content, {
   :content="content"
   locale="zh-CN"
   current-user-name="Alice"
+  choice-option-explanation-mode="selected"
   :field-meta="fieldMetaMap"
   :field-state="fieldStateMap"
   :field-adapters="fieldAdapters"
@@ -214,6 +284,9 @@ const { nodes, fields } = await renderToVue(content, {
 | `content` | `string` | AIMD 源内容 |
 | `locale` | `"en-US" \| "zh-CN"` | UI 语言 |
 | `currentUserName` | `string` | 自动填充 `UserName` 类型变量 |
+| `quizGrades` | `Record<string, AimdQuizGradeResult>` | 题目评分结果映射；传入后会在题目下方显示得分、状态与反馈 |
+| `submitted` | `boolean` | 标记当前作答是否已提交；可与 `choiceOptionExplanationMode="submitted"` 配合，在提交后再显示选项讲解 |
+| `choiceOptionExplanationMode` | `"hidden" \| "selected" \| "submitted" \| "graded"` | 控制选择题选项 `explanation` 的显示时机：隐藏、选中即显示、提交后显示、或仅在题目已有评分结果后显示 |
 | `fieldMeta` | `Record<string, AimdFieldMeta>` | 每字段元数据覆盖 |
 | `fieldState` | `Record<string, AimdFieldState>` | 每字段运行时状态 |
 | `fieldAdapters` | `AimdRecorderFieldAdapters` | 用宿主组件替换或包裹内建字段 UI |

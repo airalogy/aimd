@@ -77,6 +77,27 @@ import {
 | `normalizeSubvars` | `(subvars) => AimdSubvar[]` | Normalize subvar definitions to canonical format. |
 | `toTemplateEnv` | `(fields) => AimdTemplateEnv` | Build a template environment from extracted fields. |
 
+### Quiz Grading
+
+```ts
+import {
+  gradeQuizAnswer,
+  gradeQuizRecordAnswers,
+  resolveQuizMaxScore,
+  type AimdQuizGradingConfig,
+  type AimdQuizGradeResult,
+  type AimdQuizGradeReport,
+} from "@airalogy/aimd-core"
+```
+
+| API | Description |
+|-----|-------------|
+| `gradeQuizAnswer(quiz, answer, options?)` | Grade a single quiz item. Supports exact matching for choice, normalized/numeric matching for blank, and rubric/provider flows for open questions. |
+| `gradeQuizRecordAnswers(fields.quiz, record.quiz, options?)` | Grade a whole quiz submission and return `{ quiz, summary }`, where `summary` contains total score and review counts. |
+| `resolveQuizMaxScore(quiz)` | Resolve the max score for one quiz item, including fallback defaults when `score` is omitted. |
+| `AimdQuizGradingConfig` | Type for `quiz.grading`, covering strategies such as `partial_credit`, `normalized_match`, `keyword_rubric`, and `llm_rubric`. |
+| `AimdQuizGradeResult` | Per-question grade result including `earned_score`, `max_score`, `status`, `feedback`, and `review_required`. |
+
 ### Schema Utilities
 
 ```ts
@@ -436,9 +457,9 @@ import {
 
 | Component | Description |
 |-----------|-------------|
-| `AimdRecorder` | Full protocol recorder: renders AIMD content with inline input fields. |
+| `AimdRecorder` | Full protocol recorder: renders AIMD content with inline input fields, can display quiz score/status/feedback through `quizGrades`, and can control when choice-option explanations are revealed with `choiceOptionExplanationMode` / `submitted`. |
 | `AimdRecorderEditor` | Combined protocol editor + recorder surface. Use with `v-model:content` and `v-model` when users need to restructure AIMD and keep entering data in the same view. Includes built-in field-structure editing and a recorder-side visual edit mode for recorder fields. |
-| `AimdQuizRecorder` | Standalone quiz answer component for choice, blank, and open questions. |
+| `AimdQuizRecorder` | Standalone quiz answer component for choice, blank, and open questions, with optional grade display via `grade` and configurable timing for per-option explanations. |
 | `AimdDnaSequenceField` | Specialized DNA sequence input with SeqViz viewer, annotation editing, and GenBank import/export. |
 
 ### Record Data

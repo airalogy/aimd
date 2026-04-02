@@ -120,3 +120,62 @@ const quiz = {
   <AimdQuizRecorder v-model="answer" :quiz="quiz" />
 </template>
 ```
+
+## 显示评分结果
+
+如果宿主已经在别处完成了评分，可以把结果回传给 `AimdRecorder` 或 `AimdQuizRecorder` 直接展示。
+
+整份 recorder：
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :quiz-grades="quizGrades"
+  choice-option-explanation-mode="selected"
+/>
+```
+
+单题组件：
+
+```vue
+<AimdQuizRecorder
+  v-model="answer"
+  :quiz="quiz"
+  choice-option-explanation-mode="graded"
+  :grade="{
+    quiz_id: 'quiz_single_1',
+    earned_score: 4,
+    max_score: 5,
+    status: 'partial',
+    method: 'keyword_rubric',
+    feedback: '答案方向正确，但还缺少一个要点。',
+    review_required: true,
+  }"
+/>
+```
+
+推荐做法：
+
+- `choice` 与常规 `blank` 可以直接本地自动评分
+- `open` 题或高开放性 `blank` 建议由后端 provider 评分
+- 练习题可以实时传入 `quizGrades`，让学生立即看到状态、得分和反馈
+- 如果 `choice` 选项里定义了 `explanation`，可以用 `choiceOptionExplanationMode="selected"` 在选中后立即显示讲解
+- 如果希望学生提交后再显示选项讲解，可以配合 `:submitted="isSubmitted"` 和 `choiceOptionExplanationMode="submitted"`
+- 如果希望等评分完成后再显示选项讲解，可以使用 `choiceOptionExplanationMode="graded"`
+- 考试题可以先不传 `quizGrades`，等统一评分后再展示结果
+- 尚未作答且状态为 `ungraded` 的题目，默认不会显示评分面板
+- 正式考试不要把真实模型密钥传给前端
+
+作业或提交后讲解示例：
+
+```vue
+<AimdRecorder
+  v-model="record"
+  :content="content"
+  :submitted="isSubmitted"
+  choice-option-explanation-mode="submitted"
+/>
+```
+
+其中 `submitted` 由宿主应用控制。`AimdRecorder` 本身不会自动判断“是否已提交”，也不内建交卷按钮。

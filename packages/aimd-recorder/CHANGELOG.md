@@ -4,6 +4,18 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-04-02
+
+### Added
+
+- Added `quizGrades` on `AimdRecorder` and `grade` on `AimdQuizRecorder` so host apps can render quiz score, status, review flags, and feedback directly under quiz widgets.
+- Added `choiceOptionExplanationMode` on `AimdRecorder` and `AimdQuizRecorder` so hosts can optionally reveal per-option `explanation` text for selected choice answers immediately, only after submission, or only after grading.
+- Added `submitted` on `AimdRecorder` and `AimdQuizRecorder` so host apps can explicitly control post-submit explanation reveal flows without tying them to grading timing.
+
+### Changed
+
+- Styled quiz grading panels with status-specific color cues so `correct`, `incorrect`, `partial`, `needs_review`, and `error` states are visually distinct at a glance.
+
 ## [1.12.0] - 2026-03-26
 
 ### Added
