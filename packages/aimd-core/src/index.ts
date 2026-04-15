@@ -52,7 +52,9 @@ export type {
   AimdQuizMode,
   AimdQuizNode,
   AimdQuizOption,
+  AimdQuizScaleItem,
   AimdQuizType,
+  AimdScaleDisplay,
   AimdRefNode,
   AimdScope,
   AimdStepNode,
@@ -82,6 +84,9 @@ export type {
   AimdQuizProviderRequest,
   AimdQuizRubricItem,
   AimdQuizRubricItemGradeDetail,
+  AimdQuizScaleBand,
+  AimdQuizScaleBandMatch,
+  AimdScaleQuizGradingConfig,
   AimdQuizTextNormalizeRule,
 } from './types/grading'
 
@@ -151,6 +156,8 @@ export {
 
 export {
   gradeQuizAnswer,
+  gradeScaleQuizLocally,
   gradeQuizRecordAnswers,
+  isScaleQuizAnswerComplete,
   resolveQuizMaxScore,
 } from './grading'

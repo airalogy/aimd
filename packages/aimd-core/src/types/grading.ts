@@ -27,9 +27,21 @@ export interface AimdQuizRubricItem {
   keywords?: string[]
 }
 
+export interface AimdQuizScaleBand {
+  min: number
+  max: number
+  label: string
+  interpretation?: string
+}
+
 export interface AimdChoiceQuizGradingConfig {
   strategy?: "auto" | "exact_match" | "partial_credit" | "option_points"
   option_points?: Record<string, number>
+}
+
+export interface AimdScaleQuizGradingConfig {
+  strategy?: "auto" | "sum"
+  bands?: AimdQuizScaleBand[]
 }
 
 export interface AimdBlankQuizGradingConfig {
@@ -49,6 +61,7 @@ export interface AimdOpenQuizGradingConfig {
 
 export type AimdQuizGradingConfig =
   | AimdChoiceQuizGradingConfig
+  | AimdScaleQuizGradingConfig
   | AimdBlankQuizGradingConfig
   | AimdOpenQuizGradingConfig
 
@@ -56,6 +69,7 @@ export type AimdQuizGradeStatus =
   | "correct"
   | "incorrect"
   | "partial"
+  | "scored"
   | "needs_review"
   | "error"
   | "ungraded"
@@ -64,12 +78,15 @@ export type AimdQuizGradeMethod =
   | "exact_match"
   | "partial_credit"
   | "option_points"
+  | "scale_sum"
   | "normalized_match"
   | "numeric_tolerance"
   | "keyword_rubric"
   | "llm"
   | "manual"
   | "invalid_answer"
+
+export interface AimdQuizScaleBandMatch extends AimdQuizScaleBand {}
 
 export interface AimdQuizBlankGradeDetail {
   key: string
@@ -96,6 +113,7 @@ export interface AimdQuizGradeResult {
   max_score: number
   status: AimdQuizGradeStatus
   method: AimdQuizGradeMethod
+  band?: AimdQuizScaleBandMatch
   feedback?: string
   confidence?: number
   provider?: string

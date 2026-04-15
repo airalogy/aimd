@@ -170,6 +170,62 @@ function buildQuizStemChildren(
   return children
 }
 
+function formatScaleOptionLabel(option: NonNullable<AimdQuizNode["options"]>[number]): string {
+  if (typeof option.points === "number" && Number.isFinite(option.points)) {
+    return `${option.text} (${option.points})`
+  }
+  return option.text
+}
+
+function buildScalePreviewChildren(quizNode: AimdQuizNode): VNode[] {
+  if (!Array.isArray(quizNode.items) || quizNode.items.length === 0 || !Array.isArray(quizNode.options) || quizNode.options.length === 0) {
+    return [h("div", { class: "aimd-scale__empty" }, "Scale definition is incomplete.")]
+  }
+
+  if (quizNode.display === "list") {
+    return [
+      h("div", { class: "aimd-scale__list" }, quizNode.items.map(item =>
+        h("div", { class: "aimd-scale__list-item" }, [
+          h("div", { class: "aimd-scale__item-stem" }, item.stem),
+          h("ul", { class: "aimd-scale__item-options" }, quizNode.options!.map(option =>
+            h("li", formatScaleOptionLabel(option)),
+          )),
+        ]),
+      )),
+    ]
+  }
+
+  return [
+    h("table", { class: "aimd-scale__table" }, [
+      h("thead", [
+        h("tr", [
+          h("th", { class: "aimd-scale__item-header" }, "Item"),
+          ...quizNode.options.map(option => h("th", formatScaleOptionLabel(option))),
+        ]),
+      ]),
+      h("tbody", quizNode.items.map(item =>
+        h("tr", [
+          h("th", { class: "aimd-scale__item-stem", scope: "row" }, item.stem),
+          ...quizNode.options!.map(() => h("td", { class: "aimd-scale__cell" }, "○")),
+        ]),
+      )),
+    ]),
+  ]
+}
+
+function buildScaleBandChildren(quizNode: AimdQuizNode): VNode[] {
+  const bands = Array.isArray((quizNode.grading as any)?.bands) ? (quizNode.grading as any).bands : []
+  if (bands.length === 0) {
+    return []
+  }
+
+  return [
+    h("ul", { class: "aimd-scale__bands" }, bands.map((band: any) =>
+      h("li", `${band.min}-${band.max}: ${band.label}${band.interpretation ? ` · ${band.interpretation}` : ""}`),
+    )),
+  ]
+}
+
 /**
  * Render preview tag for AIMD field
  */
@@ -318,12 +374,24 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
           h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
         ]
 
+        if (typeof quizNode.title === "string" && quizNode.title.trim()) {
+          previewChildren.splice(1, 0, h("div", { class: "aimd-quiz__title" }, quizNode.title))
+        }
+        if (typeof quizNode.description === "string" && quizNode.description.trim()) {
+          previewChildren.push(h("div", { class: "aimd-quiz__description" }, quizNode.description))
+        }
+
         if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
           previewChildren.push(
             h("ul", { class: "aimd-quiz__options" }, quizNode.options.map(opt =>
               h("li", `${opt.key}. ${opt.text}`),
             )),
           )
+        }
+
+        if (quizType === "scale") {
+          previewChildren.push(...buildScalePreviewChildren(quizNode))
+          previewChildren.push(...buildScaleBandChildren(quizNode))
         }
 
         const quizPreview = getQuizPreview()
@@ -382,7 +450,14 @@ function createAimdRenderers(options: UnifiedTokenRendererOptions): Record<strin
           h("span", { class: "aimd-field__name" }, id),
           h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
         ]),
+        ...(typeof quizNode.title === "string" && quizNode.title.trim()
+          ? [h("div", { class: "aimd-quiz__title" }, quizNode.title)]
+          : []),
         h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
+        ...(typeof quizNode.description === "string" && quizNode.description.trim()
+          ? [h("div", { class: "aimd-quiz__description" }, quizNode.description)]
+          : []),
+        ...(quizType === "scale" ? [...buildScalePreviewChildren(quizNode), ...buildScaleBandChildren(quizNode)] : []),
       ])
     },
 

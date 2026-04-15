@@ -191,9 +191,11 @@ Then pass the result map into `AimdRecorder`:
 Notes:
 
 - `choice` and most `blank` items can be graded locally
+- deterministic `scale` items can also be graded locally, and `scaleGradeDisplayMode` controls whether that result is hidden, shown on completion, or shown only after submission
 - `open` items are usually better with rubric logic or a backend provider
 - for practice, you can recompute `quizGrades` on each answer change to provide immediate feedback
 - for homework, if explanations should appear only after submission, pass `:submitted="isSubmitted"` and set `choiceOptionExplanationMode="submitted"`
+- for assessment-style scales, pass `:submitted="isSubmitted"` and set `scaleGradeDisplayMode="submitted"` so users do not see a provisional classification before submit
 - for exams, you can omit `quizGrades` until submission or teacher review is complete
 - unanswered quizzes with status `ungraded` do not render a grading panel by default
 - if a choice option includes `explanation`, `choiceOptionExplanationMode` controls whether the option explanation is shown
@@ -289,6 +291,7 @@ const { nodes, fields } = await renderToVue(content, {
 | `quizGrades` | `Record<string, AimdQuizGradeResult>` | Quiz grade map; when provided, the recorder renders score, status, and feedback below each quiz |
 | `submitted` | `boolean` | Marks whether the current attempt has been submitted; combine with `choiceOptionExplanationMode="submitted"` to reveal option explanations after submit |
 | `choiceOptionExplanationMode` | `"hidden" \| "selected" \| "submitted" \| "graded"` | Controls when `explanation` text on choice options is shown: hidden, immediately after selection, after submission, or only after the quiz has a grade result |
+| `scaleGradeDisplayMode` | `"hidden" \| "completed" \| "submitted" \| "graded"` | Controls when recorder-side local grading for deterministic `scale` quizzes is shown; use `submitted` for assessment flows where the learner should not see a provisional score before submit |
 | `fieldMeta` | `Record<string, AimdFieldMeta>` | Per-field metadata overrides |
 | `fieldState` | `Record<string, AimdFieldState>` | Per-field runtime state |
 | `fieldAdapters` | `AimdRecorderFieldAdapters` | Replace or wrap built-in recorder field UIs with host components |

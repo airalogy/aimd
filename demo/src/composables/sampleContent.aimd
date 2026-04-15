@@ -170,6 +170,48 @@ grading:
       keywords: ["sample stability", "stability"]
 ```
 
+```quiz
+id: quiz_scale_1
+type: scale
+title: GAD-2 Style Check
+description: This matrix example demonstrates shared options, auto-scoring, and delayed score display in the recorder.
+stem: Over the last two weeks, how often have you been bothered by the following problems?
+display: matrix
+items:
+  - key: s1
+    stem: Feeling nervous, anxious, or on edge
+  - key: s2
+    stem: Not being able to stop or control worrying
+options:
+  - key: not_at_all
+    text: Not at all
+    points: 0
+  - key: several_days
+    text: Several days
+    points: 1
+  - key: more_than_half_the_days
+    text: More than half the days
+    points: 2
+  - key: nearly_every_day
+    text: Nearly every day
+    points: 3
+grading:
+  strategy: sum
+  bands:
+    - min: 0
+      max: 1
+      label: Minimal
+      interpretation: No immediate action required.
+    - min: 2
+      max: 3
+      label: Mild
+      interpretation: Monitor symptoms and consider follow-up if they persist.
+    - min: 4
+      max: 6
+      label: Moderate to severe
+      interpretation: Recommend clinical follow-up.
+```
+
 ## References
 
 Referenced step: {{ref_step|sample_preparation}}

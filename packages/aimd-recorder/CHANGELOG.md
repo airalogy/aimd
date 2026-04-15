@@ -4,6 +4,17 @@ All notable changes to `@airalogy/aimd-recorder` will be documented in this file
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-04-14
+
+### Added
+
+- Added built-in recorder UI for `quiz.type: scale`, with matrix/list layouts, shared option sets, local deterministic scoring, and band/classification display.
+- Added `scaleGradeDisplayMode` on `AimdRecorder` and `AimdQuizRecorder` so host apps can choose whether scale scores/classifications stay hidden, appear after completion, or appear only after submission.
+
+### Changed
+
+- Extended recorder record-state defaults and field-editing snippets so `scale` quizzes round-trip through recorder/editor flows using `item_key -> option_key` answer maps.
+
 ## [1.13.0] - 2026-04-02
 
 ### Added

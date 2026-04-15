@@ -215,6 +215,8 @@ const quiz = {
 </template>
 ```
 
+`AimdQuizRecorder` also supports `scale` quizzes. For deterministic scales, you can either pass an external `grade` result or let the recorder reveal a local score/classification via `scaleGradeDisplayMode="completed"` or `scaleGradeDisplayMode="submitted"`.
+
 ## Documentation
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-recorder>

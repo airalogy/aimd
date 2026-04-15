@@ -244,6 +244,22 @@ export function getQuizDefaultValue(quiz: AimdQuizField): unknown {
     return blankValueMap
   }
 
+  if (quiz.type === "scale") {
+    const itemKeys = (quiz.items || []).map(item => item.key)
+    const optionKeys = new Set((quiz.options || []).map(option => option.key))
+    const defaultMap: Record<string, string> = {}
+    const rawDefault = quiz.default && typeof quiz.default === "object" && !Array.isArray(quiz.default)
+      ? quiz.default as Record<string, unknown>
+      : {}
+
+    for (const key of itemKeys) {
+      const value = rawDefault[key]
+      defaultMap[key] = typeof value === "string" && optionKeys.has(value) ? value : ""
+    }
+
+    return defaultMap
+  }
+
   if (typeof quiz.default === "string") {
     return quiz.default
   }

@@ -9,7 +9,9 @@ import type {
   AimdQuizBlank,
   AimdQuizMode,
   AimdQuizOption,
+  AimdQuizScaleItem,
   AimdQuizType,
+  AimdScaleDisplay,
   AimdStepTimerMode,
 } from "./nodes"
 import type { AimdQuizGradingConfig } from "./grading"
@@ -271,14 +273,22 @@ export interface AimdQuizField {
   stem: string
   /** Optional score */
   score?: number
+  /** Optional display title */
+  title?: string
+  /** Optional description/help text */
+  description?: string
   /** Choice mode */
   mode?: AimdQuizMode
+  /** Scale display mode */
+  display?: AimdScaleDisplay
   /** Choice options */
   options?: AimdQuizOption[]
   /** Standard answer */
   answer?: string | string[]
   /** Blank definitions */
   blanks?: AimdQuizBlank[]
+  /** Scale item definitions */
+  items?: AimdQuizScaleItem[]
   /** Open question rubric */
   rubric?: string
   /** Optional grading policy */

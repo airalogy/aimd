@@ -28,6 +28,7 @@ export interface AimdRendererMessages {
       multipleChoice: string
       blank: string
       open: string
+      scale: string
     }
     score: (score: string | number) => string
     answer: (value: string) => string
@@ -87,6 +88,7 @@ const EN_US_MESSAGES: AimdRendererMessages = {
       multipleChoice: "Multiple choice",
       blank: "blank",
       open: "open",
+      scale: "scale",
     },
     score: score => `${score} pt`,
     answer: value => `Answer: ${value}`,
@@ -122,6 +124,7 @@ const ZH_CN_MESSAGES: AimdRendererMessages = {
       multipleChoice: "多选",
       blank: "填空",
       open: "开放",
+      scale: "量表",
     },
     score: score => `${score} 分`,
     answer: value => `答案：${value}`,
@@ -245,6 +248,8 @@ export function getAimdRendererQuizTypeLabel(
       return messages.quiz.types.blank
     case "open":
       return messages.quiz.types.open
+    case "scale":
+      return messages.quiz.types.scale
     default:
       return quizType || messages.quiz.types.open
   }

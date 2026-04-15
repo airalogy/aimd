@@ -145,4 +145,51 @@ describe('AimdQuizRecorder', () => {
     expect(wrapper.text()).toContain('Correct because it matches the requirement.')
     expect(wrapper.text()).not.toContain('Not the best answer.')
   })
+
+  it('shows local scale grading only after submission when configured', async () => {
+    const wrapper = mount(AimdQuizRecorder, {
+      props: {
+        locale: 'en-US',
+        quiz: {
+          id: 'quiz_scale_1',
+          type: 'scale',
+          title: 'GAD-7',
+          stem: 'How often have you been bothered by the following problems?',
+          display: 'list',
+          items: [
+            { key: 's1', stem: 'Feeling nervous' },
+            { key: 's2', stem: 'Unable to relax' },
+          ],
+          options: [
+            { key: '0', text: 'Not at all', points: 0 },
+            { key: '1', text: 'Several days', points: 1 },
+            { key: '2', text: 'More than half the days', points: 2 },
+          ],
+          grading: {
+            strategy: 'sum',
+            bands: [
+              { min: 0, max: 1, label: 'Low' },
+              { min: 2, max: 4, label: 'Moderate', interpretation: 'Consider follow-up.' },
+            ],
+          },
+        },
+        modelValue: {
+          s1: '1',
+          s2: '2',
+        },
+        scaleGradeDisplayMode: 'submitted',
+        submitted: false,
+      },
+    })
+
+    expect(wrapper.text()).not.toContain('Score: 3 / 4')
+    expect(wrapper.text()).not.toContain('Moderate')
+
+    await wrapper.setProps({ submitted: true })
+
+    expect(wrapper.text()).toContain('Scored')
+    expect(wrapper.text()).toContain('Score: 3 / 4')
+    expect(wrapper.text()).toContain('Classification: Moderate')
+    expect(wrapper.text()).toContain('Interpretation: Consider follow-up.')
+  })
 })

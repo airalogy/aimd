@@ -152,9 +152,24 @@
   color: #6d4c41;
 }
 
+.aimd-field--quiz .aimd-quiz__title {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #3b2f2f;
+}
+
 .aimd-field--quiz .aimd-quiz__stem {
   margin-top: 6px;
   line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.aimd-field--quiz .aimd-quiz__description {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6d4c41;
   white-space: pre-wrap;
 }
 
@@ -191,6 +206,62 @@
   background: #fff3cd;
   font-size: 13px;
   color: #6d4c41;
+}
+
+.aimd-field--quiz .aimd-scale__table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.aimd-field--quiz .aimd-scale__table th,
+.aimd-field--quiz .aimd-scale__table td {
+  border: 1px solid #f1d8a7;
+  padding: 8px 10px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.aimd-field--quiz .aimd-scale__table thead th {
+  background: #fff4d6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aimd-field--quiz .aimd-scale__item-header,
+.aimd-field--quiz .aimd-scale__item-stem {
+  text-align: left;
+}
+
+.aimd-field--quiz .aimd-scale__item-stem {
+  width: 34%;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.aimd-field--quiz .aimd-scale__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.aimd-field--quiz .aimd-scale__list-item {
+  padding: 10px 12px;
+  border: 1px solid #f1d8a7;
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.aimd-field--quiz .aimd-scale__item-options {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.aimd-field--quiz .aimd-scale__bands {
+  margin: 10px 0 0;
+  padding-left: 20px;
 }
 
 /* Step field */

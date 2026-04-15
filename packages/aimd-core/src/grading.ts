@@ -13,6 +13,8 @@ import type {
   AimdQuizGradingOptions,
   AimdQuizRubricItem,
   AimdQuizRubricItemGradeDetail,
+  AimdQuizScaleBandMatch,
+  AimdScaleQuizGradingConfig,
   AimdQuizTextNormalizeRule,
 } from "./types/grading"
 
@@ -224,6 +226,165 @@ function resolveChoiceOptionPointsMaxScore(
   return roundScore(Math.max(0, total))
 }
 
+function getScaleScoringStrategy(
+  config: AimdScaleQuizGradingConfig | undefined,
+): NonNullable<AimdScaleQuizGradingConfig["strategy"]> {
+  if (config?.strategy && config.strategy !== "auto") {
+    return config.strategy
+  }
+  return "sum"
+}
+
+function resolveScaleMaxScore(quiz: AimdQuizField): number | null {
+  if (quiz.type !== "scale" || !Array.isArray(quiz.items) || quiz.items.length === 0 || !Array.isArray(quiz.options) || quiz.options.length === 0) {
+    return null
+  }
+
+  const maxPerItem = Math.max(0, ...quiz.options.map(option => isFiniteNumber(option.points) ? option.points : 0))
+  return roundScore(maxPerItem * quiz.items.length)
+}
+
+function asScaleAnswerMap(value: unknown): Record<string, string> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+
+  const normalized: Record<string, string> = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "string") {
+      normalized[key] = item
+    }
+  }
+  return normalized
+}
+
+export function isScaleQuizAnswerComplete(quiz: AimdQuizField, answer: unknown): boolean {
+  if (quiz.type !== "scale" || !Array.isArray(quiz.items) || quiz.items.length === 0) {
+    return false
+  }
+
+  const answerMap = asScaleAnswerMap(answer)
+  if (!answerMap) {
+    return false
+  }
+
+  return quiz.items.every(item => typeof answerMap[item.key] === "string" && answerMap[item.key].trim().length > 0)
+}
+
+function resolveScaleBand(
+  score: number,
+  config: AimdScaleQuizGradingConfig | undefined,
+): AimdQuizScaleBandMatch | undefined {
+  const band = config?.bands?.find(candidate => score >= candidate.min && score <= candidate.max)
+  return band ? { ...band } : undefined
+}
+
+export function gradeScaleQuizLocally(
+  quiz: AimdQuizField,
+  answer: unknown,
+): AimdQuizGradeResult {
+  const maxScore = resolveQuizMaxScore(quiz)
+
+  if (quiz.type !== "scale") {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "error",
+      method: "invalid_answer",
+      feedback: "Local scale grading expects a scale quiz definition.",
+    }
+  }
+
+  if (!Array.isArray(quiz.items) || quiz.items.length === 0) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "ungraded",
+      method: "manual",
+      feedback: "This scale does not define any items.",
+    }
+  }
+
+  if (!Array.isArray(quiz.options) || quiz.options.length === 0) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "ungraded",
+      method: "manual",
+      feedback: "This scale does not define any answer options.",
+    }
+  }
+
+  const answerMap = asScaleAnswerMap(answer)
+  if (!answerMap) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "error",
+      method: "invalid_answer",
+      feedback: "Scale grading expects a dict keyed by item key.",
+    }
+  }
+
+  const optionPoints = new Map(
+    quiz.options.map(option => [option.key, isFiniteNumber(option.points) ? option.points : 0]),
+  )
+
+  const missingItems = quiz.items.filter(item => !answerMap[item.key]?.trim())
+  if (missingItems.length > 0) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "ungraded",
+      method: "scale_sum",
+      feedback: `This scale is incomplete (${quiz.items.length - missingItems.length} / ${quiz.items.length} item(s) answered).`,
+    }
+  }
+
+  for (const item of quiz.items) {
+    const selectedKey = answerMap[item.key]
+    if (!optionPoints.has(selectedKey)) {
+      return {
+        quiz_id: quiz.id,
+        earned_score: 0,
+        max_score: maxScore,
+        status: "error",
+        method: "invalid_answer",
+        feedback: `Scale answer for ${quiz.id}.${item.key} must be one option key.`,
+      }
+    }
+  }
+
+  const config = quiz.grading as AimdScaleQuizGradingConfig | undefined
+  const strategy = getScaleScoringStrategy(config)
+  if (strategy !== "sum") {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "error",
+      method: "invalid_answer",
+      feedback: `Unsupported scale grading strategy: ${strategy}.`,
+    }
+  }
+
+  const earnedScore = roundScore(quiz.items.reduce((sum, item) => sum + (optionPoints.get(answerMap[item.key]) ?? 0), 0))
+  const band = resolveScaleBand(earnedScore, config)
+  return {
+    quiz_id: quiz.id,
+    earned_score: earnedScore,
+    max_score: maxScore,
+    status: "scored",
+    method: "scale_sum",
+    band,
+  }
+}
+
 async function requestProviderGrade(
   quiz: AimdQuizField,
   answer: unknown,
@@ -276,6 +437,13 @@ export function resolveQuizMaxScore(quiz: AimdQuizField): number {
     }
   }
 
+  if (quiz.type === "scale") {
+    const inferredScaleScore = resolveScaleMaxScore(quiz)
+    if (inferredScaleScore !== null) {
+      return inferredScaleScore
+    }
+  }
+
   if (quiz.type === "blank" && Array.isArray(quiz.blanks) && quiz.blanks.length > 0) {
     return quiz.blanks.length
   }
@@ -311,6 +479,14 @@ function isUnansweredQuizAnswer(quiz: AimdQuizField, answer: unknown): boolean {
       return false
     }
     return Object.values(answer).every(value => typeof value !== "string" || value.trim().length === 0)
+  }
+
+  if (quiz.type === "scale") {
+    const answerMap = asScaleAnswerMap(answer)
+    if (!answerMap) {
+      return false
+    }
+    return Object.values(answerMap).every(value => value.trim().length === 0)
   }
 
   if (quiz.type === "open") {
@@ -660,6 +836,10 @@ export async function gradeQuizAnswer(
     return gradeChoiceQuiz(quiz, answer, maxScore)
   }
 
+  if (quiz.type === "scale") {
+    return gradeScaleQuizLocally(quiz, answer)
+  }
+
   if (quiz.type === "blank") {
     const config = quiz.grading as AimdBlankQuizGradingConfig | undefined
     if (config?.strategy === "llm") {
@@ -734,5 +914,7 @@ export type {
   AimdQuizGradingOptions,
   AimdQuizRubricItem,
   AimdQuizRubricItemGradeDetail,
+  AimdQuizScaleBandMatch,
+  AimdScaleQuizGradingConfig,
   AimdQuizTextNormalizeRule,
 }

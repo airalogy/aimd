@@ -62,6 +62,7 @@ export interface AimdProtocolRecordData {
 export type AimdVarInputKind = "text" | "number" | "checkbox" | "textarea" | "date" | "datetime" | "time" | "dna" | "code"
 export type AimdStepDetailDisplay = "auto" | "always"
 export type AimdChoiceOptionExplanationMode = "hidden" | "selected" | "submitted" | "graded"
+export type AimdScaleGradeDisplayMode = "hidden" | "completed" | "submitted" | "graded"
 
 export function createEmptyProtocolRecordData(): AimdProtocolRecordData {
   return {

@@ -96,6 +96,62 @@ function buildQuizStemChildren(
   return children
 }
 
+function formatScaleOptionLabel(option: NonNullable<AimdQuizNode["options"]>[number]): string {
+  if (typeof option.points === "number" && Number.isFinite(option.points)) {
+    return `${option.text} (${option.points})`
+  }
+  return option.text
+}
+
+function buildScalePreviewChildren(quizNode: AimdQuizNode): VNodeChild[] {
+  if (!Array.isArray(quizNode.items) || quizNode.items.length === 0 || !Array.isArray(quizNode.options) || quizNode.options.length === 0) {
+    return [h("div", { class: "aimd-scale__empty" }, "Scale definition is incomplete.")]
+  }
+
+  if (quizNode.display === "list") {
+    return [
+      h("div", { class: "aimd-scale__list" }, quizNode.items.map(item =>
+        h("div", { class: "aimd-scale__list-item" }, [
+          h("div", { class: "aimd-scale__item-stem" }, item.stem),
+          h("ul", { class: "aimd-scale__item-options" }, quizNode.options!.map(option =>
+            h("li", formatScaleOptionLabel(option)),
+          )),
+        ]),
+      )),
+    ]
+  }
+
+  return [
+    h("table", { class: "aimd-scale__table" }, [
+      h("thead", [
+        h("tr", [
+          h("th", { class: "aimd-scale__item-header" }, "Item"),
+          ...quizNode.options.map(option => h("th", formatScaleOptionLabel(option))),
+        ]),
+      ]),
+      h("tbody", quizNode.items.map(item =>
+        h("tr", [
+          h("th", { class: "aimd-scale__item-stem", scope: "row" }, item.stem),
+          ...quizNode.options!.map(() => h("td", { class: "aimd-scale__cell" }, "○")),
+        ]),
+      )),
+    ]),
+  ]
+}
+
+function buildScaleBandChildren(quizNode: AimdQuizNode): VNodeChild[] {
+  const bands = Array.isArray((quizNode.grading as any)?.bands) ? (quizNode.grading as any).bands : []
+  if (bands.length === 0) {
+    return []
+  }
+
+  return [
+    h("ul", { class: "aimd-scale__bands" }, bands.map((band: any) =>
+      h("li", `${band.min}-${band.max}: ${band.label}${band.interpretation ? ` · ${band.interpretation}` : ""}`),
+    )),
+  ]
+}
+
 function isStepBodyVNode(node: unknown): node is VNode {
   if (!node || typeof node !== "object") {
     return false
@@ -233,7 +289,13 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
           h("span", { class: "aimd-field__type" }, `(${typeLabel})`),
           score !== undefined ? h("span", { class: "aimd-quiz__score" }, ctx.messages.quiz.score(score)) : null,
         ]),
+        typeof quizNode.title === "string" && quizNode.title.trim()
+          ? h("div", { class: "aimd-quiz__title" }, quizNode.title)
+          : null,
         h("div", { class: "aimd-quiz__stem" }, buildQuizStemChildren(quizType, stem || id)),
+        typeof quizNode.description === "string" && quizNode.description.trim()
+          ? h("div", { class: "aimd-quiz__description" }, quizNode.description)
+          : null,
       ]
 
       if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
@@ -242,6 +304,11 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
             h("li", `${opt.key}. ${opt.text}`),
           )),
         )
+      }
+
+      if (quizType === "scale") {
+        previewChildren.push(...buildScalePreviewChildren(quizNode))
+        previewChildren.push(...buildScaleBandChildren(quizNode))
       }
 
       const quizPreview = resolveQuizPreviewOptionsFromContext(ctx)

@@ -52,7 +52,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `AiralogyMarkdown` renders as a full-width embedded AIMD/Markdown editor, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG`.
 - `DNASequence` renders a dedicated sequence widget with interactive and raw-structure modes, file import/export, topology switching, feature editing, and `SeqViz`-based visualization.
 - `ref_var` references display current var values as readonly inline content when available.
-- `choice`, `blank`, and `open` quiz types all have built-in recorder inputs.
+- `choice`, `blank`, `open`, and `scale` quiz types all have built-in recorder inputs.
 
 ## Client Assigner
 
@@ -123,7 +123,7 @@ const quiz = {
 
 ## Showing Grade Results
 
-If the host has already graded the answers elsewhere, pass the result back into `AimdRecorder` or `AimdQuizRecorder` for inline display.
+If the host has already graded the answers elsewhere, pass the result back into `AimdRecorder` or `AimdQuizRecorder` for inline display. Deterministic `scale` quizzes can also compute a local score/classification inside the recorder.
 
 Whole recorder:
 
@@ -133,6 +133,7 @@ Whole recorder:
   :content="content"
   :quiz-grades="quizGrades"
   choice-option-explanation-mode="selected"
+  scale-grade-display-mode="submitted"
 />
 ```
 
@@ -158,10 +159,12 @@ Standalone quiz:
 Recommended usage:
 
 - grade `choice` and standard `blank` items locally
+- grade deterministic `scale` items locally, then use `scaleGradeDisplayMode` to control whether the result appears on completion or only after submit
 - use a backend provider for `open` items or highly flexible blanks
 - for practice, pass `quizGrades` in real time so learners can immediately see status, score, and feedback
 - if a `choice` option defines `explanation`, use `choiceOptionExplanationMode="selected"` to show that explanation immediately after the learner selects the option
 - if option explanations should appear only after the learner submits, combine `:submitted="isSubmitted"` with `choiceOptionExplanationMode="submitted"`
+- if a `scale` result should appear only after submit, combine `:submitted="isSubmitted"` with `scaleGradeDisplayMode="submitted"`
 - if you want option explanations to appear only after grading is available, use `choiceOptionExplanationMode="graded"`
 - for exams, omit `quizGrades` until grading is finalized
 - unanswered quizzes with status `ungraded` do not show a grading panel by default

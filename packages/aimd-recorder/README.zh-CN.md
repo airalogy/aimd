@@ -215,6 +215,8 @@ const quiz = {
 </template>
 ```
 
+`AimdQuizRecorder` 也支持 `scale` 量表题。对于可确定性自动评分的量表，既可以继续传外部 `grade`，也可以通过 `scaleGradeDisplayMode="completed"` 或 `scaleGradeDisplayMode="submitted"` 控制本地总分和分组结果何时显示。
+
 ## 文档
 
 - EN: <https://airalogy.github.io/aimd/en/packages/aimd-recorder>

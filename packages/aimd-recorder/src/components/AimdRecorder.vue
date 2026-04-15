@@ -23,6 +23,7 @@ import type {
   AimdFieldMeta,
   AimdFieldState,
   AimdRecorderFieldAdapters,
+  AimdScaleGradeDisplayMode,
   AimdTypePlugin,
   AimdProtocolRecordData,
   AimdStepDetailDisplay,
@@ -91,6 +92,7 @@ const props = withDefaults(defineProps<{
   quizGrades?: Record<string, AimdQuizGradeResult | null | undefined>
   submitted?: boolean
   choiceOptionExplanationMode?: AimdChoiceOptionExplanationMode
+  scaleGradeDisplayMode?: AimdScaleGradeDisplayMode
   /** Controls whether step timer / note details stay expanded */
   stepDetailDisplay?: AimdStepDetailDisplay
 
@@ -148,6 +150,7 @@ const props = withDefaults(defineProps<{
   quizGrades: undefined,
   submitted: false,
   choiceOptionExplanationMode: "hidden",
+  scaleGradeDisplayMode: "hidden",
   stepDetailDisplay: "auto",
   fieldMeta: undefined,
   fieldState: undefined,
@@ -764,9 +767,14 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     id: quizId,
     type: node.quizType,
     stem: node.stem,
+    title: node.title,
+    description: node.description,
     mode: node.mode,
+    display: node.display,
     options: node.options,
     blanks: node.blanks,
+    items: node.items,
+    grading: node.grading,
     default: node.default,
     rubric: node.rubric,
     score: node.score,
@@ -788,6 +796,7 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     locale: resolvedLocale.value,
     messages: props.messages,
     choiceOptionExplanationMode: props.choiceOptionExplanationMode,
+    scaleGradeDisplayMode: props.scaleGradeDisplayMode,
     "onUpdate:modelValue": (value: unknown) => {
       localRecord.quiz[quizId] = value
       markRecordChanged()
@@ -926,6 +935,13 @@ watch(
 
 watch(
   () => props.choiceOptionExplanationMode,
+  () => {
+    scheduleInlineRebuild()
+  },
+)
+
+watch(
+  () => props.scaleGradeDisplayMode,
   () => {
     scheduleInlineRebuild()
   },

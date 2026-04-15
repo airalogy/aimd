@@ -318,6 +318,36 @@ function buildWorkbenchSyntax(
         ].join('\n')
       }
 
+      if (quizType === 'scale') {
+        return [
+          '```quiz',
+          `id: ${id}`,
+          'type: scale',
+          'title: Scale title',
+          'stem: |',
+          `  ${stem}`,
+          'display: matrix',
+          'items:',
+          '  - key: item_1',
+          '    stem: First item',
+          '  - key: item_2',
+          '    stem: Second item',
+          'options:',
+          '  - key: never',
+          '    text: Never',
+          '    points: 0',
+          '  - key: sometimes',
+          '    text: Sometimes',
+          '    points: 1',
+          '  - key: often',
+          '    text: Often',
+          '    points: 2',
+          'grading:',
+          '  strategy: sum',
+          '```',
+        ].join('\n')
+      }
+
       return [
         '```quiz',
         `id: ${id}`,

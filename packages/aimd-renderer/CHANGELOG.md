@@ -2,6 +2,16 @@
 
 All notable changes to `@airalogy/aimd-renderer` will be documented in this file.
 
+## [2.4.0] - 2026-04-14
+
+### Added
+
+- Added built-in preview rendering for `quiz.type: scale`, including matrix/list layouts, shared option labels with point values, and optional grading-band previews.
+
+### Changed
+
+- Extended renderer quiz type labels and node metadata passthrough so downstream recorder/editor integrations can preserve scale titles, descriptions, display modes, and grading metadata.
+
 ## [2.3.0] - 2026-03-19
 
 ### Changed

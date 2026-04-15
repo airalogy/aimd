@@ -52,7 +52,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `AiralogyMarkdown` 会渲染为横铺的 AIMD/Markdown 内嵌编辑器，默认打开 `源码` 模式，同时保留切换到 `所见即所得` 的能力。
 - `DNASequence` 会渲染专用序列控件，支持交互式模式、原始结构模式、文件导入导出、拓扑切换、feature 编辑，以及基于 `SeqViz` 的可视化。
 - `ref_var` 如果已有记录值，会优先以内联只读内容显示当前值。
-- `choice`、`blank`、`open` 三类 quiz 都有内建 recorder 输入。
+- `choice`、`blank`、`open`、`scale` 四类 quiz 都有内建 recorder 输入。
 
 ## Client Assigner
 
@@ -123,7 +123,7 @@ const quiz = {
 
 ## 显示评分结果
 
-如果宿主已经在别处完成了评分，可以把结果回传给 `AimdRecorder` 或 `AimdQuizRecorder` 直接展示。
+如果宿主已经在别处完成了评分，可以把结果回传给 `AimdRecorder` 或 `AimdQuizRecorder` 直接展示。对于可确定性自动评分的 `scale` 量表，recorder 也可以直接在前端计算总分和分组。
 
 整份 recorder：
 
@@ -133,6 +133,7 @@ const quiz = {
   :content="content"
   :quiz-grades="quizGrades"
   choice-option-explanation-mode="selected"
+  scale-grade-display-mode="submitted"
 />
 ```
 
@@ -160,8 +161,10 @@ const quiz = {
 - `choice` 与常规 `blank` 可以直接本地自动评分
 - `open` 题或高开放性 `blank` 建议由后端 provider 评分
 - 练习题可以实时传入 `quizGrades`，让学生立即看到状态、得分和反馈
+- 可确定性 `scale` 量表可以本地自动评分，再用 `scaleGradeDisplayMode` 控制是填完即显示，还是提交后才显示
 - 如果 `choice` 选项里定义了 `explanation`，可以用 `choiceOptionExplanationMode="selected"` 在选中后立即显示讲解
 - 如果希望学生提交后再显示选项讲解，可以配合 `:submitted="isSubmitted"` 和 `choiceOptionExplanationMode="submitted"`
+- 如果希望 `scale` 的总分和分组只在提交后出现，可以配合 `:submitted="isSubmitted"` 和 `scaleGradeDisplayMode="submitted"`
 - 如果希望等评分完成后再显示选项讲解，可以使用 `choiceOptionExplanationMode="graded"`
 - 考试题可以先不传 `quizGrades`，等统一评分后再展示结果
 - 尚未作答且状态为 `ungraded` 的题目，默认不会显示评分面板

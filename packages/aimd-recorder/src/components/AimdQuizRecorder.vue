@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import type { AimdQuizField, AimdQuizGradeResult } from "@airalogy/aimd-core/types"
+import {
+  gradeScaleQuizLocally,
+  isScaleQuizAnswerComplete,
+} from "@airalogy/aimd-core"
+import {
+  type AimdQuizField,
+  type AimdQuizGradeResult,
+} from "@airalogy/aimd-core/types"
 import type { AimdRecorderMessagesInput } from "../locales"
-import type { AimdChoiceOptionExplanationMode } from "../types"
+import type { AimdChoiceOptionExplanationMode, AimdScaleGradeDisplayMode } from "../types"
 import {
   createAimdRecorderMessages,
   getAimdRecorderQuizTypeLabel,
@@ -31,6 +38,7 @@ const props = withDefaults(defineProps<{
   locale?: string
   messages?: AimdRecorderMessagesInput
   choiceOptionExplanationMode?: AimdChoiceOptionExplanationMode
+  scaleGradeDisplayMode?: AimdScaleGradeDisplayMode
 }>(), {
   grade: null,
   submitted: false,
@@ -39,6 +47,7 @@ const props = withDefaults(defineProps<{
   locale: undefined,
   messages: undefined,
   choiceOptionExplanationMode: "hidden",
+  scaleGradeDisplayMode: "hidden",
 })
 
 const emit = defineEmits<{
@@ -149,6 +158,32 @@ function setBlankValue(key: string, value: string): void {
   emit("update:modelValue", next)
 }
 
+function asScaleValueMap(value: unknown): Record<string, string> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {}
+  }
+
+  const result: Record<string, string> = {}
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === "string") {
+      result[key] = item
+    }
+  }
+  return result
+}
+
+function getScaleItemValue(key: string): string {
+  return asScaleValueMap(props.modelValue)[key] || ""
+}
+
+function setScaleItemValue(key: string, value: string): void {
+  const next = {
+    ...asScaleValueMap(props.modelValue),
+    [key]: value,
+  }
+  emit("update:modelValue", next)
+}
+
 const openValue = computed<string>({
   get() {
     return typeof props.modelValue === "string" ? props.modelValue : ""
@@ -158,10 +193,50 @@ const openValue = computed<string>({
   },
 })
 
+function formatScaleOptionLabel(option: NonNullable<AimdQuizField["options"]>[number]): string {
+  if (typeof option.points === "number" && Number.isFinite(option.points)) {
+    return `${option.text} (${option.points})`
+  }
+  return option.text
+}
+
 const resolvedMessages = computed(() => createAimdRecorderMessages(props.locale, props.messages))
 const quizTypeLabel = computed(() => getAimdRecorderQuizTypeLabel(props.quiz.type, resolvedMessages.value, props.quiz.mode))
+const resolvedScaleItems = computed(() => (
+  props.quiz.type === "scale" && Array.isArray(props.quiz.items) ? props.quiz.items : []
+))
+const resolvedScaleOptions = computed(() => (
+  props.quiz.type === "scale" && Array.isArray(props.quiz.options) ? props.quiz.options : []
+))
+const isScaleComplete = computed(() => (
+  props.quiz.type === "scale" && isScaleQuizAnswerComplete(props.quiz, props.modelValue)
+))
+const localScaleGrade = computed<AimdQuizGradeResult | null>(() => {
+  if (props.quiz.type !== "scale" || !isScaleComplete.value) {
+    return null
+  }
+  return gradeScaleQuizLocally(props.quiz, props.modelValue)
+})
+const effectiveGrade = computed<AimdQuizGradeResult | null>(() => {
+  if (props.grade) {
+    return props.grade
+  }
+
+  if (props.quiz.type !== "scale") {
+    return null
+  }
+
+  switch (props.scaleGradeDisplayMode) {
+    case "completed":
+      return localScaleGrade.value
+    case "submitted":
+      return props.submitted ? localScaleGrade.value : null
+    default:
+      return null
+  }
+})
 const gradeStatusTone = computed(() => {
-  const status = props.grade?.status
+  const status = effectiveGrade.value?.status
   switch (status) {
     case "correct":
       return "correct"
@@ -169,6 +244,8 @@ const gradeStatusTone = computed(() => {
       return "incorrect"
     case "partial":
       return "partial"
+    case "scored":
+      return "scored"
     case "needs_review":
       return "needs-review"
     case "error":
@@ -178,7 +255,7 @@ const gradeStatusTone = computed(() => {
   }
 })
 const gradeStatusLabel = computed(() => {
-  const status = props.grade?.status
+  const status = effectiveGrade.value?.status
   if (!status) {
     return ""
   }
@@ -190,6 +267,8 @@ const gradeStatusLabel = computed(() => {
       return resolvedMessages.value.quiz.status.incorrect
     case "partial":
       return resolvedMessages.value.quiz.status.partial
+    case "scored":
+      return resolvedMessages.value.quiz.status.scored
     case "needs_review":
       return resolvedMessages.value.quiz.status.needsReview
     case "error":
@@ -198,18 +277,19 @@ const gradeStatusLabel = computed(() => {
       return resolvedMessages.value.quiz.status.ungraded
   }
 })
-const blankGradeResults = computed(() => Array.isArray(props.grade?.blank_results) ? props.grade.blank_results : [])
-const rubricGradeResults = computed(() => Array.isArray(props.grade?.rubric_results) ? props.grade.rubric_results : [])
-const hasResolvedGrade = computed(() => Boolean(props.grade && props.grade.status !== "ungraded"))
+const blankGradeResults = computed(() => Array.isArray(effectiveGrade.value?.blank_results) ? effectiveGrade.value.blank_results : [])
+const rubricGradeResults = computed(() => Array.isArray(effectiveGrade.value?.rubric_results) ? effectiveGrade.value.rubric_results : [])
+const hasResolvedGrade = computed(() => Boolean(effectiveGrade.value && effectiveGrade.value.status !== "ungraded"))
 const showGradePanel = computed(() => {
-  if (!props.grade) {
+  if (!effectiveGrade.value) {
     return false
   }
 
   if (
-    props.grade.status === "ungraded"
-    && !props.grade.feedback
-    && !props.grade.review_required
+    effectiveGrade.value.status === "ungraded"
+    && !effectiveGrade.value.feedback
+    && !effectiveGrade.value.review_required
+    && !effectiveGrade.value.band
     && blankGradeResults.value.length === 0
     && rubricGradeResults.value.length === 0
   ) {
@@ -253,6 +333,10 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
       <span v-if="typeof quiz.score === 'number'" class="aimd-quiz__score">{{ resolvedMessages.quiz.score(quiz.score) }}</span>
     </div>
 
+    <div v-if="quiz.title" class="aimd-quiz__title">
+      {{ quiz.title }}
+    </div>
+
     <div class="aimd-quiz__stem">
       <template v-for="(segment, index) in stemSegments" :key="`${quiz.id}-stem-${index}`">
         <template v-if="segment.type === 'text'">
@@ -270,6 +354,10 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
           />
         </template>
       </template>
+    </div>
+
+    <div v-if="quiz.description" class="aimd-quiz__description">
+      {{ quiz.description }}
     </div>
 
     <div v-if="quiz.type === 'choice' && quiz.mode === 'single' && quiz.options?.length" class="aimd-quiz-recorder__options">
@@ -327,20 +415,99 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
       :readonly="readonly"
     />
 
-    <div v-if="grade && showGradePanel" :class="['aimd-quiz__grade-panel', `aimd-quiz__grade-panel--${gradeStatusTone}`]">
+    <div
+      v-if="quiz.type === 'scale' && resolvedScaleItems.length && resolvedScaleOptions.length && quiz.display === 'list'"
+      class="aimd-scale"
+    >
+      <div
+        v-for="item in resolvedScaleItems"
+        :key="`${quiz.id}-scale-list-${item.key}`"
+        class="aimd-scale__list-item"
+      >
+        <div class="aimd-scale__item-stem">
+          {{ item.stem }}
+        </div>
+        <div class="aimd-scale__item-options">
+          <label
+            v-for="option in resolvedScaleOptions"
+            :key="`${quiz.id}-scale-list-${item.key}-${option.key}`"
+            class="aimd-scale__option"
+          >
+            <input
+              type="radio"
+              class="aimd-quiz-recorder__choice-input"
+              :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:scale:${item.key}:${option.key}`"
+              :name="`${quiz.id}-scale-${item.key}`"
+              :value="option.key"
+              :checked="getScaleItemValue(item.key) === option.key"
+              :disabled="readonly"
+              @change="setScaleItemValue(item.key, option.key)"
+            />
+            <span>{{ formatScaleOptionLabel(option) }}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="quiz.type === 'scale' && resolvedScaleItems.length && resolvedScaleOptions.length && quiz.display !== 'list'"
+      class="aimd-scale"
+    >
+      <table class="aimd-scale__table">
+        <thead>
+          <tr>
+            <th class="aimd-scale__item-header">Item</th>
+            <th v-for="option in resolvedScaleOptions" :key="`${quiz.id}-scale-head-${option.key}`">
+              {{ formatScaleOptionLabel(option) }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in resolvedScaleItems" :key="`${quiz.id}-scale-row-${item.key}`">
+            <th class="aimd-scale__item-stem" scope="row">
+              {{ item.stem }}
+            </th>
+            <td v-for="option in resolvedScaleOptions" :key="`${quiz.id}-scale-cell-${item.key}-${option.key}`" class="aimd-scale__cell">
+              <label class="aimd-scale__cell-label">
+                <input
+                  type="radio"
+                  class="aimd-quiz-recorder__choice-input"
+                  :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:scale:${item.key}:${option.key}`"
+                  :name="`${quiz.id}-scale-${item.key}`"
+                  :value="option.key"
+                  :checked="getScaleItemValue(item.key) === option.key"
+                  :disabled="readonly"
+                  @change="setScaleItemValue(item.key, option.key)"
+                />
+              </label>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="effectiveGrade && showGradePanel" :class="['aimd-quiz__grade-panel', `aimd-quiz__grade-panel--${gradeStatusTone}`]">
       <div class="aimd-quiz__grade-meta">
         <span :class="['aimd-quiz__grade-status', `aimd-quiz__grade-status--${gradeStatusTone}`]">{{ gradeStatusLabel }}</span>
         <span :class="['aimd-quiz__grade-score', `aimd-quiz__grade-score--${gradeStatusTone}`]">
-          {{ resolvedMessages.quiz.gradedScore(grade.earned_score, grade.max_score) }}
+          {{ resolvedMessages.quiz.gradedScore(effectiveGrade.earned_score, effectiveGrade.max_score) }}
         </span>
       </div>
 
-      <div v-if="grade.review_required" class="aimd-quiz__grade-review">
+      <div v-if="effectiveGrade.band" class="aimd-quiz__grade-band">
+        <strong>{{ resolvedMessages.quiz.classification }}:</strong> {{ effectiveGrade.band.label }}
+      </div>
+
+      <div v-if="effectiveGrade.band?.interpretation" class="aimd-quiz__grade-band">
+        <strong>{{ resolvedMessages.quiz.interpretation }}:</strong> {{ effectiveGrade.band.interpretation }}
+      </div>
+
+      <div v-if="effectiveGrade.review_required" class="aimd-quiz__grade-review">
         {{ resolvedMessages.quiz.reviewRequired }}
       </div>
 
-      <div v-if="grade.feedback" class="aimd-quiz__grade-feedback">
-        <strong>{{ resolvedMessages.quiz.feedback }}:</strong> {{ grade.feedback }}
+      <div v-if="effectiveGrade.feedback" class="aimd-quiz__grade-feedback">
+        <strong>{{ resolvedMessages.quiz.feedback }}:</strong> {{ effectiveGrade.feedback }}
       </div>
 
       <ul v-if="blankGradeResults.length" class="aimd-quiz__grade-list">
@@ -381,9 +548,22 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
   white-space: pre-wrap;
 }
 
+.aimd-quiz__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3b2f2f;
+}
+
 .aimd-quiz__stem {
   margin-top: 0;
   line-height: 1.45;
+}
+
+.aimd-quiz__description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6d4c41;
+  white-space: pre-wrap;
 }
 
 .aimd-quiz-recorder__options {
@@ -456,6 +636,71 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
   box-shadow: 0 0 0 2px rgba(65, 129, 253, 0.1);
 }
 
+.aimd-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aimd-scale__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.aimd-scale__table th,
+.aimd-scale__table td {
+  border: 1px solid #f1d8a7;
+  padding: 8px 10px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.aimd-scale__table thead th {
+  background: #fff4d6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aimd-scale__item-header,
+.aimd-scale__item-stem {
+  text-align: left;
+}
+
+.aimd-scale__item-stem {
+  width: 34%;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.aimd-scale__cell-label,
+.aimd-scale__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.aimd-scale__list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f1d8a7;
+  border-radius: 8px;
+  background: #fffdf7;
+}
+
+.aimd-scale__item-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.aimd-scale__option {
+  justify-content: flex-start;
+}
+
 .aimd-quiz__grade-panel {
   --aimd-quiz-grade-accent: #667085;
   --aimd-quiz-grade-border: #d0d5dd;
@@ -488,6 +733,12 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
   --aimd-quiz-grade-accent: #b54708;
   --aimd-quiz-grade-border: #fed7aa;
   --aimd-quiz-grade-bg: #fffaeb;
+}
+
+.aimd-quiz__grade-panel--scored {
+  --aimd-quiz-grade-accent: #175cd3;
+  --aimd-quiz-grade-border: #bfd4fe;
+  --aimd-quiz-grade-bg: #f5f8ff;
 }
 
 .aimd-quiz__grade-panel--needs-review {
@@ -528,6 +779,10 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
 .aimd-quiz__grade-score {
   color: var(--aimd-quiz-grade-accent);
   font-weight: 600;
+}
+
+.aimd-quiz__grade-band {
+  color: #344054;
 }
 
 .aimd-quiz__grade-list {

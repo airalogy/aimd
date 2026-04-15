@@ -6,6 +6,17 @@ Earlier historical releases were not backfilled yet. This changelog currently st
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-04-14
+
+### Added
+
+- Added `quiz.type: scale` parsing with shared `items`, per-option `points`, `display`, optional score `bands`, and per-item `default` values for matrix-style questionnaire syntax.
+- Added exported helpers `gradeScaleQuizLocally()` and `isScaleQuizAnswerComplete()` plus `scale_sum` grading metadata so host apps can locally score deterministic scales without reimplementing questionnaire logic.
+
+### Changed
+
+- Extended core quiz grading and max-score resolution so scale quizzes participate in the same report pipeline as choice, blank, and open questions.
+
 ## [2.4.0] - 2026-04-02
 
 ### Added

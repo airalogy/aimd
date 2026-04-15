@@ -227,6 +227,62 @@ grading:
   assert.equal(fields.quiz.length, 0)
 })
 
+test('quiz scale: parsing with items, points, display, bands, and defaults', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_scale
+type: scale
+title: GAD-7
+description: Frequency scale over the last two weeks.
+stem: "How often have you been bothered by the following problems?"
+display: matrix
+items:
+  - key: s1
+    stem: Feeling nervous
+    description: Item description
+  - key: s2
+    stem: Unable to relax
+options:
+  - key: not_at_all
+    text: Not at all
+    points: 0
+  - key: several_days
+    text: Several days
+    points: 1
+    explanation: Mild frequency
+grading:
+  strategy: sum
+  bands:
+    - min: 0
+      max: 1
+      label: Low
+      interpretation: Monitor only
+default:
+  s1: not_at_all
+\`\`\`
+`)
+  const q = fields.quiz[0]
+  assert.equal(q.type, 'scale')
+  assert.equal(q.title, 'GAD-7')
+  assert.equal(q.description, 'Frequency scale over the last two weeks.')
+  assert.equal(q.display, 'matrix')
+  assert.deepEqual(q.items, [
+    { key: 's1', stem: 'Feeling nervous', description: 'Item description' },
+    { key: 's2', stem: 'Unable to relax' },
+  ])
+  assert.deepEqual(q.options, [
+    { key: 'not_at_all', text: 'Not at all', points: 0 },
+    { key: 'several_days', text: 'Several days', points: 1, explanation: 'Mild frequency' },
+  ])
+  assert.deepEqual(q.grading, {
+    strategy: 'sum',
+    bands: [
+      { min: 0, max: 1, label: 'Low', interpretation: 'Monitor only' },
+    ],
+  })
+  assert.deepEqual(q.default, { s1: 'not_at_all' })
+})
+
 // ── Blank quiz ───────────────────────────────────────────────────────────────
 
 test('quiz blank: basic parsing', () => {
@@ -482,6 +538,39 @@ options:
     text: "A"
   - key: a
     text: "B"
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 0)
+})
+
+test('quiz choice: numeric option keys are skipped', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_bad
+type: choice
+mode: single
+stem: "numeric option keys"
+options:
+  - key: "0"
+    text: "A"
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 0)
+})
+
+test('quiz scale: numeric option keys are skipped', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_bad
+type: scale
+stem: "numeric option keys"
+items:
+  - key: s1
+    stem: "Item 1"
+options:
+  - key: "0"
+    text: "Not at all"
+    points: 0
 \`\`\`
 `)
   assert.equal(fields.quiz.length, 0)

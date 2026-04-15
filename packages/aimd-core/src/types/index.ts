@@ -42,7 +42,9 @@ export type {
   AimdQuizMode,
   AimdQuizNode,
   AimdQuizOption,
+  AimdQuizScaleItem,
   AimdQuizType,
+  AimdScaleDisplay,
   AimdRefNode,
   AimdScope,
   AimdStepNode,
@@ -78,5 +80,8 @@ export type {
   AimdQuizProviderRequest,
   AimdQuizRubricItem,
   AimdQuizRubricItemGradeDetail,
+  AimdQuizScaleBand,
+  AimdQuizScaleBandMatch,
+  AimdScaleQuizGradingConfig,
   AimdQuizTextNormalizeRule,
 } from './grading'

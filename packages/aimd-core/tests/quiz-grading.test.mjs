@@ -3,7 +3,9 @@ import { test } from 'node:test'
 
 import {
   gradeQuizAnswer,
+  gradeScaleQuizLocally,
   gradeQuizRecordAnswers,
+  isScaleQuizAnswerComplete,
 } from '../dist/index.js'
 
 test('gradeQuizAnswer: single choice exact match', async () => {
@@ -159,6 +161,60 @@ test('gradeQuizAnswer: blank grading uses normalization and numeric tolerance', 
   assert.equal(result.earned_score, 4)
   assert.equal(result.blank_results.length, 2)
   assert.equal(result.blank_results[1].method, 'numeric_tolerance')
+})
+
+test('gradeScaleQuizLocally: sums item points and resolves band', () => {
+  const result = gradeScaleQuizLocally({
+    id: 'q_scale',
+    type: 'scale',
+    stem: 'Scale',
+    items: [
+      { key: 's1', stem: 'Item 1' },
+      { key: 's2', stem: 'Item 2' },
+    ],
+    options: [
+      { key: '0', text: 'Never', points: 0 },
+      { key: '1', text: 'Sometimes', points: 1 },
+      { key: '2', text: 'Often', points: 2 },
+    ],
+    grading: {
+      strategy: 'sum',
+      bands: [
+        { min: 0, max: 1, label: 'Low' },
+        { min: 2, max: 4, label: 'Medium', interpretation: 'Needs attention.' },
+      ],
+    },
+  }, {
+    s1: '1',
+    s2: '2',
+  })
+
+  assert.equal(result.status, 'scored')
+  assert.equal(result.earned_score, 3)
+  assert.equal(result.max_score, 4)
+  assert.equal(result.method, 'scale_sum')
+  assert.equal(result.band?.label, 'Medium')
+  assert.equal(result.band?.interpretation, 'Needs attention.')
+  assert.equal(result.feedback, undefined)
+})
+
+test('isScaleQuizAnswerComplete: requires every item to be answered', () => {
+  const quiz = {
+    id: 'q_scale_complete',
+    type: 'scale',
+    stem: 'Scale',
+    items: [
+      { key: 's1', stem: 'Item 1' },
+      { key: 's2', stem: 'Item 2' },
+    ],
+    options: [
+      { key: '0', text: 'Never', points: 0 },
+      { key: '1', text: 'Sometimes', points: 1 },
+    ],
+  }
+
+  assert.equal(isScaleQuizAnswerComplete(quiz, { s1: '0', s2: '1' }), true)
+  assert.equal(isScaleQuizAnswerComplete(quiz, { s1: '0' }), false)
 })
 
 test('gradeQuizAnswer: open keyword rubric grading', async () => {

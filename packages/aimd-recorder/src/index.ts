@@ -31,6 +31,7 @@ export type {
   AimdVarInputKind,
   AimdStepDetailDisplay,
   AimdChoiceOptionExplanationMode,
+  AimdScaleGradeDisplayMode,
   AimdRecorderFieldAdapter,
   AimdRecorderFieldAdapterContext,
   AimdRecorderFieldAdapters,

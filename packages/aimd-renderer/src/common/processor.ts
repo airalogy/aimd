@@ -658,6 +658,136 @@ function buildQuizStemChildren(
   return children
 }
 
+function formatScaleOptionLabel(option: NonNullable<AimdQuizNode["options"]>[number]): string {
+  if (typeof option.points === "number" && Number.isFinite(option.points)) {
+    return `${option.text} (${option.points})`
+  }
+  return option.text
+}
+
+function buildScalePreviewChildren(quizNode: AimdQuizNode): Array<Element | HastText> {
+  if (!Array.isArray(quizNode.items) || quizNode.items.length === 0 || !Array.isArray(quizNode.options) || quizNode.options.length === 0) {
+    return [{
+      type: "element",
+      tagName: "div",
+      properties: { className: ["aimd-scale__empty"] },
+      children: [{ type: "text", value: "Scale definition is incomplete." }],
+    } as Element]
+  }
+
+  if (quizNode.display === "list") {
+    return [{
+      type: "element",
+      tagName: "div",
+      properties: { className: ["aimd-scale__list"] },
+      children: quizNode.items.map(item => ({
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-scale__list-item"] },
+        children: [
+          {
+            type: "element",
+            tagName: "div",
+            properties: { className: ["aimd-scale__item-stem"] },
+            children: [{ type: "text", value: item.stem }],
+          } as Element,
+          {
+            type: "element",
+            tagName: "ul",
+            properties: { className: ["aimd-scale__item-options"] },
+            children: quizNode.options!.map(option => ({
+              type: "element",
+              tagName: "li",
+              properties: {},
+              children: [{ type: "text", value: formatScaleOptionLabel(option) }],
+            } as Element)),
+          } as Element,
+        ],
+      } as Element)),
+    } as Element]
+  }
+
+  return [{
+    type: "element",
+    tagName: "table",
+    properties: { className: ["aimd-scale__table"] },
+    children: [
+      {
+        type: "element",
+        tagName: "thead",
+        properties: {},
+        children: [{
+          type: "element",
+          tagName: "tr",
+          properties: {},
+          children: [
+            {
+              type: "element",
+              tagName: "th",
+              properties: { className: ["aimd-scale__item-header"] },
+              children: [{ type: "text", value: "Item" }],
+            } as Element,
+            ...quizNode.options.map(option => ({
+              type: "element",
+              tagName: "th",
+              properties: {},
+              children: [{ type: "text", value: formatScaleOptionLabel(option) }],
+            } as Element)),
+          ],
+        } as Element],
+      } as Element,
+      {
+        type: "element",
+        tagName: "tbody",
+        properties: {},
+        children: quizNode.items.map(item => ({
+          type: "element",
+          tagName: "tr",
+          properties: {},
+          children: [
+            {
+              type: "element",
+              tagName: "th",
+              properties: { className: ["aimd-scale__item-stem"], scope: "row" },
+              children: [{ type: "text", value: item.stem }],
+            } as Element,
+            ...quizNode.options!.map(() => ({
+              type: "element",
+              tagName: "td",
+              properties: { className: ["aimd-scale__cell"] },
+              children: [{ type: "text", value: "○" }],
+            } as Element)),
+          ],
+        } as Element)),
+      } as Element,
+    ],
+  } as Element]
+}
+
+function buildScaleBandChildren(quizNode: AimdQuizNode): Array<Element | HastText> {
+  const bands = Array.isArray((quizNode.grading as any)?.bands)
+    ? (quizNode.grading as any).bands
+    : []
+  if (bands.length === 0) {
+    return []
+  }
+
+  return [{
+    type: "element",
+    tagName: "ul",
+    properties: { className: ["aimd-scale__bands"] },
+    children: bands.map((band: any) => ({
+      type: "element",
+      tagName: "li",
+      properties: {},
+      children: [{
+        type: "text",
+        value: `${band.min}-${band.max}: ${band.label}${band.interpretation ? ` · ${band.interpretation}` : ""}`,
+      }],
+    } as Element)),
+  } as Element]
+}
+
 // ---------------------------------------------------------------------------
 // AIMD handler (remark-rehype custom handler)
 // ---------------------------------------------------------------------------
@@ -706,11 +836,16 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
     nodeData.quizType = quizNode.quizType
     nodeData.stem = quizNode.stem
     nodeData.score = quizNode.score
+    nodeData.title = quizNode.title
+    nodeData.description = quizNode.description
     nodeData.mode = quizNode.mode
+    nodeData.display = quizNode.display
     nodeData.options = quizNode.options
     nodeData.answer = quizNode.answer
     nodeData.blanks = quizNode.blanks
+    nodeData.items = quizNode.items
     nodeData.rubric = quizNode.rubric
+    nodeData.grading = quizNode.grading
     nodeData.default = quizNode.default
     nodeData.extra = quizNode.extra
   }
@@ -1018,6 +1153,24 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
       } as Element,
     )
 
+    if (typeof quizNode.title === "string" && quizNode.title.trim()) {
+      children.splice(1, 0, {
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-quiz__title"] },
+        children: [{ type: "text", value: quizNode.title }],
+      } as Element)
+    }
+
+    if (typeof quizNode.description === "string" && quizNode.description.trim()) {
+      children.push({
+        type: "element",
+        tagName: "div",
+        properties: { className: ["aimd-quiz__description"] },
+        children: [{ type: "text", value: quizNode.description }],
+      } as Element)
+    }
+
     if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
       children.push({
         type: "element",
@@ -1030,6 +1183,11 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
           children: [{ type: "text", value: `${option.key}. ${option.text}` }],
         } as Element)),
       } as Element)
+    }
+
+    if (quizType === "scale") {
+      children.push(...buildScalePreviewChildren(quizNode))
+      children.push(...buildScaleBandChildren(quizNode))
     }
 
     if (quizPreview.showAnswers && quizType === "choice" && quizNode.answer !== undefined) {

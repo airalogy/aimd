@@ -188,9 +188,11 @@ const quizGrades = report.quiz
 说明：
 
 - `choice` 与大多数 `blank` 可以直接本地自动评分
+- 可确定性 `scale` 量表也可以本地自动评分，`scaleGradeDisplayMode` 用来控制结果是隐藏、填完即显示，还是提交后再显示
 - `open` 题更适合使用 rubric 或后端 provider
 - 练习场景可以在每次作答变化后重新生成 `quizGrades`，实现即时反馈
 - 作业场景如果希望提交后才显示选项讲解，可以传 `:submitted="isSubmitted"` 并设置 `choiceOptionExplanationMode="submitted"`
+- 如果量表属于评估场景，希望提交前不暴露临时分类，可以传 `:submitted="isSubmitted"` 并设置 `scaleGradeDisplayMode="submitted"`
 - 考试场景可以先不传 `quizGrades`，等交卷或老师复核后再统一传入
 - 对于尚未作答、状态为 `ungraded` 的题目，recorder 默认不会显示评分面板
 - 如果 choice 选项里写了 `explanation`，可以通过 `choiceOptionExplanationMode` 控制是否显示选项讲解
@@ -287,6 +289,7 @@ const { nodes, fields } = await renderToVue(content, {
 | `quizGrades` | `Record<string, AimdQuizGradeResult>` | 题目评分结果映射；传入后会在题目下方显示得分、状态与反馈 |
 | `submitted` | `boolean` | 标记当前作答是否已提交；可与 `choiceOptionExplanationMode="submitted"` 配合，在提交后再显示选项讲解 |
 | `choiceOptionExplanationMode` | `"hidden" \| "selected" \| "submitted" \| "graded"` | 控制选择题选项 `explanation` 的显示时机：隐藏、选中即显示、提交后显示、或仅在题目已有评分结果后显示 |
+| `scaleGradeDisplayMode` | `"hidden" \| "completed" \| "submitted" \| "graded"` | 控制可确定性 `scale` 量表在 recorder 侧本地评分的显示时机；评估场景通常建议用 `submitted`，避免提交前暴露临时得分或分组 |
 | `fieldMeta` | `Record<string, AimdFieldMeta>` | 每字段元数据覆盖 |
 | `fieldState` | `Record<string, AimdFieldState>` | 每字段运行时状态 |
 | `fieldAdapters` | `AimdRecorderFieldAdapters` | 用宿主组件替换或包裹内建字段 UI |
