@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { AimdEditorMessages } from './locales'
+import { ensureMonacoEnvironment } from './monaco-environment'
 
 const props = defineProps<{
   content: string
@@ -241,6 +242,7 @@ function createEditor(monaco: any) {
 onMounted(async () => {
   try {
     loading.value = true
+    ensureMonacoEnvironment()
     const monaco = await import('monaco-editor')
     monacoModule = monaco
     registerAimdLanguage(monaco)
@@ -323,7 +325,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="aimd-editor-source-mode" :style="{ height: minHeight + 'px' }">
+  <div class="aimd-editor-source-mode" :style="minHeight > 0 ? { height: minHeight + 'px' } : { height: '100%' }">
     <div v-if="loading" class="aimd-editor-loading">{{ resolvedMessages.common.loadingEditor }}</div>
     <div ref="editorContainer" class="aimd-editor-container" />
   </div>
