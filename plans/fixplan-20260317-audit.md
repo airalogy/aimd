@@ -1,7 +1,8 @@
-# AIMD Monorepo Fix Plan
+# AIMD Monorepo Fix Plan (2026-03 Audit Archive)
 
 > Based on code audit conducted on 2026-03-17
-> Repository: https://github.com/xiayh17/aimd
+> Repository: https://github.com/airalogy/aimd
+> Status: Historical maintenance plan retained for reference
 
 ---
 
