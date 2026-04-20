@@ -85,3 +85,14 @@ pnpm build
 ```bash
 pnpm --filter @airalogy/aimd-core build
 ```
+
+## 发布与版本管理
+
+本仓库使用 `Changesets` 管理 publishable `@airalogy/aimd-*` 包的版本与发布流程。
+
+- 正常功能开发时，不要手动修改各包 `package.json` 的 `version`
+- 如果改动影响已发布包的外部行为，请运行 `corepack pnpm changeset:add`
+- 一个功能如果同时影响多个包，优先写成一个多包 changeset
+- 合并到 `main` 后，GitHub Actions 会自动创建或更新 release PR；合并 release PR 后再自动发布
+
+中文说明见 [RELEASING.zh-CN.md](./RELEASING.zh-CN.md)。

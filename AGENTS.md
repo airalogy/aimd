@@ -29,33 +29,26 @@
 - Do not use unstable dynamic component factories in templates such as `:is="() => nodes"` for recorder/editor output. They can force unnecessary unmount/remount cycles and cause focus or scroll jumps while typing.
 - When syncing `v-model` state back into local reactive state, short-circuit echo updates if the semantic content has not changed. Avoid rebuilding recorder/editor subtrees for no-op parent round-trips.
 
-## Versioning Policy For AI Agents
+## Release Workflow For AI Agents
 
-- When a change affects a package's **published behavior**, update that package version in its `package.json`.
-- When a publishable package version is bumped, update that package's `CHANGELOG.md` in the same change.
-- Keep the changelog entry scoped to the package itself; do not describe unrelated workspace changes in another package's changelog.
-- Use SemVer:
-  - `major`: breaking API/behavior changes.
+- `packages/*` are versioned independently. Do not force all publishable packages to share the same version unless the user explicitly asks for a lockstep release strategy.
+- This repo uses a Changesets-based release workflow for publishable packages.
+- During normal feature work, do **not** manually bump package versions or edit package `CHANGELOG.md` files.
+- When a change affects published behavior, capture release intent for every affected publishable package in a single multi-package changeset.
+- A single feature or PR may touch multiple publishable packages; that is normal and should usually be represented as one changeset covering all affected packages.
+- Use `corepack pnpm changeset:add` to create release metadata when needed.
+- Only edit package versions or package changelogs directly when the user explicitly asks for release preparation or release metadata cleanup.
+- Use SemVer when deciding release impact:
+  - `major`: breaking API or behavior changes.
   - `minor`: backward-compatible feature additions.
   - `patch`: backward-compatible bug fixes.
-- Treat these as version-worthy by default:
-  - Public API/type export changes.
+- Treat these as release-worthy by default:
+  - Public API or type export changes.
   - Runtime behavior changes users can observe.
-  - Parser/renderer output changes.
+  - Parser or renderer output changes.
   - Build output that downstream users consume.
-
-## Changes That Usually Do Not Need Version Bump
-
-- Internal refactor with no external behavior change.
-- Tests only.
-- Docs only.
-- CI/tooling/config changes not affecting package runtime/API.
-
-## Commit vs Version Bump
-
-- Do **not** bump version on every commit.
-- Bump versions when preparing a release (or when your workflow requires release metadata in each PR).
-- If unsure whether a change is externally visible, prefer:
-  - Ask for confirmation, or
-  - Do at least a `patch` bump.
-- If you do bump a package version, treat updating that package changelog as required release metadata, not optional follow-up work.
+- These changes usually do not need release metadata:
+  - Internal refactor with no external behavior change.
+  - Tests only.
+  - Docs only.
+  - CI, tooling, or config changes not affecting package runtime or API.

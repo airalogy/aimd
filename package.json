@@ -1,13 +1,23 @@
 {
   "name": "aimd-packages",
   "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airalogy/aimd.git"
+  },
   "scripts": {
     "build": "pnpm -r build",
+    "changeset": "changeset",
+    "changeset:add": "changeset add",
+    "changeset:status": "changeset status --verbose",
+    "changeset:version": "changeset version",
     "dev": "pnpm -r --parallel dev",
     "dev:demo": "pnpm --filter @airalogy/aimd-demo dev",
     "docs:dev": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:dev",
     "docs:build": "pnpm --dir docs install --ignore-workspace && DEMO_BASE=\"${BASE_PATH%/}/demo/\" pnpm --filter @airalogy/aimd-demo build && pnpm -C docs docs:build && rm -rf docs/.vitepress/dist/demo && mkdir -p docs/.vitepress/dist/demo && cp -R demo/dist/. docs/.vitepress/dist/demo/ && node ./scripts/create-demo-route-shims.mjs",
     "docs:preview": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:preview",
+    "release": "pnpm build && changeset publish",
     "test": "pnpm -r --if-present test",
     "test:vitest": "vitest run",
     "test:vitest:watch": "vitest",
@@ -15,6 +25,7 @@
     "type-check": "pnpm -r type-check"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.0",
     "@vue/test-utils": "^2.4.6",
     "happy-dom": "^20.8.4",
     "vitest": "^4.1.0"

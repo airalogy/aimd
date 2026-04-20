@@ -171,34 +171,41 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **minor**: Backward-compatible feature additions.
 - **patch**: Backward-compatible bug fixes.
 
-### When to Bump Versions
+The monorepo uses a Changesets-based release workflow for the publishable `@airalogy/aimd-*` packages.
 
-Bump the version in a package's `package.json` when a change affects its published behavior:
+### Normal Feature Work
+
+During normal implementation work:
+
+- Do **not** manually bump package versions in `package.json`.
+- Do **not** manually edit package `CHANGELOG.md` files.
+- If one feature or fix affects multiple publishable packages, treat that as one release unit that may need release metadata for multiple packages.
+- Use `corepack pnpm changeset:add` to add release metadata for publishable behavior changes.
+
+### Release Metadata
+
+When a change affects published behavior, record release intent for every affected package:
 
 - Public API or type export changes
 - Runtime behavior changes observable by users
 - Parser or renderer output changes
 - Build output consumed by downstream packages
 
-### When NOT to Bump Versions
+Once Changesets is configured in the repo, prefer one multi-package changeset describing the whole feature or fix over ad hoc manual version edits across multiple packages.
+
+### Changes That Usually Do Not Need Release Metadata
 
 - Internal refactors with no external behavior change
 - Test-only changes
 - Documentation-only changes
 - CI, tooling, or config changes that do not affect the package runtime or API
 
-### Changelog
+### Release Automation
 
-When you bump a package version, update that package's `CHANGELOG.md` in the same commit. Keep the entry scoped to the package itself.
-
-### Release Checklist
-
-1. Bump the version in the package's `package.json`.
-2. Update the package's `CHANGELOG.md`.
-3. Commit with a descriptive message.
-4. Merge to `main`.
-
-Do not bump versions on every commit. Bump when preparing a release or when your workflow requires release metadata in the PR.
+- Merging changesets to `main` updates or creates a release PR automatically.
+- Merging the generated release PR publishes any pending package versions automatically.
+- Repository maintainers must configure npm trusted publishing for each public `@airalogy/aimd-*` package before automated publish can succeed.
+- Keep changelog entries scoped to the package itself; do not describe unrelated workspace changes in another package's changelog.
 
 ## Demo Samples
 

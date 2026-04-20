@@ -3,6 +3,16 @@
   "type": "module",
   "version": "1.14.0",
   "description": "AIMD editor Vue components and UI",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airalogy/aimd.git",
+    "directory": "packages/aimd-recorder"
+  },
+  "bugs": {
+    "url": "https://github.com/airalogy/aimd/issues"
+  },
+  "homepage": "https://github.com/airalogy/aimd/tree/main/packages/aimd-recorder#readme",
   "keywords": [
     "aimd",
     "markdown",
@@ -30,9 +40,12 @@
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
-    "src/styles"
+    "src"
   ],
   "scripts": {
     "type-check": "vue-tsc --noEmit",
@@ -46,9 +59,9 @@
     "vue": "^3.5.17"
   },
   "dependencies": {
-    "@airalogy/aimd-editor": "workspace:*",
-    "@airalogy/aimd-core": "workspace:*",
-    "@airalogy/aimd-renderer": "workspace:*",
+    "@airalogy/aimd-editor": "workspace:^",
+    "@airalogy/aimd-core": "workspace:^",
+    "@airalogy/aimd-renderer": "workspace:^",
     "@milkdown/kit": "^7.18.0",
     "monaco-editor": "^0.52.2",
     "react": "^19.2.4",

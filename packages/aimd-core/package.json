@@ -3,6 +3,16 @@
   "type": "module",
   "version": "2.5.0",
   "description": "AIMD (Airalogy Markdown) core parser and syntax definitions",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airalogy/aimd.git",
+    "directory": "packages/aimd-core"
+  },
+  "bugs": {
+    "url": "https://github.com/airalogy/aimd/issues"
+  },
+  "homepage": "https://github.com/airalogy/aimd/tree/main/packages/aimd-core#readme",
   "keywords": [
     "aimd",
     "markdown",
@@ -35,6 +45,9 @@
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "dist",
     "src"
