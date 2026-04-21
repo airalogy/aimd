@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.1
+
+### Patch Changes
+
+- 541d008: Configure public package release metadata for automated publishing, align internal workspace dependency ranges for published packages, and add the monorepo Changesets release workflow.
+
 All notable changes to `@airalogy/aimd-core` will be documented in this file.
 
 Earlier historical releases were not backfilled yet. This changelog currently starts from the `2.x` release line.
