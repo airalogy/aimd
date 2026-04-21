@@ -1,6 +1,9 @@
 # @airalogy/aimd-renderer
 
-Rendering engine for AIMD: HTML output, Vue output, and field extraction.
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+Rendering engine for AIMD (Airalogy Markdown): HTML output, Vue output, and field extraction.
 
 Assigner blocks are hidden from normal rendered output by default. You can opt into collapsed or expanded assigner display when building authoring/debug views, while extracted field metadata remains available through `parseAndExtract`.
 

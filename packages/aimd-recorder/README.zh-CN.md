@@ -1,6 +1,9 @@
 # @airalogy/aimd-recorder
 
-AIMD 记录 UI 组件与样式集合，包含协议内联录入组件、组合式 `AimdRecorderEditor` 与可复用题目作答控件。
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+AIMD（Airalogy Markdown）记录 UI 组件与样式集合，包含协议内联录入组件、组合式 `AimdRecorderEditor` 与可复用题目作答控件。
 
 内置变量控件支持 `CurrentTime`、`UserName`、`AiralogyMarkdown` 和 `DNASequence`。
 `AiralogyMarkdown` 现在会在 recorder 中以横铺内嵌 AIMD/Markdown 编辑器呈现，默认进入 `源码` 模式，并保留完整顶部工具栏，同时支持切换到 `所见即所得`，而不是普通 textarea。

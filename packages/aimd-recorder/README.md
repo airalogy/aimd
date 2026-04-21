@@ -1,6 +1,9 @@
 # @airalogy/aimd-recorder
 
-Reusable recording UI for AIMD, including inline protocol recorder, the combined `AimdRecorderEditor`, quiz answer components, and styles.
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+Reusable recording UI for AIMD (Airalogy Markdown), including inline protocol recorder, the combined `AimdRecorderEditor`, quiz answer components, and styles.
 
 Built-in variable input types include `CurrentTime`, `UserName`, `AiralogyMarkdown`, and `DNASequence`.
 `AiralogyMarkdown` now uses a full-width embedded AIMD/Markdown editor in recorder mode, opens in `Source` mode by default, keeps the full top toolbar, and still supports switching to `WYSIWYG` instead of a plain textarea.

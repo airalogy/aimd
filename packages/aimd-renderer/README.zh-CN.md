@@ -1,6 +1,9 @@
 # @airalogy/aimd-renderer
 
-AIMD 渲染引擎：支持 HTML 渲染、Vue 渲染与字段提取。
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+AIMD（Airalogy Markdown）渲染引擎：支持 HTML 渲染、Vue 渲染与字段提取。
 
 默认情况下，assigner 代码块不会出现在普通渲染输出中。只有在作者视图或调试视图中显式开启时，才会以折叠或展开形式显示；`parseAndExtract` 仍会保留相关字段元数据。
 

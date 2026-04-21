@@ -1,6 +1,9 @@
 # @airalogy/aimd-editor
 
-AIMD authoring toolkit for Monaco + Vue (WYSIWYG/source workflows).
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-editor?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-editor)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+AIMD (Airalogy Markdown) authoring toolkit for Monaco + Vue (WYSIWYG/source workflows).
 
 ## Install
 

@@ -1,11 +1,18 @@
 # AIMD 包 Monorepo
 
+[![CI](https://github.com/airalogy/aimd/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/ci.yml)
+[![Docs](https://github.com/airalogy/aimd/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/docs.yml)
+[![npm scope](https://img.shields.io/badge/npm-%40airalogy%2F*-CB3837?logo=npm)](https://www.npmjs.com/org/airalogy)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
+
 本仓库以 monorepo 形式维护 AIMD 相关包：
 
-- `@airalogy/aimd-core`：AIMD 解析器、语法定义与工具
-- `@airalogy/aimd-editor`：AIMD 的 Monaco 编辑器集成
-- `@airalogy/aimd-renderer`：将 AIMD 渲染为 HTML 与 Vue
-- `@airalogy/aimd-recorder`：AIMD 的 Vue UI 组件与样式
+| 包名 | npm | 文档 | 说明 |
+| --- | --- | --- | --- |
+| `@airalogy/aimd-core` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-core?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-core) | [README](./packages/aimd-core/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-core/) | AIMD 解析器、语法定义与工具 |
+| `@airalogy/aimd-editor` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-editor?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-editor) | [README](./packages/aimd-editor/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-editor/) | AIMD 的 Monaco 编辑器集成与 Vue 编辑流程 |
+| `@airalogy/aimd-renderer` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer) | [README](./packages/aimd-renderer/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-renderer/) | 将 AIMD 渲染为 HTML 与 Vue |
+| `@airalogy/aimd-recorder` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder) | [README](./packages/aimd-recorder/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-recorder/) | 面向结构化 AIMD 记录的 Vue UI 组件与样式 |
 
 ## 开发
 

@@ -1,5 +1,8 @@
 # @airalogy/aimd-core
 
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-core?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-core)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
 AIMD（Airalogy Markdown）的核心解析器与规范化字段提取能力。
 
 它也会把 fenced `assigner runtime=client` 代码块提取为 `fields.client_assigner` 前端元数据。

@@ -1,6 +1,9 @@
 # @airalogy/aimd-editor
 
-面向 AIMD 的编辑工具包（Monaco + Vue，可视化/源码双模式）。
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-editor?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-editor)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
+面向 AIMD（Airalogy Markdown）的编辑工具包（Monaco + Vue，可视化/源码双模式）。
 
 ## 安装
 

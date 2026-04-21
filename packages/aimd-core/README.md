@@ -1,5 +1,8 @@
 # @airalogy/aimd-core
 
+[![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-core?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-core)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/airalogy/aimd/blob/main/LICENSE)
+
 Core parser and canonical field extraction for AIMD (Airalogy Markdown).
 
 It also extracts frontend-only assigners from fenced `assigner runtime=client` blocks into `fields.client_assigner`.
