@@ -52,6 +52,7 @@ import {
 } from "../composables/useFocusManagement"
 import type { FocusSnapshot } from "../composables/useFocusManagement"
 import { useClientAssignerRunner } from "../composables/useClientAssignerRunner"
+import type { ClientAssignerFieldDefinitions } from "../client-assigner"
 import { resolveAimdRecorderFieldVNode } from "../composables/useFieldAdapters"
 import { useVarTableDragDrop, getVarTableColumns } from "../composables/useVarTableDragDrop"
 import { useFieldRendering } from "../composables/useFieldRendering"
@@ -244,6 +245,7 @@ function applyFieldAdapter<TFieldType extends "var" | "var_table" | "step" | "ch
 
 const EMPTY_FIELDS: ExtractedAimdFields = {
   var: [],
+  var_definitions: [],
   var_table: [],
   client_assigner: [],
   quiz: [],
@@ -258,6 +260,16 @@ const EMPTY_FIELDS: ExtractedAimdFields = {
 
 const extractedFields = ref<ExtractedAimdFields>(EMPTY_FIELDS)
 const clientAssigners = ref<AimdClientAssignerField[]>([])
+const clientAssignerFieldDefinitions = computed<ClientAssignerFieldDefinitions>(() => {
+  const definitions: ClientAssignerFieldDefinitions = {}
+  for (const field of extractedFields.value.var_definitions ?? []) {
+    definitions[field.id] = {
+      type: field.type,
+      kwargs: field.kwargs,
+    }
+  }
+  return definitions
+})
 const protocolEstimatedDurationMs = computed(() => getProtocolEstimatedDurationMs(extractedFields.value.step_hierarchy ?? []))
 const protocolRecordedDurationMs = computed(() => getProtocolRecordedDurationMs(localRecord.step, timerNowMs.value))
 const showProtocolTimingSummary = computed(() => protocolEstimatedDurationMs.value > 0 || protocolRecordedDurationMs.value > 0)
@@ -326,6 +338,7 @@ function markRecordChanged(options?: { rebuild?: boolean, runClientAssigners?: b
 const assignerRunner = useClientAssignerRunner({
   readonly: () => props.readonly,
   clientAssigners,
+  fieldDefinitions: () => clientAssignerFieldDefinitions.value,
   localRecord,
   onError: (message) => emit("error", message),
   emitRecordUpdate,

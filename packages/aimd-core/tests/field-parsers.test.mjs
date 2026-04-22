@@ -154,12 +154,20 @@ test('var: unquoted string default', () => {
 })
 
 test('var: preserves Pydantic-style numeric kwargs', () => {
-  const { tree } = parseAimd('{{var|age: int = 18, title = "Age", ge = 0, lt = 150, multiple_of = 1}}')
+  const { tree, fields } = parseAimd('{{var|age: int = 18, title = "Age", ge = 0, lt = 150, multiple_of = 1}}')
   const node = findAimdNode(tree)
   assert.equal(node?.definition?.kwargs?.title, 'Age')
   assert.equal(node?.definition?.kwargs?.ge, 0)
   assert.equal(node?.definition?.kwargs?.lt, 150)
   assert.equal(node?.definition?.kwargs?.multiple_of, 1)
+  assert.deepEqual(fields.var, ['age'])
+  assert.equal(fields.var_definitions?.[0]?.id, 'age')
+  assert.equal(fields.var_definitions?.[0]?.type, 'int')
+  assert.equal(fields.var_definitions?.[0]?.default, 18)
+  assert.equal(fields.var_definitions?.[0]?.title, 'Age')
+  assert.equal(fields.var_definitions?.[0]?.kwargs?.ge, 0)
+  assert.equal(fields.var_definitions?.[0]?.kwargs?.lt, 150)
+  assert.equal(fields.var_definitions?.[0]?.kwargs?.multiple_of, 1)
 })
 
 // ── parseVarDefinition: subvars ──────────────────────────────────────────────

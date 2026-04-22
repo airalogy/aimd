@@ -114,11 +114,6 @@ assigner(
   function calculate_bmi({ height_cm, weight_kg }) {
     const height = Number(height_cm) / 100;
     const weight = Number(weight_kg);
-    if (height <= 0 || weight <= 0) {
-      return {
-        bmi: "",
-      };
-    }
     return {
       bmi: Math.round((weight / (height * height)) * 10) / 10,
     };

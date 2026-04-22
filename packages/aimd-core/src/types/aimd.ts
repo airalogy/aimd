@@ -259,6 +259,8 @@ export interface AimdVarField {
   title?: string
   /** Description */
   description?: string
+  /** Additional kwargs from AIMD syntax */
+  kwargs?: Record<string, unknown>
 }
 
 /**
@@ -392,6 +394,8 @@ export interface AimdClientAssignerField {
 export interface ExtractedAimdFields {
   /** Simple variables */
   var: string[]
+  /** Simple variable definitions with type, default, and kwargs metadata */
+  var_definitions?: AimdVarField[]
   /** Variable tables with full definitions */
   var_table: AimdVarTableField[]
   /** Frontend-only assigners from fenced `assigner runtime=client` blocks */

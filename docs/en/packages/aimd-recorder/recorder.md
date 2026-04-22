@@ -54,6 +54,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `ref_var` references display current var values as readonly inline content when available.
 - `choice`, `blank`, `open`, and `scale` quiz types all have built-in recorder inputs.
 - Numeric `var` inputs honor Pydantic-style constraints such as `gt`, `ge`, `lt`, `le`, and `multiple_of`; these constraints apply to `int`, `integer`, `float`, and `number` var types.
+- Client assigners use the same numeric constraints for dependency readiness and skip execution while a dependent numeric field violates its declared bounds.
 
 ## Client Assigner
 

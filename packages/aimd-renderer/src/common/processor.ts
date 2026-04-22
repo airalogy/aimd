@@ -531,6 +531,7 @@ let mathStylesLoadPromise: Promise<unknown> | null = null
 
 const EMPTY_EXTRACTED_FIELDS: ExtractedAimdFields = {
   var: [],
+  var_definitions: [],
   var_table: [],
   client_assigner: [],
   quiz: [],
@@ -573,6 +574,7 @@ function createAimdParseInput(content: string) {
 function createEmptyExtractedFields(): ExtractedAimdFields {
   return {
     var: [...EMPTY_EXTRACTED_FIELDS.var],
+    var_definitions: [...(EMPTY_EXTRACTED_FIELDS.var_definitions || [])],
     var_table: [...EMPTY_EXTRACTED_FIELDS.var_table],
     client_assigner: [...EMPTY_EXTRACTED_FIELDS.client_assigner],
     quiz: [...EMPTY_EXTRACTED_FIELDS.quiz],

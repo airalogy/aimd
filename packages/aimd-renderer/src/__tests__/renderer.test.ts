@@ -109,8 +109,16 @@ describe('resolveQuizPreviewOptions', () => {
 
 describe('parseAndExtract', () => {
   it('extracts var fields', () => {
-    const fields = parseAndExtract('{{var|temperature: float = 36.5}}')
+    const fields = parseAndExtract('{{var|temperature: float = 36.5, gt = 0}}')
     expect(fields.var).toContain('temperature')
+    expect(fields.var_definitions?.[0]).toMatchObject({
+      id: 'temperature',
+      type: 'float',
+      default: 36.5,
+      kwargs: {
+        gt: 0,
+      },
+    })
   })
 
   it('extracts step fields', () => {

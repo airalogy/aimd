@@ -54,6 +54,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `ref_var` 如果已有记录值，会优先以内联只读内容显示当前值。
 - `choice`、`blank`、`open`、`scale` 四类 quiz 都有内建 recorder 输入。
 - 数值 `var` 输入会识别 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格约束；这些约束只对 `int`、`integer`、`float`、`number` 类型生效。
+- client assigner 会用同一组数值约束判断依赖是否就绪；依赖字段违反声明边界时会跳过执行。
 
 ## Client Assigner
 

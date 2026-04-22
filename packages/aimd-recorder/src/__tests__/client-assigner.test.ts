@@ -176,6 +176,65 @@ describe('client-assigner: dependency ordering', () => {
     expect(result.changed).toBe(false)
     expect(values.y).toBe(0)
   })
+
+  it('skips assigners when a numeric dependency violates field constraints', () => {
+    const assigners = [makeAssigner({
+      id: 'bmi',
+      function_source: 'function assign(fields) { var h = Number(fields.height_cm) / 100; return { bmi: Math.round((Number(fields.weight_kg) / (h * h)) * 10) / 10 }; }',
+      dependent_fields: ['height_cm', 'weight_kg'],
+      assigned_fields: ['bmi'],
+    })]
+
+    const values: Record<string, unknown> = { height_cm: -170, weight_kg: 70, bmi: '' }
+    const result = applyClientAssigners(assigners, values, {
+      fieldDefinitions: {
+        height_cm: { type: 'float', kwargs: { gt: 0 } },
+        weight_kg: { type: 'float', kwargs: { gt: 0 } },
+      },
+    })
+
+    expect(result.changed).toBe(false)
+    expect(values.bmi).toBe('')
+  })
+
+  it('runs assigners when constrained numeric dependencies are valid', () => {
+    const assigners = [makeAssigner({
+      id: 'bmi',
+      function_source: 'function assign(fields) { var h = Number(fields.height_cm) / 100; return { bmi: Math.round((Number(fields.weight_kg) / (h * h)) * 10) / 10 }; }',
+      dependent_fields: ['height_cm', 'weight_kg'],
+      assigned_fields: ['bmi'],
+    })]
+
+    const values: Record<string, unknown> = { height_cm: 170, weight_kg: 70, bmi: '' }
+    const result = applyClientAssigners(assigners, values, {
+      fieldDefinitions: {
+        height_cm: { type: 'float', kwargs: { gt: 0 } },
+        weight_kg: { type: 'float', kwargs: { gt: 0 } },
+      },
+    })
+
+    expect(result.changed).toBe(true)
+    expect(values.bmi).toBe(24.2)
+  })
+
+  it('skips assigners when a numeric dependency is not finite', () => {
+    const assigners = [makeAssigner({
+      id: 'calc',
+      function_source: 'function assign(fields) { return { y: Number(fields.x) + 1 }; }',
+      dependent_fields: ['x'],
+      assigned_fields: ['y'],
+    })]
+
+    const values: Record<string, unknown> = { x: 'abc', y: 0 }
+    const result = applyClientAssigners(assigners, values, {
+      fieldDefinitions: {
+        x: { type: 'float' },
+      },
+    })
+
+    expect(result.changed).toBe(false)
+    expect(values.y).toBe(0)
+  })
 })
 
 // ---------------------------------------------------------------------------

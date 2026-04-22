@@ -14,7 +14,7 @@ pnpm add @airalogy/aimd-renderer @airalogy/aimd-core
 
 - `renderToHtml(content)` for HTML output.
 - `renderToVue(content)` for Vue vnode output.
-- `parseAndExtract(content)` for field metadata extraction.
+- `parseAndExtract(content)` for canonical core field metadata extraction, including simple `var` definitions in `fields.var_definitions`.
 - `assignerVisibility` to show or hide assigner blocks in authoring/debug views.
 - Built-in quiz preview controls.
 - Built-in locale support via `locale`.

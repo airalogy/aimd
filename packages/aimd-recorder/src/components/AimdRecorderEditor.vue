@@ -133,6 +133,7 @@ const emit = defineEmits<{
 
 const EMPTY_FIELDS: ExtractedAimdFields = {
   var: [],
+  var_definitions: [],
   var_table: [],
   client_assigner: [],
   quiz: [],

@@ -7,7 +7,7 @@ import { renderToVue } from '../dist/vue.js'
 const TABLE_WITH_INLINE_VAR = `
 | Ingredient | Amount |
 | --- | --- |
-| Water | {{var|water_volume_ml: float}} mL |
+| Water | {{var|water_volume_ml: float, gt = 0}} mL |
 `
 
 const EXTRACTED_ID_SAMPLE = `
@@ -141,6 +141,9 @@ test('parseAndExtract finds inline vars inside markdown table', () => {
   const fields = parseAndExtract(TABLE_WITH_INLINE_VAR)
 
   assert.deepEqual(fields.var, ['water_volume_ml'])
+  assert.equal(fields.var_definitions?.[0]?.id, 'water_volume_ml')
+  assert.equal(fields.var_definitions?.[0]?.type, 'float')
+  assert.equal(fields.var_definitions?.[0]?.kwargs?.gt, 0)
 })
 
 test('parseAndExtract exposes canonical ids for extracted field objects', () => {

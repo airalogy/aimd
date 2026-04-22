@@ -15,7 +15,7 @@ pnpm add @airalogy/aimd-core
 - 解析 AIMD 模板语法与 `quiz` / `fig` 代码块。
 - 解析 fenced `assigner runtime=client` 代码块并提取前端 assigner 元数据。
 - 构建兼容 MDAST 的 AIMD 节点。
-- 输出标准化字段结构，供 renderer/editor/recorder 复用。
+- 输出标准化字段结构，供 renderer/editor/recorder 复用，包括 `fields.var_definitions` 中的普通 `var` 定义。
 
 ## 示例
 

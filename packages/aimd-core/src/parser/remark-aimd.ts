@@ -11,7 +11,7 @@ import type {
   AimdVarNode,
   AimdVarTableNode,
 } from "../types/nodes"
-import type { ExtractedAimdFields } from "../types/aimd"
+import type { AimdVarField, ExtractedAimdFields } from "../types/aimd"
 import {
   extractPythonAssignerGraphNodes,
   validateAssignerGraph,
@@ -182,6 +182,35 @@ function createAimdNode(
   }
 }
 
+function createExtractedVarField(node: AimdVarNode): AimdVarField {
+  const def = node.definition
+  const field: AimdVarField = {
+    id: node.id,
+  }
+
+  if (def?.type) {
+    field.type = def.type
+  }
+  if (def && Object.prototype.hasOwnProperty.call(def, "default")) {
+    field.default = def.default
+  }
+
+  const title = typeof def?.kwargs?.title === "string" ? def.kwargs.title : undefined
+  const description = typeof def?.kwargs?.description === "string" ? def.kwargs.description : undefined
+
+  if (title) {
+    field.title = title
+  }
+  if (description) {
+    field.description = description
+  }
+  if (def?.kwargs) {
+    field.kwargs = def.kwargs
+  }
+
+  return field
+}
+
 /**
  * Find and replace AIMD syntax in text nodes.
  * Pattern: {{type|content}}
@@ -270,6 +299,7 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
     const inlineTemplates = file.data?.aimdInlineTemplates as AimdInlineTemplateMap | undefined
     const fields: ExtractedAimdFields = {
       var: [],
+      var_definitions: [],
       var_table: [],
       client_assigner: [],
       quiz: [],
@@ -386,6 +416,9 @@ const remarkAimd: Plugin<[RemarkAimdOptions?], Root> = (options = {}) => {
               case "var":
                 if (!fields.var.includes(aimdNode.id)) {
                   fields.var.push(aimdNode.id)
+                }
+                if (!fields.var_definitions?.find(field => field.id === aimdNode.id)) {
+                  fields.var_definitions?.push(createExtractedVarField(aimdNode as AimdVarNode))
                 }
                 break
               case "var_table": {

@@ -6,6 +6,7 @@
 Core parser and canonical field extraction for AIMD (Airalogy Markdown).
 
 It also extracts frontend-only assigners from fenced `assigner runtime=client` blocks into `fields.client_assigner`.
+Simple `var` ids remain available in `fields.var`; their parsed type, default, and kwargs metadata are also exposed through `fields.var_definitions`.
 
 > Protocol-level AIMD syntax, assigner semantics, and validation rules are normative in Airalogy docs. `@airalogy/aimd-*` docs describe how the frontend parser, renderer, and recorder implement those rules.
 

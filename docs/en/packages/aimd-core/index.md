@@ -15,7 +15,7 @@ pnpm add @airalogy/aimd-core
 - Parse AIMD templates and fenced `quiz` / `fig` blocks.
 - Parse fenced `assigner runtime=client` blocks into frontend assigner metadata.
 - Build MDAST-compatible AIMD nodes.
-- Extract normalized field metadata for downstream renderer/editor/recorder.
+- Extract normalized field metadata for downstream renderer/editor/recorder, including simple `var` definitions in `fields.var_definitions`.
 
 ## Example
 

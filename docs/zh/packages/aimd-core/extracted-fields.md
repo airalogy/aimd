@@ -16,6 +16,7 @@
 
 ## 使用对象结构的部分
 
+- `var_definitions[]` 对应普通 `var` 字段，包含 `id`、`type`、`default`、`title`、`description` 与原始 AIMD `kwargs`
 - `var_table[]` 提供规范字段 `id`
 - `var_table[].subvars[]` 提供规范字段 `id`
 - `client_assigner[]` 提供 `id`、`mode`、`dependent_fields`、`assigned_fields`、`function_source`，它们来自 `assigner(config, function ...)` 形式的前端代码块
@@ -26,6 +27,19 @@
 
 ```json
 {
+  "var": ["temperature"],
+  "var_definitions": [
+    {
+      "id": "temperature",
+      "type": "float",
+      "default": 36.5,
+      "title": "Temperature",
+      "kwargs": {
+        "title": "Temperature",
+        "gt": 0
+      }
+    }
+  ],
   "var_table": [
     {
       "id": "samples",

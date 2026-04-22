@@ -6,6 +6,7 @@
 AIMD（Airalogy Markdown）的核心解析器与规范化字段提取能力。
 
 它也会把 fenced `assigner runtime=client` 代码块提取为 `fields.client_assigner` 前端元数据。
+普通 `var` 的 id 仍然保留在 `fields.var`；其解析出的类型、默认值和 kwargs 元数据也会通过 `fields.var_definitions` 暴露。
 
 > 协议级 AIMD 语法、assigner 语义与校验规则以 Airalogy 文档为准；`@airalogy/aimd-*` 文档只描述前端 parser、renderer、recorder 如何实现这些规范。
 

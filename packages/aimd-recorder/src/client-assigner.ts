@@ -1,7 +1,15 @@
 import { validateClientAssignerFunctionSource } from "@airalogy/aimd-core/parser"
 import type { AimdClientAssignerField } from "@airalogy/aimd-core/types"
+import { getNumericConstraintViolation, isNumericVarType } from "./composables/useVarHelpers"
 
 type ClientAssignerExecutor = (dependentFields: Record<string, unknown>) => unknown
+
+export interface ClientAssignerFieldDefinition {
+  type?: string
+  kwargs?: Record<string, unknown>
+}
+
+export type ClientAssignerFieldDefinitions = Record<string, ClientAssignerFieldDefinition | undefined>
 
 const executorCache = new Map<string, ClientAssignerExecutor>()
 
@@ -82,6 +90,37 @@ function isReadyValue(value: unknown): boolean {
   return true
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+function isValidFieldValue(value: unknown, definition: ClientAssignerFieldDefinition | undefined): boolean {
+  if (!definition) {
+    return true
+  }
+
+  if (isNumericVarType(definition.type) && toFiniteNumber(value) === undefined) {
+    return false
+  }
+
+  return getNumericConstraintViolation(value, definition.type, definition.kwargs) === null
+}
+
+function isReadyFieldValue(
+  field: string,
+  value: unknown,
+  fieldDefinitions: ClientAssignerFieldDefinitions | undefined,
+): boolean {
+  return isReadyValue(value) && isValidFieldValue(value, fieldDefinitions?.[field])
+}
+
 function getAssignerDependencies(assigner: AimdClientAssignerField, fieldOwners: Map<string, string>): Set<string> {
   const dependencies = new Set<string>()
   for (const field of assigner.dependent_fields) {
@@ -131,8 +170,12 @@ function shouldRunAutoFirst(assigner: AimdClientAssignerField, values: Record<st
   return assigner.assigned_fields.every(field => !isReadyValue(values[field]))
 }
 
-function areDependenciesReady(assigner: AimdClientAssignerField, values: Record<string, unknown>): boolean {
-  return assigner.dependent_fields.every(field => isReadyValue(values[field]))
+function areDependenciesReady(
+  assigner: AimdClientAssignerField,
+  values: Record<string, unknown>,
+  options: ClientAssignerApplyOptions | undefined,
+): boolean {
+  return assigner.dependent_fields.every(field => isReadyFieldValue(field, values[field], options?.fieldDefinitions))
 }
 
 function compileClientAssigner(assigner: AimdClientAssignerField): ClientAssignerExecutor {
@@ -214,6 +257,7 @@ function executeClientAssigner(
 
 export interface ClientAssignerApplyOptions {
   triggerIds?: string[]
+  fieldDefinitions?: ClientAssignerFieldDefinitions
 }
 
 export interface ClientAssignerApplyResult {
@@ -237,7 +281,7 @@ export function applyClientAssigners(
   const changedFields = new Set<string>()
 
   for (const assigner of sortClientAssigners(assigners)) {
-    if (!areDependenciesReady(assigner, values)) {
+    if (!areDependenciesReady(assigner, values, options)) {
       continue
     }
 

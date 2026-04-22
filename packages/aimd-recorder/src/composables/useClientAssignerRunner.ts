@@ -1,11 +1,13 @@
 import { type Ref } from "vue"
 import type { AimdClientAssignerField } from "@airalogy/aimd-core/types"
 import { applyClientAssigners } from "../client-assigner"
+import type { ClientAssignerFieldDefinitions } from "../client-assigner"
 import type { AimdProtocolRecordData } from "../types"
 
 export interface ClientAssignerRunnerOptions {
   readonly: () => boolean
   clientAssigners: Ref<AimdClientAssignerField[]>
+  fieldDefinitions?: () => ClientAssignerFieldDefinitions
   localRecord: AimdProtocolRecordData
   onError: (message: string) => void
   emitRecordUpdate: () => void
@@ -16,6 +18,7 @@ export function useClientAssignerRunner(options: ClientAssignerRunnerOptions) {
   const {
     readonly: isReadonly,
     clientAssigners,
+    fieldDefinitions,
     localRecord,
     onError,
     emitRecordUpdate,
@@ -28,7 +31,10 @@ export function useClientAssignerRunner(options: ClientAssignerRunnerOptions) {
     }
 
     try {
-      return applyClientAssigners(clientAssigners.value, localRecord.var, opts).changed
+      return applyClientAssigners(clientAssigners.value, localRecord.var, {
+        ...opts,
+        fieldDefinitions: fieldDefinitions?.(),
+      }).changed
     }
     catch (error) {
       const message = error instanceof Error ? error.message : String(error)
