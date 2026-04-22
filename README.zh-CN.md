@@ -1,4 +1,4 @@
-# AIMD 包 Monorepo
+# Airalogy Markdown (AIMD) 包仓库
 
 [![CI](https://github.com/airalogy/aimd/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/ci.yml)
 [![Docs](https://github.com/airalogy/aimd/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/docs.yml)
