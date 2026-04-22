@@ -14,6 +14,10 @@ This repository contains the AIMD packages maintained as a single monorepo:
 | `@airalogy/aimd-renderer` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer) | [README](./packages/aimd-renderer/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-renderer/) | Rendering AIMD to HTML and Vue |
 | `@airalogy/aimd-recorder` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder) | [README](./packages/aimd-recorder/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-recorder/) | Vue UI components and styles for structured AIMD recording |
 
+## AIMD Examples
+
+Scenario examples live under [examples/](./examples/) and are registered in the machine-readable [examples/index.json](./examples/index.json). You can preview, edit, and fill these examples on the [Demo examples page](https://airalogy.github.io/aimd/demo/#/examples).
+
 ## Development
 
 Install dependencies at the repo root:
@@ -45,6 +49,7 @@ pnpm dev:demo
 
 Visit http://localhost:5188 to see the demo, which includes:
 
+- **Examples**: Browse repository AIMD scenario examples and fill them in the recorder
 - **Core Parser**: Live AIMD Markdown parsing with AST and extracted fields
 - **Editor**: Monaco editor token definitions and theme config preview
 - **Renderer**: Live HTML / Vue VNode rendering preview

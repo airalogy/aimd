@@ -48,6 +48,7 @@ export interface DemoMessages {
   }
   nav: {
     tutorial: string
+    examples: string
     full: string
     core: string
     editor: string
@@ -64,6 +65,12 @@ export interface DemoMessages {
     loadingEditor: string
     renderPreview: string
     collectedData: string
+  }
+  examples: {
+    title: string
+    resetCurrent: string
+    exampleBadge: string
+    caseBadge: string
   }
   pages: {
     full: {
@@ -99,6 +106,11 @@ export interface DemoMessages {
     recorder: {
       desc: string
       inlineFormTitle: string
+    }
+    examples: {
+      title: string
+      desc: string
+      workbenchTitle: string
     }
     tutorial: {
       title: string
@@ -142,7 +154,7 @@ export interface DemoMessages {
 const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
   'en-US': {
     app: {
-      title: 'AIMD Packages Demo',
+      title: 'Airalogy Markdown Demo',
       languageLabel: 'Language',
       localeNames: {
         'en-US': 'English',
@@ -155,6 +167,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
     },
     nav: {
       tutorial: 'Interactive Tutorial',
+      examples: 'Examples',
       full: 'Full Workflow',
       core: 'Core Parser',
       editor: 'Editor',
@@ -171,6 +184,12 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       loadingEditor: 'Loading editor...',
       renderPreview: 'Render Preview',
       collectedData: 'Collected Data (Record Data)',
+    },
+    examples: {
+      title: 'Cases and Examples',
+      resetCurrent: 'Reset Current',
+      exampleBadge: 'Example',
+      caseBadge: 'Case',
     },
     pages: {
       full: {
@@ -206,6 +225,11 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       recorder: {
         desc: 'AIMD protocol recorder with inline data entry, source-linked recorder editing, and recorder-side visual field editing',
         inlineFormTitle: 'Inline Record Form',
+      },
+      examples: {
+        title: 'AIMD Examples',
+        desc: 'Load repository cases and demo examples into the recorder to inspect their structure, form UI, and collected record data.',
+        workbenchTitle: 'Case Workbench',
       },
       tutorial: {
         title: 'Interactive AIMD Tutorial',
@@ -247,7 +271,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
   },
   'zh-CN': {
     app: {
-      title: 'AIMD Packages Demo',
+      title: 'Airalogy Markdown Demo',
       languageLabel: '语言',
       localeNames: {
         'en-US': 'English',
@@ -260,6 +284,7 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
     },
     nav: {
       tutorial: '交互式教程',
+      examples: '案例',
       full: '完整工作流',
       core: 'Core 解析器',
       editor: 'Editor 编辑器',
@@ -276,6 +301,12 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       loadingEditor: '加载编辑器...',
       renderPreview: '渲染预览',
       collectedData: '收集到的数据 (Record Data)',
+    },
+    examples: {
+      title: '案例和示例',
+      resetCurrent: '重置当前示例',
+      exampleBadge: '示例',
+      caseBadge: '案例',
     },
     pages: {
       full: {
@@ -311,6 +342,11 @@ const BASE_DEMO_MESSAGES: Record<DemoLocale, DemoMessages> = {
       recorder: {
         desc: 'AIMD 数据记录器 — 支持协议内联录入、源码联动编辑器，以及 recorder 内可视化 field 编辑',
         inlineFormTitle: '数据记录表单（内联）',
+      },
+      examples: {
+        title: 'AIMD 案例',
+        desc: '把仓库中的案例和 demo 示例直接载入记录器，快速查看结构、表单界面和收集到的数据。',
+        workbenchTitle: '案例工作台',
       },
       tutorial: {
         title: 'AIMD 交互式教程',

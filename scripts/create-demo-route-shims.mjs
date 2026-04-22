@@ -5,7 +5,7 @@ import path from "node:path"
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(scriptDir, "..")
 const demoDist = path.resolve(projectRoot, "docs/.vitepress/dist/demo")
-const routes = ["full", "core", "editor", "renderer", "recorder"]
+const routes = ["tutorial", "examples", "full", "core", "editor", "renderer", "recorder"]
 
 function buildRedirectHtml(route) {
   const target = `../#/${route}`

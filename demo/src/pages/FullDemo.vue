@@ -9,12 +9,18 @@ import {
   type AimdProtocolRecordData,
 } from '@airalogy/aimd-recorder'
 import '@airalogy/aimd-recorder/styles'
+import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useSampleContent } from '../composables/sampleContent'
+import { useDemoExampleContent } from '../composables/sampleContent'
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
-const content = useSampleContent()
+const {
+  content,
+  selectedExampleId,
+  loadExample,
+  resetToSelectedExample,
+} = useDemoExampleContent(undefined, locale)
 
 // --- Preview ---
 const htmlOutput = ref('')
@@ -70,6 +76,23 @@ function resetForm() {
   recordData.value = createEmptyProtocolRecordData()
 }
 
+function handleExampleSelect(id: string) {
+  loadExample(id, locale.value)
+  resetForm()
+  activeRightTab.value = 'preview'
+}
+
+function handleExampleReset() {
+  resetToSelectedExample(locale.value)
+  resetForm()
+}
+
+watch(locale, () => {
+  resetToSelectedExample(locale.value)
+  resetForm()
+  activeRightTab.value = 'preview'
+})
+
 async function updateQuizGrades(rawQuizFields: unknown) {
   const quizFields = Array.isArray(rawQuizFields) ? rawQuizFields as AimdQuizField[] : []
   if (quizFields.length === 0) {
@@ -88,6 +111,12 @@ async function updateQuizGrades(rawQuizFields: unknown) {
   <div class="demo-page">
     <h2 class="page-title">{{ messages.pages.full.title }}</h2>
     <p class="page-desc">{{ messages.pages.full.desc }}</p>
+
+    <DemoExamplePicker
+      :selected-id="selectedExampleId"
+      @select="handleExampleSelect"
+      @reset="handleExampleReset"
+    />
 
     <div class="stats-bar">
       <span class="stat">

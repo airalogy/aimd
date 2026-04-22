@@ -44,12 +44,14 @@ const legacyDemoHashRedirectScript = `(() => {
 
 const enGuideSidebarItems = [
   { text: 'Integration Guide', link: '/en/integration' },
+  { text: 'Examples', link: '/en/examples' },
   { text: 'API Reference', link: '/en/api-reference' },
   { text: 'Troubleshooting / FAQ', link: '/en/troubleshooting' },
 ]
 
 const zhGuideSidebarItems = [
   { text: '集成指南', link: '/zh/integration' },
+  { text: '案例', link: '/zh/examples' },
   { text: 'API 参考', link: '/zh/api-reference' },
   { text: '故障排查 / FAQ', link: '/zh/troubleshooting' },
 ]
@@ -117,6 +119,7 @@ export default defineConfig({
         nav: [
           { text: 'Home', link: '/en/' },
           { text: 'Guides', link: '/en/integration' },
+          { text: 'Examples', link: '/en/examples' },
           { text: 'Packages', link: '/en/packages/' },
           { text: 'Demo', link: '/en/demo' },
         ],
@@ -131,6 +134,7 @@ export default defineConfig({
         nav: [
           { text: '首页', link: '/zh/' },
           { text: '指南', link: '/zh/integration' },
+          { text: '案例', link: '/zh/examples' },
           { text: '包文档', link: '/zh/packages/' },
           { text: '演示', link: '/zh/demo' },
         ],

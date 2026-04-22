@@ -1,19 +1,33 @@
 <script setup lang="ts">
 import { ref, watch, type VNode } from 'vue'
 import { createStepCardRenderer, renderToHtml, renderToVue, parseAndExtract } from '@airalogy/aimd-renderer'
+import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useSampleContent } from '../composables/sampleContent'
+import { useDemoExampleContent } from '../composables/sampleContent'
 import '@airalogy/aimd-recorder/styles'
 
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
-const input = useSampleContent()
+const {
+  content: input,
+  selectedExampleId,
+  loadExample,
+  resetToSelectedExample,
+} = useDemoExampleContent(undefined, locale)
 const htmlOutput = ref('')
 const fieldsOutput = ref('')
 const vueNodes = ref<VNode[]>([])
 const renderError = ref('')
 const activeTab = ref<'html' | 'vue' | 'fields'>('html')
+
+function handleExampleSelect(id: string) {
+  loadExample(id, locale.value)
+}
+
+function handleExampleReset() {
+  resetToSelectedExample(locale.value)
+}
 
 async function render() {
   try {
@@ -43,12 +57,21 @@ async function render() {
 }
 
 watch([input, locale], render, { immediate: true })
+watch(locale, () => {
+  resetToSelectedExample(locale.value)
+})
 </script>
 
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-renderer</h2>
     <p class="page-desc">{{ messages.pages.renderer.desc }}</p>
+
+    <DemoExamplePicker
+      :selected-id="selectedExampleId"
+      @select="handleExampleSelect"
+      @reset="handleExampleReset"
+    />
 
     <div class="demo-layout">
       <div class="panel">

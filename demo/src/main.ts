@@ -8,6 +8,7 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/tutorial' },
     { path: '/tutorial', component: () => import('./pages/TutorialDemo.vue') },
+    { path: '/examples', component: () => import('./pages/ExamplesDemo.vue') },
     { path: '/full', component: () => import('./pages/FullDemo.vue') },
     { path: '/core', component: () => import('./pages/CoreDemo.vue') },
     { path: '/editor', component: () => import('./pages/EditorDemo.vue') },

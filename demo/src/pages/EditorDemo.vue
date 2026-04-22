@@ -1,23 +1,47 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor'
+import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useSampleContent } from '../composables/sampleContent'
+import { useDemoExampleContent } from '../composables/sampleContent'
 
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
-const content = useSampleContent()
+const {
+  content,
+  selectedExampleId,
+  loadExample,
+  resetToSelectedExample,
+} = useDemoExampleContent(undefined, locale)
 const mode = ref<'source' | 'wysiwyg'>('source')
+
+function handleExampleSelect(id: string) {
+  loadExample(id, locale.value)
+}
+
+function handleExampleReset() {
+  resetToSelectedExample(locale.value)
+}
 
 function onReady(editor: any) {
   console.log('Editor ready:', editor)
 }
+
+watch(locale, () => {
+  resetToSelectedExample(locale.value)
+})
 </script>
 
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-editor</h2>
     <p class="page-desc">{{ messages.pages.editor.desc }}</p>
+
+    <DemoExamplePicker
+      :selected-id="selectedExampleId"
+      @select="handleExampleSelect"
+      @reset="handleExampleReset"
+    />
 
     <AimdEditor
       v-model="content"

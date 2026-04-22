@@ -13,7 +13,7 @@ import { useDemoExampleContent } from '../composables/sampleContent'
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
 const {
-  content: input,
+  content,
   selectedExampleId,
   loadExample,
   resetToSelectedExample,
@@ -21,24 +21,24 @@ const {
 const recordData = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 const recorderEditorKey = ref(0)
 
-function resetForm() {
+function resetRecord() {
   recordData.value = createEmptyProtocolRecordData()
 }
 
 function handleExampleSelect(id: string) {
-  resetForm()
+  resetRecord()
   loadExample(id, locale.value)
   recorderEditorKey.value += 1
 }
 
 function handleExampleReset() {
-  resetForm()
+  resetRecord()
   resetToSelectedExample(locale.value)
   recorderEditorKey.value += 1
 }
 
 watch(locale, () => {
-  resetForm()
+  resetRecord()
   resetToSelectedExample(locale.value)
   recorderEditorKey.value += 1
 })
@@ -46,8 +46,8 @@ watch(locale, () => {
 
 <template>
   <div class="demo-page">
-    <h2 class="page-title">@airalogy/aimd-recorder</h2>
-    <p class="page-desc">{{ messages.pages.recorder.desc }}</p>
+    <h2 class="page-title">{{ messages.pages.examples.title }}</h2>
+    <p class="page-desc">{{ messages.pages.examples.desc }}</p>
 
     <DemoExamplePicker
       :selected-id="selectedExampleId"
@@ -55,18 +55,14 @@ watch(locale, () => {
       @reset="handleExampleReset"
     />
 
-    <div class="page-toolbar">
-      <button class="reset-btn" @click="resetForm">{{ messages.common.reset }}</button>
-    </div>
-
     <AimdRecorderEditor
       :key="recorderEditorKey"
       v-model="recordData"
-      v-model:content="input"
+      v-model:content="content"
       :locale="locale"
       :show-record-data="true"
       :editor-title="messages.common.aimdSource"
-      :recorder-title="messages.pages.recorder.inlineFormTitle"
+      :recorder-title="messages.pages.examples.workbenchTitle"
       :record-data-title="messages.common.collectedData"
     />
   </div>
@@ -80,35 +76,14 @@ watch(locale, () => {
 }
 
 .page-title {
+  color: #1a1a2e;
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a2e;
 }
 
 .page-desc {
+  margin-top: -8px;
   color: #666;
   font-size: 14px;
-  margin-top: -12px;
-}
-
-.page-toolbar {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.reset-btn {
-  padding: 4px 12px;
-  border: 1px solid #e8e8e8;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.reset-btn:hover {
-  border-color: #d03050;
-  color: #d03050;
 }
 </style>

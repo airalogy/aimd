@@ -14,6 +14,10 @@
 | `@airalogy/aimd-renderer` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer) | [README](./packages/aimd-renderer/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-renderer/) | 将 AIMD 渲染为 HTML 与 Vue |
 | `@airalogy/aimd-recorder` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder) | [README](./packages/aimd-recorder/README.zh-CN.md) · [站点](https://airalogy.github.io/aimd/zh/packages/aimd-recorder/) | 面向结构化 AIMD 记录的 Vue UI 组件与样式 |
 
+## AIMD 案例
+
+场景案例集中放在 [examples/](./examples/)，并通过 [examples/index.json](./examples/index.json) 提供机器可读清单。用户可以在 [Demo 案例页](https://airalogy.github.io/aimd/demo/#/examples) 中直接预览、编辑和填写这些案例。
+
 ## 开发
 
 在仓库根目录安装依赖：
@@ -45,6 +49,7 @@ pnpm dev:demo
 
 访问 http://localhost:5188 查看 Demo，包含以下页面：
 
+- **案例**：浏览仓库内 AIMD 场景案例并在记录器中填写
 - **Core 解析器**：实时解析 AIMD Markdown，查看 AST 和提取的字段
 - **Editor 编辑器**：Monaco 编辑器 Token 定义和主题配置预览
 - **Renderer 渲染器**：AIMD 渲染为 HTML / Vue VNodes 的实时预览

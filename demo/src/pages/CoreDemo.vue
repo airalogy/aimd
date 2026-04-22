@@ -5,15 +5,30 @@ import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import type { VFile } from 'vfile'
+import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
-import { useDemoMessages } from '../composables/demoI18n'
-import { useSampleContent } from '../composables/sampleContent'
+import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
+import { useDemoExampleContent } from '../composables/sampleContent'
 
+const { locale } = useDemoLocale()
 const messages = useDemoMessages()
-const input = useSampleContent()
+const {
+  content: input,
+  selectedExampleId,
+  loadExample,
+  resetToSelectedExample,
+} = useDemoExampleContent(undefined, locale)
 const astOutput = ref('')
 const fieldsOutput = ref('')
 const parseError = ref('')
+
+function handleExampleSelect(id: string) {
+  loadExample(id, locale.value)
+}
+
+function handleExampleReset() {
+  resetToSelectedExample(locale.value)
+}
 
 async function parseContent() {
   try {
@@ -38,12 +53,21 @@ async function parseContent() {
 }
 
 watch(input, parseContent, { immediate: true })
+watch(locale, () => {
+  resetToSelectedExample(locale.value)
+})
 </script>
 
 <template>
   <div class="demo-page">
     <h2 class="page-title">@airalogy/aimd-core</h2>
     <p class="page-desc">{{ messages.pages.core.desc }}</p>
+
+    <DemoExamplePicker
+      :selected-id="selectedExampleId"
+      @select="handleExampleSelect"
+      @reset="handleExampleReset"
+    />
 
     <div class="demo-layout">
       <div class="panel">
