@@ -35,6 +35,15 @@ test('normalizes markdown-escaped characters back out of AIMD inline templates',
   )
 })
 
+test('normalizes markdown escapes when the AIMD template type itself is escaped', () => {
+  const { normalizeAimdInlineTemplateMarkdownEscapes } = loadTsModuleExports(helperPath)
+
+  assert.equal(
+    normalizeAimdInlineTemplateMarkdownEscapes('过敏史：{{var\\_table|allergies, subvars=\\[allergen: str, reaction: str, severity: str, status: str, note: str]}}'),
+    '过敏史：{{var_table|allergies, subvars=[allergen: str, reaction: str, severity: str, status: str, note: str]}}',
+  )
+})
+
 test('only unescapes markdown escapes inside AIMD inline templates', () => {
   const { normalizeAimdInlineTemplateMarkdownEscapes } = loadTsModuleExports(helperPath)
 
