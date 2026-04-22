@@ -37,6 +37,8 @@ import { AimdEditor } from "@airalogy/aimd-editor"
 
 也可以通过 `messages` 覆盖内建文案。
 
+Vue 源码编辑器会显示 parser 级语义 warning，包括 AIMD var 默认值与类型不匹配，以及数值约束 kwargs 被用在非数值类型上。
+
 如果要做更底层的嵌入式集成，`AimdWysiwygEditor` 现在支持注入自定义 Milkdown plugin 链，`AimdFieldDialog` 也支持通过 `allowedTypes` 限定可插入的 AIMD 字段类型。
 
 ## 文档

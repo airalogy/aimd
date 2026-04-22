@@ -52,9 +52,9 @@
 
 ## 体征与评估
 
-身高：{{var|height_cm: float, title = "身高 cm"}}
+身高：{{var|height_cm: float, title = "身高 cm", gt = 0}}
 
-体重：{{var|weight_kg: float, title = "体重 kg"}}
+体重：{{var|weight_kg: float, title = "体重 kg", gt = 0}}
 
 BMI：{{var|bmi: float, title = "BMI"}}
 
@@ -114,7 +114,7 @@ assigner(
   function calculate_bmi({ height_cm, weight_kg }) {
     const height = Number(height_cm) / 100;
     const weight = Number(weight_kg);
-    if (!height || !weight) {
+    if (height <= 0 || weight <= 0) {
       return {
         bmi: "",
       };

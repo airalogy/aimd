@@ -244,6 +244,12 @@ export function parseFenceMeta(meta: string | null | undefined): Record<string, 
 
 const DURATION_PART_PATTERN = /(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)/gi
 const STEP_TIMER_MODES = new Set<AimdStepTimerMode>(["elapsed", "countdown", "both"])
+const NUMERIC_VAR_TYPES = new Set(["int", "integer", "float", "number"])
+export const NUMERIC_CONSTRAINT_KWARGS = ["gt", "ge", "lt", "le", "multiple_of"] as const
+
+export function isNumericVarType(type: string | undefined): boolean {
+  return type !== undefined && NUMERIC_VAR_TYPES.has(type.toLowerCase())
+}
 
 export function parseDurationToMs(value: unknown): number | undefined {
   if (typeof value !== "string") {
@@ -706,6 +712,70 @@ export function validateVarDefaultType(def: AimdVarDefinition): string[] {
   }
 
   return warnings
+}
+
+/**
+ * Validate Pydantic-style var kwargs that AIMD understands.
+ * Numeric constraints are only meaningful for numeric AIMD variable types.
+ */
+export function validateVarKwargs(def: AimdVarDefinition): string[] {
+  const warnings: string[] = []
+  const kwargs = def.kwargs
+  const type = def.type?.toLowerCase()
+
+  if (kwargs) {
+    const numericConstraintKeys = NUMERIC_CONSTRAINT_KWARGS.filter(key =>
+      Object.prototype.hasOwnProperty.call(kwargs, key),
+    )
+
+    if (numericConstraintKeys.length > 0 && !isNumericVarType(type)) {
+      const typeLabel = type ?? "untyped"
+      warnings.push(
+        `"${def.id}": numeric constraints (${numericConstraintKeys.join(", ")}) only apply to int/integer/float/number variables, not ${typeLabel}`,
+      )
+    }
+    else if (numericConstraintKeys.length > 0) {
+      for (const key of numericConstraintKeys) {
+        const value = kwargs[key]
+        if (typeof value !== "number" || Number.isNaN(value)) {
+          warnings.push(`"${def.id}": numeric constraint "${key}" must be a number`)
+        }
+        else if (key === "multiple_of" && value <= 0) {
+          warnings.push(`"${def.id}": numeric constraint "multiple_of" must be greater than 0`)
+        }
+      }
+    }
+  }
+
+  if (def.subvars) {
+    for (const subDef of Object.values(def.subvars)) {
+      warnings.push(...validateVarKwargs(subDef))
+    }
+  }
+
+  return warnings
+}
+
+function validateVarDefaultTypeDeep(def: AimdVarDefinition): string[] {
+  const warnings = validateVarDefaultType(def)
+
+  if (def.subvars) {
+    for (const subDef of Object.values(def.subvars)) {
+      warnings.push(...validateVarDefaultTypeDeep(subDef))
+    }
+  }
+
+  return warnings
+}
+
+/**
+ * Validate a parsed var definition and nested subvars without throwing.
+ */
+export function validateVarDefinition(def: AimdVarDefinition): string[] {
+  return [
+    ...validateVarDefaultTypeDeep(def),
+    ...validateVarKwargs(def),
+  ]
 }
 
 /**

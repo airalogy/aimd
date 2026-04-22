@@ -29,6 +29,20 @@ export interface VarInputValueOptions extends VarInputKindOptions {
   fieldMeta?: Record<string, unknown>
 }
 
+export interface AimdNumericFieldConstraints {
+  gt?: number
+  ge?: number
+  lt?: number
+  le?: number
+  multiple_of?: number
+}
+
+export interface NumericInputAttributes {
+  min?: number
+  max?: number
+  step?: number
+}
+
 function resolveOverrideInputKind(inputType: string | undefined, codeLanguage: string | undefined): VarInputKind | undefined {
   if (isAimdCodeEditorType(undefined, { inputType, codeLanguage })) {
     return 'code'
@@ -87,6 +101,11 @@ export function normalizeVarTypeName(type: string | undefined): string {
   return normalizeAimdTypeName(type)
 }
 
+export function isNumericVarType(type: string | undefined): boolean {
+  const normalized = normalizeVarTypeName(type)
+  return normalized === "float" || normalized === "int" || normalized === "integer" || normalized === "number"
+}
+
 export function getVarInputKind(type: string | undefined, options: VarInputKindOptions = {}): VarInputKind {
   const override = resolveOverrideInputKind(options.inputType, options.codeLanguage)
   if (override) {
@@ -133,6 +152,100 @@ export function getVarInputKind(type: string | undefined, options: VarInputKindO
   }
 
   return "text"
+}
+
+function toFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : undefined
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+export function getNumericFieldConstraints(
+  type: string | undefined,
+  kwargs?: Record<string, unknown>,
+): AimdNumericFieldConstraints {
+  if (!isNumericVarType(type) || !kwargs) {
+    return {}
+  }
+
+  const constraints: AimdNumericFieldConstraints = {}
+  const gt = toFiniteNumber(kwargs.gt)
+  const ge = toFiniteNumber(kwargs.ge)
+  const lt = toFiniteNumber(kwargs.lt)
+  const le = toFiniteNumber(kwargs.le)
+  const multipleOf = toFiniteNumber(kwargs.multiple_of)
+
+  if (gt !== undefined) constraints.gt = gt
+  if (ge !== undefined) constraints.ge = ge
+  if (lt !== undefined) constraints.lt = lt
+  if (le !== undefined) constraints.le = le
+  if (multipleOf !== undefined && multipleOf > 0) constraints.multiple_of = multipleOf
+
+  return constraints
+}
+
+export function getNumericInputAttributes(
+  type: string | undefined,
+  kwargs?: Record<string, unknown>,
+): NumericInputAttributes {
+  const constraints = getNumericFieldConstraints(type, kwargs)
+  const lowerBounds = [constraints.gt, constraints.ge].filter((value): value is number => value !== undefined)
+  const upperBounds = [constraints.lt, constraints.le].filter((value): value is number => value !== undefined)
+
+  return {
+    min: lowerBounds.length ? Math.max(...lowerBounds) : undefined,
+    max: upperBounds.length ? Math.min(...upperBounds) : undefined,
+    step: constraints.multiple_of,
+  }
+}
+
+export function getNumericConstraintViolation(
+  value: unknown,
+  type: string | undefined,
+  kwargs?: Record<string, unknown>,
+): string | null {
+  const constraints = getNumericFieldConstraints(type, kwargs)
+  if (Object.keys(constraints).length === 0) {
+    return null
+  }
+
+  if (value === null || typeof value === "undefined") {
+    return null
+  }
+  if (typeof value === "string" && value.trim() === "") {
+    return null
+  }
+
+  const numericValue = toFiniteNumber(value)
+  if (numericValue === undefined) {
+    return null
+  }
+
+  if (constraints.gt !== undefined && !(numericValue > constraints.gt)) {
+    return `Must be > ${constraints.gt}`
+  }
+  if (constraints.ge !== undefined && !(numericValue >= constraints.ge)) {
+    return `Must be >= ${constraints.ge}`
+  }
+  if (constraints.lt !== undefined && !(numericValue < constraints.lt)) {
+    return `Must be < ${constraints.lt}`
+  }
+  if (constraints.le !== undefined && !(numericValue <= constraints.le)) {
+    return `Must be <= ${constraints.le}`
+  }
+  if (constraints.multiple_of !== undefined) {
+    const quotient = numericValue / constraints.multiple_of
+    if (Math.abs(quotient - Math.round(quotient)) > 1e-9) {
+      return `Must be a multiple of ${constraints.multiple_of}`
+    }
+  }
+
+  return null
 }
 
 // ---------------------------------------------------------------------------

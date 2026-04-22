@@ -71,13 +71,18 @@ processor.runSync(tree, file)
 
 ```ts
 import {
+  parseVarDefinition,
   validateClientAssignerFunctionSource,
+  validateVarDefinition,
   validateVarDefaultType,
+  validateVarKwargs,
 } from "@airalogy/aimd-core/parser"
 ```
 
 - `validateClientAssignerFunctionSource(functionSource, id)` 会拒绝不安全或不受支持的前端 `client_assigner` 代码，例如 `eval`、`window`、`fetch`、Unicode 转义绕过，以及其他非确定性结构。
 - `validateVarDefaultType(def)` 会在 AIMD var 的默认值与声明类型不匹配时返回 warning 文本。
+- `validateVarKwargs(def)` 会在支持的 kwargs 被用于不兼容的 var 定义时返回 warning 文本，包括 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格数值约束被用在非数值类型上。
+- `validateVarDefinition(def)` 会合并默认值校验与 kwargs 校验，并递归检查嵌套 `subvars`。
 
 ## 继续阅读
 

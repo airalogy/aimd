@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import type { AimdEditorMessages } from './locales'
+import { collectAimdDiagnostics } from './aimdDiagnostics'
 
 const props = defineProps<{
   content: string
@@ -22,6 +23,7 @@ const SERVER_ASSIGNER_FENCE = /^\s*(```|~~~)\s*assigner(?:\s+.*)?\s*$/
 const QUIZ_FENCE = /^\s*(```|~~~)\s*quiz(?:\s+.*)?\s*$/
 const GENERIC_CODE_FENCE = /^\s*(```|~~~)\s*((?:\w|[/#-])+)(?:\s+.*)?\s*$/
 const EMPTY_CODE_FENCE = /^\s*(```|~~~)\s*$/
+const AIMD_DIAGNOSTIC_OWNER = 'airalogy-aimd'
 
 const editorContainer = ref<HTMLElement | null>(null)
 
@@ -207,6 +209,40 @@ function registerAimdLanguage(monaco: any) {
   })
 }
 
+function updateAimdDiagnostics() {
+  if (!monacoModule || !monacoEditorInstance) return
+
+  const model = monacoEditorInstance.getModel()
+  if (!model) return
+
+  const markers = collectAimdDiagnostics(model.getValue()).map((diagnostic) => {
+    const start = model.getPositionAt(diagnostic.startOffset)
+    const end = model.getPositionAt(diagnostic.endOffset)
+    return {
+      severity: diagnostic.severity === 'error'
+        ? monacoModule.MarkerSeverity.Error
+        : monacoModule.MarkerSeverity.Warning,
+      message: diagnostic.message,
+      source: 'AIMD',
+      startLineNumber: start.lineNumber,
+      startColumn: start.column,
+      endLineNumber: end.lineNumber,
+      endColumn: end.column,
+    }
+  })
+
+  monacoModule.editor.setModelMarkers(model, AIMD_DIAGNOSTIC_OWNER, markers)
+}
+
+function clearAimdDiagnostics() {
+  if (!monacoModule || !monacoEditorInstance) return
+
+  const model = monacoEditorInstance.getModel()
+  if (model) {
+    monacoModule.editor.setModelMarkers(model, AIMD_DIAGNOSTIC_OWNER, [])
+  }
+}
+
 function createEditor(monaco: any) {
   if (!editorContainer.value || monacoEditorInstance) return
   const MONACO_OPTIONS_BLACKLIST = new Set(['value', 'language', 'model'])
@@ -230,10 +266,12 @@ function createEditor(monaco: any) {
     ...safeMonacoOptions,
   })
   monacoEditorInstance.onDidChangeModelContent(() => {
+    updateAimdDiagnostics()
     if (!isSyncing) {
       emit('content-change', monacoEditorInstance.getValue())
     }
   })
+  updateAimdDiagnostics()
   emit('ready', monacoEditorInstance)
   emit('monaco-loaded', monaco, monacoEditorInstance)
 }
@@ -251,6 +289,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  clearAimdDiagnostics()
   monacoEditorInstance?.dispose()
 })
 

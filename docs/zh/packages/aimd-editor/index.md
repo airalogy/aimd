@@ -41,6 +41,8 @@ monaco.languages.registerCompletionItemProvider("aimd", completionItemProvider)
 - [Vue 编辑器](/zh/packages/aimd-editor/vue-editor)：使用 `AimdEditor` 获得标准 AIMD 编辑体验。
 - [内嵌编辑面](/zh/packages/aimd-editor/embedded)：内嵌 `AimdWysiwygEditor`、约束字段插入范围，或注入宿主自己的 Milkdown plugin 链。
 
+Vue 源码编辑器会报告 parser 级语义 warning，包括 AIMD var 默认值与类型不匹配，以及 Pydantic 风格数值约束 kwargs 被用在非数值类型上。
+
 ## 说明
 
 - AIMD 协议语法关键字保持英文，例如 `type: choice`、`mode: single`。

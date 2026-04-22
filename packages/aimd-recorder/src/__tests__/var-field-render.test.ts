@@ -14,7 +14,13 @@ describe('AimdVarField render behavior', () => {
   })
 
   it('resizes single-line inputs while the user types', () => {
-    expect(source).toMatch(/onInput: \(event: Event\) => \{\s*const el = event\.target as HTMLInputElement\s*syncCompactControlLayout\(el\)\s*onVarChange\(el\.value\)\s*\}/)
+    expect(source).toMatch(/onInput: \(event: Event\) => \{\s*const el = event\.target as HTMLInputElement\s*syncCompactControlLayout\(el\)\s*syncNumberValidity\(el\)\s*onVarChange\(el\.value\)\s*\}/)
+  })
+
+  it('applies Pydantic-style numeric constraints from AIMD kwargs', () => {
+    expect(source).toMatch(/getNumericInputAttributes\(type, node\.definition\?\.kwargs\)/)
+    expect(source).toMatch(/getNumericConstraintViolation\(displayValue, type, node\.definition\?\.kwargs\)/)
+    expect(source).toMatch(/control\.setCustomValidity\(violation \?\? ""\)/)
   })
 
   it('renders code-like vars with the dedicated code editor field', () => {

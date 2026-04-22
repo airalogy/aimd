@@ -53,6 +53,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `DNASequence` 会渲染专用序列控件，支持交互式模式、原始结构模式、文件导入导出、拓扑切换、feature 编辑，以及基于 `SeqViz` 的可视化。
 - `ref_var` 如果已有记录值，会优先以内联只读内容显示当前值。
 - `choice`、`blank`、`open`、`scale` 四类 quiz 都有内建 recorder 输入。
+- 数值 `var` 输入会识别 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格约束；这些约束只对 `int`、`integer`、`float`、`number` 类型生效。
 
 ## Client Assigner
 

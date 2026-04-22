@@ -65,12 +65,15 @@ processor.runSync(tree, file)
 
 ```ts
 import {
+  parseVarDefinition,
   validateClientAssignerFunctionSource,
+  validateVarDefinition,
   validateVarDefaultType,
+  validateVarKwargs,
 } from "@airalogy/aimd-core/parser"
 ```
 
-如果宿主工具需要在保存或执行前预检 fenced `assigner runtime=client` 函数，可使用 `validateClientAssignerFunctionSource()`。如果你想在作者填写 AIMD var 默认值时提示类型不匹配警告，可使用 `validateVarDefaultType()`。
+如果宿主工具需要在保存或执行前预检 fenced `assigner runtime=client` 函数，可使用 `validateClientAssignerFunctionSource()`。如果你想在作者填写 AIMD var 默认值时提示类型不匹配警告，可使用 `validateVarDefaultType()`。如果工具还需要提示 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格数值约束被用在非数值类型上，可使用 `validateVarKwargs()` 或 `validateVarDefinition()`。
 
 ## 文档
 

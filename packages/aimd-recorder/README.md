@@ -54,6 +54,8 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 
 `AiralogyMarkdown` fields render a full-width embedded AIMD/Markdown editor with the full top toolbar, default to `Source` mode, and still support switching to `WYSIWYG`. Even when the field is authored mid-sentence, recorder lifts it into its own block row instead of keeping it as a tiny inline control.
 
+Numeric `var` inputs honor Pydantic-style constraints such as `gt`, `ge`, `lt`, `le`, and `multiple_of`; these constraints apply to `int`, `integer`, `float`, and `number` var types.
+
 `DNASequence` fields render a dedicated DNA editor with:
 
 - a default `Interactive` mode focused on the sequence viewer

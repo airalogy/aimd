@@ -71,13 +71,18 @@ If your editor, linter, or import pipeline needs parser-level validation before 
 
 ```ts
 import {
+  parseVarDefinition,
   validateClientAssignerFunctionSource,
+  validateVarDefinition,
   validateVarDefaultType,
+  validateVarKwargs,
 } from "@airalogy/aimd-core/parser"
 ```
 
 - `validateClientAssignerFunctionSource(functionSource, id)` rejects unsafe or unsupported frontend `client_assigner` code such as `eval`, `window`, `fetch`, Unicode-escape bypasses, and other non-deterministic constructs.
 - `validateVarDefaultType(def)` returns warning strings when an AIMD var default does not match its declared type.
+- `validateVarKwargs(def)` returns warning strings when supported kwargs are applied to incompatible var definitions, including Pydantic-style numeric constraints (`gt`, `ge`, `lt`, `le`, `multiple_of`) on non-numeric var types.
+- `validateVarDefinition(def)` combines default-value checks and kwargs checks, including nested `subvars`.
 
 ## Further Reading
 

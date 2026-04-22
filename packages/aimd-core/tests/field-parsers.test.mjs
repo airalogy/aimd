@@ -7,7 +7,9 @@ import { unified } from 'unified'
 import {
   protectAimdInlineTemplates,
   remarkAimd,
+  validateVarDefinition,
   validateVarDefaultType,
+  validateVarKwargs,
 } from '../dist/parser.js'
 
 function parseAimd(content) {
@@ -149,6 +151,15 @@ test('var: unquoted string default', () => {
   const { tree } = parseAimd('{{var|unit: str = mL}}')
   const node = findAimdNode(tree)
   assert.equal(node?.definition?.default, 'mL')
+})
+
+test('var: preserves Pydantic-style numeric kwargs', () => {
+  const { tree } = parseAimd('{{var|age: int = 18, title = "Age", ge = 0, lt = 150, multiple_of = 1}}')
+  const node = findAimdNode(tree)
+  assert.equal(node?.definition?.kwargs?.title, 'Age')
+  assert.equal(node?.definition?.kwargs?.ge, 0)
+  assert.equal(node?.definition?.kwargs?.lt, 150)
+  assert.equal(node?.definition?.kwargs?.multiple_of, 1)
 })
 
 // ── parseVarDefinition: subvars ──────────────────────────────────────────────
@@ -559,4 +570,56 @@ test('validateVarDefaultType: no default → no warnings', () => {
 test('validateVarDefaultType: null default → no warnings', () => {
   const warnings = validateVarDefaultType({ id: 'x', type: 'int', default: null })
   assert.equal(warnings.length, 0)
+})
+
+// ── validateVarKwargs ───────────────────────────────────────────────────────
+
+test('validateVarKwargs: numeric constraints are valid on numeric vars', () => {
+  const warnings = validateVarKwargs({ id: 'height_cm', type: 'float', kwargs: { gt: 0, le: 300 } })
+  assert.deepEqual(warnings, [])
+})
+
+test('validateVarKwargs: numeric constraints warn on non-numeric vars', () => {
+  const warnings = validateVarKwargs({ id: 'name', type: 'str', kwargs: { ge: 0 } })
+  assert.equal(warnings.length, 1)
+  assert.match(warnings[0], /numeric constraints \(ge\) only apply to int\/integer\/float\/number variables, not str/)
+})
+
+test('validateVarKwargs: numeric constraints warn on untyped vars', () => {
+  const warnings = validateVarKwargs({ id: 'name', kwargs: { gt: 0 } })
+  assert.equal(warnings.length, 1)
+  assert.match(warnings[0], /not untyped/)
+})
+
+test('validateVarKwargs: numeric constraint values must be numbers', () => {
+  const warnings = validateVarKwargs({ id: 'height_cm', type: 'float', kwargs: { gt: '0' } })
+  assert.deepEqual(warnings, ['"height_cm": numeric constraint "gt" must be a number'])
+})
+
+test('validateVarKwargs: multiple_of must be positive', () => {
+  const warnings = validateVarKwargs({ id: 'step', type: 'int', kwargs: { multiple_of: 0 } })
+  assert.deepEqual(warnings, ['"step": numeric constraint "multiple_of" must be greater than 0'])
+})
+
+test('validateVarKwargs: checks nested subvars', () => {
+  const warnings = validateVarKwargs({
+    id: 'rows',
+    subvars: {
+      label: { id: 'label', type: 'str', kwargs: { lt: 10 } },
+    },
+  })
+  assert.equal(warnings.length, 1)
+  assert.match(warnings[0], /^"label":/)
+})
+
+test('validateVarDefinition: combines default and kwargs warnings', () => {
+  const warnings = validateVarDefinition({
+    id: 'score',
+    type: 'str',
+    default: 12,
+    kwargs: { gt: 0 },
+  })
+  assert.equal(warnings.length, 2)
+  assert.match(warnings[0], /default 12 is not a string/)
+  assert.match(warnings[1], /numeric constraints \(gt\)/)
 })

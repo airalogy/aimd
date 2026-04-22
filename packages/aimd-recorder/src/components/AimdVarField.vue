@@ -9,8 +9,11 @@ import {
   normalizeVarTypeName,
   parseVarInputValue,
   applyVarStackWidth,
+  getNumericConstraintViolation,
+  getNumericInputAttributes,
   syncAutoWrapTextareaHeight,
   toBooleanValue,
+  type NumericInputAttributes,
 } from "../composables/useVarHelpers"
 
 const AimdCodeField = defineAsyncComponent(() => import("./AimdCodeField.vue"))
@@ -45,6 +48,12 @@ export default defineComponent({
       const placeholder = meta?.placeholder ?? getVarPlaceholder(node)
       const displayValue = props.displayValue
       const codeLanguage = resolveAimdCodeEditorLanguage(type, meta) ?? "plaintext"
+      const numericInputAttributes: NumericInputAttributes = inputKind === "number"
+        ? getNumericInputAttributes(type, node.definition?.kwargs)
+        : {}
+      const numericConstraintViolation = inputKind === "number"
+        ? getNumericConstraintViolation(displayValue, type, node.definition?.kwargs)
+        : null
 
       function onVarChange(rawValue: string) {
         const parsed = parseVarInputValue(rawValue, type, inputKind, {
@@ -86,9 +95,14 @@ export default defineComponent({
       }
 
       // Default stacked widget
-      const renderStackedVar = (control: VNode, variantClass?: string): VNode =>
+      const renderStackedVar = (control: VNode, variantClass?: string | string[]): VNode =>
         h("span", {
-          class: ["aimd-rec-inline aimd-rec-inline--var-stacked aimd-field-wrapper aimd-field-wrapper--inline", variantClass, ...extraClasses],
+          class: [
+            "aimd-rec-inline aimd-rec-inline--var-stacked aimd-field-wrapper aimd-field-wrapper--inline",
+            variantClass,
+            numericConstraintViolation ? "aimd-rec-inline--error" : undefined,
+            ...extraClasses,
+          ],
         }, [
           h("span", { class: "aimd-field aimd-field--no-style aimd-field__label" }, [
             h("span", { class: "aimd-field__scope aimd-field__scope--var" }, getAimdRecorderScopeLabel("var", props.messages)),
@@ -179,6 +193,17 @@ export default defineComponent({
       const htmlInputType = inputKind === "datetime"
         ? "datetime-local"
         : (usesDecimalTextInput ? "text" : inputKind)
+      const nativeNumericAttrs: NumericInputAttributes = inputKind === "number" && htmlInputType === "number"
+        ? numericInputAttributes
+        : {}
+
+      function syncNumberValidity(control: HTMLInputElement) {
+        if (inputKind !== "number") {
+          return
+        }
+        const violation = getNumericConstraintViolation(control.value, type, node.definition?.kwargs)
+        control.setCustomValidity(violation ?? "")
+      }
 
       return renderStackedVar(
         h("input", {
@@ -186,17 +211,30 @@ export default defineComponent({
           class: "aimd-rec-inline__input aimd-rec-inline__input--stacked",
           type: htmlInputType,
           inputmode: inputKind === "number" ? (isIntegerInput ? "numeric" : "decimal") : undefined,
+          min: nativeNumericAttrs.min,
+          max: nativeNumericAttrs.max,
           disabled,
           placeholder,
           step: inputKind === "number"
-            ? (isIntegerInput ? "1" : undefined)
+            ? (nativeNumericAttrs.step ?? (isIntegerInput ? "1" : undefined))
             : (inputKind === "time" ? "1" : undefined),
+          title: numericConstraintViolation ?? undefined,
+          "aria-invalid": numericConstraintViolation ? "true" : undefined,
           value: displayValue,
-          onVnodeMounted: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
-          onVnodeUpdated: (vnode: any) => syncCompactControlLayout(vnode.el as HTMLInputElement),
+          onVnodeMounted: (vnode: any) => {
+            const el = vnode.el as HTMLInputElement
+            syncCompactControlLayout(el)
+            syncNumberValidity(el)
+          },
+          onVnodeUpdated: (vnode: any) => {
+            const el = vnode.el as HTMLInputElement
+            syncCompactControlLayout(el)
+            syncNumberValidity(el)
+          },
           onInput: (event: Event) => {
             const el = event.target as HTMLInputElement
             syncCompactControlLayout(el)
+            syncNumberValidity(el)
             onVarChange(el.value)
           },
           onBlur: onVarBlur,

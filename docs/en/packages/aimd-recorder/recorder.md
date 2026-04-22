@@ -53,6 +53,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `DNASequence` renders a dedicated sequence widget with interactive and raw-structure modes, file import/export, topology switching, feature editing, and `SeqViz`-based visualization.
 - `ref_var` references display current var values as readonly inline content when available.
 - `choice`, `blank`, `open`, and `scale` quiz types all have built-in recorder inputs.
+- Numeric `var` inputs honor Pydantic-style constraints such as `gt`, `ge`, `lt`, `le`, and `multiple_of`; these constraints apply to `int`, `integer`, `float`, and `number` var types.
 
 ## Client Assigner
 

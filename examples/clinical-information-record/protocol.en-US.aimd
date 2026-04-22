@@ -52,9 +52,9 @@ Current medications: {{var_table|current_medications, subvars=[medication_name: 
 
 ## Signs and Assessment
 
-Height: {{var|height_cm: float, title = "Height cm"}}
+Height: {{var|height_cm: float, title = "Height cm", gt = 0}}
 
-Weight: {{var|weight_kg: float, title = "Weight kg"}}
+Weight: {{var|weight_kg: float, title = "Weight kg", gt = 0}}
 
 BMI: {{var|bmi: float, title = "BMI"}}
 
@@ -114,7 +114,7 @@ assigner(
   function calculate_bmi({ height_cm, weight_kg }) {
     const height = Number(height_cm) / 100;
     const weight = Number(weight_kg);
-    if (!height || !weight) {
+    if (height <= 0 || weight <= 0) {
       return {
         bmi: "",
       };

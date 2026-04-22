@@ -54,6 +54,8 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 
 `AiralogyMarkdown` 字段会渲染一个横铺内嵌的 AIMD/Markdown 编辑器，默认进入 `源码` 模式，并保留完整顶部工具栏，同时支持切换到 `所见即所得`。即使它写在一行文字中间，recorder 也会把这个字段提升成下一行的块级编辑区，而不是继续当成段内小控件。
 
+数值 `var` 输入会识别 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格约束；这些约束只对 `int`、`integer`、`float`、`number` 类型生效。
+
 `DNASequence` 字段会渲染一个专用 DNA 编辑器，支持：
 
 - 默认以 `交互式` 模式进行可视化编辑

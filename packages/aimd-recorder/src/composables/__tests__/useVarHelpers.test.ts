@@ -11,6 +11,9 @@ import {
   formatDateForInput,
   getVarInputDisplayValue,
   parseVarInputValue,
+  getNumericConstraintViolation,
+  getNumericFieldConstraints,
+  getNumericInputAttributes,
   calculateVarStackWidth,
   syncAutoWrapTextareaHeight,
 } from '../useVarHelpers'
@@ -107,6 +110,47 @@ describe('getVarInputKind', () => {
     expect(getVarInputKind('str', { inputType: 'code', codeLanguage: 'python' })).toBe('code')
     expect(getVarInputKind('str', { inputType: 'yaml' })).toBe('code')
     expect(getVarInputKind('str', { codeLanguage: 'sql' })).toBe('code')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Numeric Pydantic-style constraints
+// ---------------------------------------------------------------------------
+
+describe('numeric field constraints', () => {
+  it('reads Pydantic-style numeric constraints only for numeric var types', () => {
+    expect(getNumericFieldConstraints('float', { gt: 0, le: 100, multiple_of: 0.5 })).toEqual({
+      gt: 0,
+      le: 100,
+      multiple_of: 0.5,
+    })
+    expect(getNumericFieldConstraints('str', { gt: 0 })).toEqual({})
+  })
+
+  it('maps inclusive native input attributes from numeric constraints', () => {
+    expect(getNumericInputAttributes('int', { ge: 0, le: 10, multiple_of: 2 })).toEqual({
+      min: 0,
+      max: 10,
+      step: 2,
+    })
+    expect(getNumericInputAttributes('float', { gt: 0, lt: 1 })).toEqual({
+      min: 0,
+      max: 1,
+      step: undefined,
+    })
+  })
+
+  it('validates strict and inclusive numeric bounds without treating empty values as violations', () => {
+    expect(getNumericConstraintViolation('', 'float', { gt: 0 })).toBeNull()
+    expect(getNumericConstraintViolation(0, 'float', { gt: 0 })).toBe('Must be > 0')
+    expect(getNumericConstraintViolation(0, 'float', { ge: 0 })).toBeNull()
+    expect(getNumericConstraintViolation(10, 'float', { lt: 10 })).toBe('Must be < 10')
+    expect(getNumericConstraintViolation(10, 'float', { le: 10 })).toBeNull()
+  })
+
+  it('validates numeric multiples', () => {
+    expect(getNumericConstraintViolation(4, 'int', { multiple_of: 2 })).toBeNull()
+    expect(getNumericConstraintViolation(5, 'int', { multiple_of: 2 })).toBe('Must be a multiple of 2')
   })
 })
 

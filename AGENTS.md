@@ -18,6 +18,14 @@
 - Keep English and Chinese docs aligned in scope unless the user explicitly asks otherwise.
 - Keep package README concise and onboarding-focused; put fuller explanations and API usage in `docs/`.
 
+## Implementation Completion Checklist For AI Agents
+
+- For any feature, bug fix, or user-visible refinement in `packages/*`, finish by checking whether the change needs tests, docs/demo updates, and release metadata.
+- Add or update focused tests for parser behavior, recorder/editor UI behavior, or regression coverage when the change affects those areas.
+- If the change affects published package behavior, add a Changesets entry; do not manually edit package `CHANGELOG.md` files during normal feature work.
+- If no Changesets entry is needed, be ready to state why in the final response.
+- In the final response, summarize the affected packages and the verification commands that were run.
+
 ## Demo Sample Expectations
 
 - `demo/src/composables/sampleContent.aimd` is the canonical interactive sample used across AIMD demos.

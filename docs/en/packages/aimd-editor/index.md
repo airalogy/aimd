@@ -41,6 +41,8 @@ monaco.languages.registerCompletionItemProvider("aimd", completionItemProvider)
 - [Vue Editor](/en/packages/aimd-editor/vue-editor): use `AimdEditor` for the standard source/WYSIWYG authoring workflow.
 - [Embedded Surfaces](/en/packages/aimd-editor/embedded): embed `AimdWysiwygEditor`, constrain field insertion, or inject host-specific Milkdown plugins.
 
+The Vue source editor reports parser-level semantic warnings for AIMD var definitions, including default/type mismatches and Pydantic-style numeric constraint kwargs used on non-numeric types.
+
 ## Notes
 
 - AIMD syntax keywords remain English, such as `type: choice` and `mode: single`.
