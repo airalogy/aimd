@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { h, nextTick, reactive } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AimdCheckNode, AimdStepNode } from '@airalogy/aimd-core/types'
@@ -6,6 +6,46 @@ import type { AimdCheckNode, AimdStepNode } from '@airalogy/aimd-core/types'
 import { createAimdRecorderMessages } from '../locales'
 import { AimdCheckField, AimdStepField } from '../components/AimdStepCheckField.vue'
 import { createEmptyStepRecordItem, startStepTimer } from '../composables/useStepTimers'
+
+vi.mock('@airalogy/aimd-editor/vue', async () => {
+  const { defineComponent, h } = await import('vue')
+
+  return {
+    AimdEditor: defineComponent({
+      name: 'AimdEditorMock',
+      props: {
+        modelValue: {
+          type: String,
+          default: '',
+        },
+      },
+      emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        return () => h('textarea', {
+          class: 'aimd-editor-mock',
+          value: props.modelValue,
+          onInput: (event: Event) => emit('update:modelValue', (event.target as HTMLTextAreaElement).value),
+        })
+      },
+    }),
+  }
+})
+
+vi.mock('@airalogy/aimd-renderer', async () => {
+  const { h } = await import('vue')
+
+  return {
+    renderToVue: async (content: string) => ({
+      nodes: [h('div', { class: 'aimd-rendered-note' }, content)],
+      fields: {},
+    }),
+  }
+})
+
+async function flushStepFieldAsync() {
+  await flushPromises()
+  await nextTick()
+}
 
 describe('AimdStepField', () => {
   afterEach(() => {
@@ -68,7 +108,7 @@ describe('AimdStepField', () => {
     expect(wrapper.find('input[type="checkbox"]').exists()).toBe(true)
   })
 
-  it('shows the annotation detail when a note already exists in auto mode', () => {
+  it('shows the annotation detail when a note already exists in auto mode', async () => {
     const state = reactive({
       ...createEmptyStepRecordItem(),
       annotation: 'Keep on ice',
@@ -79,6 +119,8 @@ describe('AimdStepField', () => {
         state,
       },
     })
+
+    await flushStepFieldAsync()
 
     expect(wrapper.find('.aimd-step-field__details').exists()).toBe(true)
     expect(wrapper.find('.aimd-step-field__detail--annotation').exists()).toBe(true)
@@ -96,7 +138,7 @@ describe('AimdStepField', () => {
     })
 
     await wrapper.find('.aimd-step-field__toggle--annotation').trigger('click')
-    await nextTick()
+    await flushStepFieldAsync()
 
     expect(wrapper.find('.aimd-step-field__details').exists()).toBe(true)
     expect(wrapper.find('.aimd-step-field__detail--annotation').exists()).toBe(true)
@@ -134,6 +176,8 @@ describe('AimdStepField', () => {
         state,
       },
     })
+
+    await flushStepFieldAsync()
 
     expect(wrapper.text()).toContain('ETA 1m 30s')
     expect(wrapper.text()).toContain('Timer 0s')
