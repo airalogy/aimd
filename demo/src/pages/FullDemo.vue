@@ -12,7 +12,7 @@ import '@airalogy/aimd-recorder/styles'
 import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useDemoExampleContent } from '../composables/sampleContent'
+import { DEFAULT_DEMO_EXAMPLE_ID, useDemoExampleContent } from '../composables/sampleContent'
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
 const {
@@ -20,7 +20,7 @@ const {
   selectedExampleId,
   loadExample,
   resetToSelectedExample,
-} = useDemoExampleContent(undefined, locale)
+} = useDemoExampleContent(DEFAULT_DEMO_EXAMPLE_ID, locale)
 
 // --- Preview ---
 const htmlOutput = ref('')

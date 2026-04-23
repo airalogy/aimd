@@ -4,7 +4,7 @@ import { createStepCardRenderer, renderToHtml, renderToVue, parseAndExtract } fr
 import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import DemoAimdSourceEditor from '../components/DemoAimdSourceEditor.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useDemoExampleContent } from '../composables/sampleContent'
+import { DEFAULT_DEMO_EXAMPLE_ID, useDemoExampleContent } from '../composables/sampleContent'
 import '@airalogy/aimd-recorder/styles'
 
 const { locale } = useDemoLocale()
@@ -14,7 +14,7 @@ const {
   selectedExampleId,
   loadExample,
   resetToSelectedExample,
-} = useDemoExampleContent(undefined, locale)
+} = useDemoExampleContent(DEFAULT_DEMO_EXAMPLE_ID, locale)
 const htmlOutput = ref('')
 const fieldsOutput = ref('')
 const vueNodes = ref<VNode[]>([])

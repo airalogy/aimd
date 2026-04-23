@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { AimdEditor } from '@airalogy/aimd-editor'
 import DemoExamplePicker from '../components/DemoExamplePicker.vue'
 import { useDemoLocale, useDemoMessages } from '../composables/demoI18n'
-import { useDemoExampleContent } from '../composables/sampleContent'
+import { DEFAULT_DEMO_EXAMPLE_ID, useDemoExampleContent } from '../composables/sampleContent'
 
 const { locale } = useDemoLocale()
 const messages = useDemoMessages()
@@ -12,7 +12,7 @@ const {
   selectedExampleId,
   loadExample,
   resetToSelectedExample,
-} = useDemoExampleContent(undefined, locale)
+} = useDemoExampleContent(DEFAULT_DEMO_EXAMPLE_ID, locale)
 const mode = ref<'source' | 'wysiwyg'>('source')
 
 function handleExampleSelect(id: string) {
