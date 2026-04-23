@@ -35,16 +35,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
 
       - name: Enable pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.32.1 --activate
-
-      - name: Update npm for Trusted Publishing
-        run: npm install -g npm@latest
 
       - name: Print package manager versions
         run: |
