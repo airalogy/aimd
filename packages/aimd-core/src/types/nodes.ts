@@ -40,16 +40,28 @@ export type AimdScope =
 /**
  * AIMD quiz metadata
  */
-export type AimdQuizType = "choice" | "blank" | "open" | "scale"
+export type AimdQuizType = "choice" | "true_false" | "blank" | "open" | "scale"
 export type AimdQuizMode = "single" | "multiple"
 export type AimdStepTimerMode = "elapsed" | "countdown" | "both"
 export type AimdScaleDisplay = "matrix" | "list"
+export type AimdQuizFollowupType = "str" | "int" | "float" | "bool"
+
+export interface AimdQuizFollowupField {
+  key: string
+  type: AimdQuizFollowupType
+  required: boolean
+  title?: string
+  description?: string
+  unit?: string
+  default?: string | number | boolean
+}
 
 export interface AimdQuizOption {
   key: string
   text: string
   explanation?: string
   points?: number
+  followups?: AimdQuizFollowupField[]
 }
 
 export interface AimdQuizBlank {
@@ -132,7 +144,7 @@ export interface AimdQuizNode extends BaseNode {
   mode?: AimdQuizMode
   display?: AimdScaleDisplay
   options?: AimdQuizOption[]
-  answer?: string | string[]
+  answer?: string | string[] | boolean
   blanks?: AimdQuizBlank[]
   items?: AimdQuizScaleItem[]
   rubric?: string

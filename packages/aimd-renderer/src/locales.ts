@@ -26,6 +26,7 @@ export interface AimdRendererMessages {
       choice: string
       singleChoice: string
       multipleChoice: string
+      trueFalse: string
       blank: string
       open: string
       scale: string
@@ -86,6 +87,7 @@ const EN_US_MESSAGES: AimdRendererMessages = {
       choice: "choice",
       singleChoice: "Single choice",
       multipleChoice: "Multiple choice",
+      trueFalse: "True/false",
       blank: "blank",
       open: "open",
       scale: "scale",
@@ -122,6 +124,7 @@ const ZH_CN_MESSAGES: AimdRendererMessages = {
       choice: "选择",
       singleChoice: "单选",
       multipleChoice: "多选",
+      trueFalse: "判断",
       blank: "填空",
       open: "开放",
       scale: "量表",
@@ -246,6 +249,8 @@ export function getAimdRendererQuizTypeLabel(
       return messages.quiz.types.choice
     case "blank":
       return messages.quiz.types.blank
+    case "true_false":
+      return messages.quiz.types.trueFalse
     case "open":
       return messages.quiz.types.open
     case "scale":

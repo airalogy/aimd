@@ -1,5 +1,7 @@
 import type {
   AimdQuizBlank,
+  AimdQuizFollowupField,
+  AimdQuizFollowupType,
   AimdQuizMode,
   AimdQuizNode,
   AimdQuizOption,
@@ -24,6 +26,11 @@ import { parseDocument } from "yaml"
 
 const BLANK_PLACEHOLDER_PATTERN = /\[\[([^\[\]\s]+)\]\]/g
 const QUIZ_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/
+const TRUE_FALSE_OPTION_KEYS = ["true", "false"] as const
+const DEFAULT_TRUE_FALSE_OPTIONS: AimdQuizOption[] = [
+  { key: "true", text: "True" },
+  { key: "false", text: "False" },
+]
 const TEXT_NORMALIZE_RULES = new Set<AimdQuizTextNormalizeRule>([
   "trim",
   "lowercase",
@@ -62,13 +69,13 @@ function parseQuizYamlMapping(content: string): Record<string, unknown> {
 
 function normalizeQuizType(value: unknown): AimdQuizType {
   if (typeof value !== "string") {
-    throw new Error("quiz type is required (choice, blank, open, scale)")
+    throw new Error("quiz type is required (choice, true_false, blank, open, scale)")
   }
   const normalized = value.trim().toLowerCase()
-  if (normalized === "choice" || normalized === "blank" || normalized === "open" || normalized === "scale") {
+  if (normalized === "choice" || normalized === "true_false" || normalized === "blank" || normalized === "open" || normalized === "scale") {
     return normalized
   }
-  throw new Error("Invalid quiz type, expected one of: choice, blank, open, scale")
+  throw new Error("Invalid quiz type, expected one of: choice, true_false, blank, open, scale")
 }
 
 function normalizeQuizKey(key: unknown, sectionName: string): string {
@@ -104,6 +111,187 @@ function normalizeScaleDisplay(value: unknown): AimdScaleDisplay {
     return normalized
   }
   throw new Error("scale display must be one of: matrix, list")
+}
+
+function normalizeFollowupType(value: unknown, fieldName: string): AimdQuizFollowupType {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new Error(`${fieldName}.type must be one of: str, int, float, bool`)
+  }
+
+  const normalized = value.trim()
+  if (normalized === "str" || normalized === "int" || normalized === "float" || normalized === "bool") {
+    return normalized
+  }
+
+  throw new Error(`${fieldName}.type must be one of: str, int, float, bool`)
+}
+
+function followupValueMatchesType(value: unknown, fieldType: AimdQuizFollowupType): boolean {
+  switch (fieldType) {
+    case "str":
+      return typeof value === "string"
+    case "int":
+      return typeof value === "number" && Number.isInteger(value)
+    case "float":
+      return typeof value === "number" && Number.isFinite(value)
+    case "bool":
+      return typeof value === "boolean"
+    default:
+      return false
+  }
+}
+
+function normalizeChoiceFollowups(value: unknown, optionKey: string): AimdQuizFollowupField[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`options.${optionKey}.followups must be a non-empty list`)
+  }
+
+  const normalized: AimdQuizFollowupField[] = []
+  const seenKeys = new Set<string>()
+  for (const item of value) {
+    if (!isPlainObject(item)) {
+      throw new Error(`options.${optionKey}.followups must be a list of objects`)
+    }
+
+    const rawKey = typeof item.key === "string" ? item.key.trim() : ""
+    if (!rawKey) {
+      throw new Error(`Each options.${optionKey}.followups item must include a non-empty key`)
+    }
+    const key = normalizeQuizKey(rawKey, `options.${optionKey}.followups`)
+    if (seenKeys.has(key)) {
+      throw new Error(`Duplicate key in options.${optionKey}.followups: ${key}`)
+    }
+    seenKeys.add(key)
+
+    const fieldType = normalizeFollowupType(item.type, `options.${optionKey}.followups.${key}`)
+    const followup: AimdQuizFollowupField = {
+      key,
+      type: fieldType,
+      required: true,
+    }
+
+    if (item.required !== undefined) {
+      if (typeof item.required !== "boolean") {
+        throw new Error(`options.${optionKey}.followups.${key}.required must be a boolean`)
+      }
+      followup.required = item.required
+    }
+
+    for (const field of ["title", "description", "unit"] as const) {
+      const valueForField = item[field]
+      if (valueForField === undefined || valueForField === null) {
+        continue
+      }
+      if (typeof valueForField !== "string" || !valueForField.trim()) {
+        throw new Error(`options.${optionKey}.followups.${key}.${field} must be a non-empty string`)
+      }
+      followup[field] = valueForField.trim()
+    }
+
+    if ("default" in item) {
+      if (!followupValueMatchesType(item.default, fieldType)) {
+        throw new Error(`options.${optionKey}.followups.${key}.default must match type ${fieldType}`)
+      }
+      followup.default = item.default as string | number | boolean
+    }
+
+    normalized.push(followup)
+  }
+
+  return normalized
+}
+
+function normalizeChoiceOptions(value: unknown): AimdQuizOption[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error("options must be a non-empty list")
+  }
+
+  const normalized: AimdQuizOption[] = []
+  const seenKeys = new Set<string>()
+  for (const item of value) {
+    if (!isPlainObject(item)) {
+      throw new Error("options must be a list of objects")
+    }
+
+    const rawKey = typeof item.key === "string" ? item.key.trim() : ""
+    const text = item.text === undefined || item.text === null
+      ? ""
+      : String(item.text).trim()
+    if (!rawKey || !text) {
+      throw new Error("Each options item must include non-empty fields: key, text")
+    }
+    const key = normalizeQuizKey(rawKey, "options")
+    if (seenKeys.has(key)) {
+      throw new Error(`Duplicate key in options: ${key}`)
+    }
+    seenKeys.add(key)
+
+    const option: AimdQuizOption = { key, text }
+    if (typeof item.explanation === "string" && item.explanation.trim()) {
+      option.explanation = item.explanation.trim()
+    }
+    if (item.followups !== undefined) {
+      option.followups = normalizeChoiceFollowups(item.followups, key)
+    }
+
+    normalized.push(option)
+  }
+
+  return normalized
+}
+
+function normalizeTrueFalseOptionKey(value: unknown, fieldName: string): "true" | "false" {
+  const normalized = typeof value === "boolean"
+    ? String(value)
+    : String(value ?? "").trim().toLowerCase()
+  if (normalized === "true" || normalized === "false") {
+    return normalized
+  }
+  throw new Error(`${fieldName} must be true or false`)
+}
+
+function normalizeTrueFalseOptions(value: unknown): AimdQuizOption[] {
+  if (value === undefined) {
+    return DEFAULT_TRUE_FALSE_OPTIONS.map(option => ({ ...option }))
+  }
+  if (!Array.isArray(value) || value.length !== 2) {
+    throw new Error("true_false options must contain exactly two items: true and false")
+  }
+
+  const normalized: AimdQuizOption[] = []
+  const seenKeys = new Set<string>()
+  for (const item of value) {
+    if (!isPlainObject(item)) {
+      throw new Error("true_false options must be a list of objects")
+    }
+
+    const key = normalizeTrueFalseOptionKey(item.key, "true_false option key")
+    if (seenKeys.has(key)) {
+      throw new Error(`Duplicate key in true_false options: ${key}`)
+    }
+    seenKeys.add(key)
+
+    const text = item.text === undefined || item.text === null
+      ? ""
+      : String(item.text).trim()
+    if (!text) {
+      throw new Error(`true_false options.${key}.text must be a non-empty string`)
+    }
+
+    const option: AimdQuizOption = { key, text }
+    if (typeof item.explanation === "string" && item.explanation.trim()) {
+      option.explanation = item.explanation.trim()
+    }
+    normalized.push(option)
+  }
+
+  for (const key of TRUE_FALSE_OPTION_KEYS) {
+    if (!seenKeys.has(key)) {
+      throw new Error("true_false options must include both true and false")
+    }
+  }
+
+  return normalized
 }
 
 type NormalizedQuizKeyedItem<
@@ -431,9 +619,12 @@ function normalizeGradingConfig(
     ? strategyValue.trim()
     : undefined
 
-  if (quizType === "choice") {
+  if (quizType === "choice" || quizType === "true_false") {
     if (strategy !== undefined && strategy !== "auto" && strategy !== "exact_match" && strategy !== "partial_credit" && strategy !== "option_points") {
-      throw new Error("choice grading.strategy must be one of: auto, exact_match, partial_credit, option_points")
+      throw new Error("choice/true_false grading.strategy must be one of: auto, exact_match, partial_credit, option_points")
+    }
+    if (quizType === "true_false" && strategy === "partial_credit") {
+      throw new Error("true_false grading.strategy cannot be partial_credit")
     }
     const config: AimdChoiceQuizGradingConfig = {}
     if (strategy !== undefined) {
@@ -538,6 +729,27 @@ function normalizeChoiceAnswer(
   return normalized
 }
 
+function normalizeTrueFalseAnswer(
+  value: unknown,
+  fieldName: "answer" | "default",
+): boolean {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === "true") {
+      return true
+    }
+    if (normalized === "false") {
+      return false
+    }
+  }
+
+  throw new Error(`true_false ${fieldName} must be true or false`)
+}
+
 function validateBlankPlaceholders(stem: string, blankKeys: string[]): void {
   const placeholderKeys = [...stem.matchAll(BLANK_PLACEHOLDER_PATTERN)].map(match => match[1])
   if (placeholderKeys.length === 0) {
@@ -640,12 +852,7 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
 
   if (quizType === "choice") {
     const mode = normalizeChoiceMode(data.mode)
-    const options: AimdQuizOption[] = normalizeQuizKeyedItems(
-      data.options,
-      "options",
-      ["key", "text"] as const,
-      ["explanation"] as const,
-    )
+    const options = normalizeChoiceOptions(data.options)
     const optionKeys = options.map(option => option.key)
 
     const answerValue = data.answer
@@ -678,6 +885,56 @@ export function parseQuizContent(content: string): { node: AimdQuizNode, field: 
       "stem",
       "score",
       "mode",
+      "options",
+      "answer",
+      "default",
+      "grading",
+      "title",
+      "description",
+    ])
+    const extraEntries = Object.entries(data).filter(([key]) => !reservedKeys.has(key))
+    if (extraEntries.length > 0) {
+      const extra = Object.fromEntries(extraEntries)
+      field.extra = extra
+      node.extra = extra
+    }
+
+    return { node, field }
+  }
+
+  if (quizType === "true_false") {
+    const options = normalizeTrueFalseOptions(data.options)
+    const optionKeys = options.map(option => option.key)
+
+    const answerValue = data.answer
+    if (answerValue !== undefined) {
+      const normalizedAnswer = normalizeTrueFalseAnswer(answerValue, "answer")
+      field.answer = normalizedAnswer
+      node.answer = normalizedAnswer
+    }
+
+    const defaultValue = data.default
+    if (defaultValue !== undefined) {
+      const normalizedDefault = normalizeTrueFalseAnswer(defaultValue, "default")
+      field.default = normalizedDefault
+      node.default = normalizedDefault
+    }
+
+    field.mode = "single"
+    field.options = options
+    node.mode = "single"
+    node.options = options
+    if (data.grading !== undefined) {
+      const grading = normalizeGradingConfig(data.grading, quizType, { optionKeys })
+      field.grading = grading
+      node.grading = grading
+    }
+
+    const reservedKeys = new Set([
+      "id",
+      "type",
+      "stem",
+      "score",
       "options",
       "answer",
       "default",

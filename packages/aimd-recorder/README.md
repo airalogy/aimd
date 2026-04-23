@@ -221,6 +221,8 @@ const quiz = {
 </template>
 ```
 
+If a choice option defines `followups`, the recorder renders those inputs after the option is selected. For those quizzes, `v-model` uses `{ selected, followups }`; choice quizzes without followups keep the legacy string or string-array answer format.
+
 `AimdQuizRecorder` also supports `scale` quizzes. For deterministic scales, you can either pass an external `grade` result or let the recorder reveal a local score/classification via `scaleGradeDisplayMode="completed"` or `scaleGradeDisplayMode="submitted"`.
 
 ## Documentation

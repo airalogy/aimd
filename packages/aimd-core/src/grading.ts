@@ -204,12 +204,35 @@ function getChoiceScoringStrategy(
   return getChoiceOptionPoints(config) ? "option_points" : "exact_match"
 }
 
+function choiceTemplateHasFollowups(quiz: AimdQuizField): boolean {
+  return quiz.type === "choice"
+    && Array.isArray(quiz.options)
+    && quiz.options.some(option => Array.isArray(option.followups) && option.followups.length > 0)
+}
+
+function isOptionBasedQuiz(quiz: AimdQuizField): boolean {
+  return quiz.type === "choice" || quiz.type === "true_false"
+}
+
+function getChoiceSelectedAnswer(quiz: AimdQuizField, answer: unknown): unknown {
+  if (
+    choiceTemplateHasFollowups(quiz)
+    && typeof answer === "object"
+    && answer !== null
+    && !Array.isArray(answer)
+  ) {
+    return (answer as Record<string, unknown>).selected
+  }
+
+  return answer
+}
+
 function resolveChoiceOptionPointsMaxScore(
   quiz: AimdQuizField,
   config: AimdChoiceQuizGradingConfig | undefined,
 ): number | null {
   const optionPoints = getChoiceOptionPoints(config)
-  if (!optionPoints || quiz.type !== "choice" || !Array.isArray(quiz.options) || quiz.options.length === 0) {
+  if (!optionPoints || !isOptionBasedQuiz(quiz) || !Array.isArray(quiz.options) || quiz.options.length === 0) {
     return null
   }
 
@@ -218,12 +241,27 @@ function resolveChoiceOptionPointsMaxScore(
     return isFiniteNumber(value) ? value : 0
   })
 
-  if (quiz.mode === "single") {
+  if (quiz.type === "true_false" || quiz.mode === "single") {
     return roundScore(Math.max(0, ...scores))
   }
 
   const total = scores.reduce((sum, value) => sum + (value > 0 ? value : 0), 0)
   return roundScore(Math.max(0, total))
+}
+
+function normalizeTrueFalseAnswerKey(answer: unknown): "true" | "false" | null {
+  if (typeof answer === "boolean") {
+    return String(answer) as "true" | "false"
+  }
+
+  if (typeof answer === "string") {
+    const normalized = answer.trim().toLowerCase()
+    if (normalized === "true" || normalized === "false") {
+      return normalized
+    }
+  }
+
+  return null
 }
 
 function getScaleScoringStrategy(
@@ -427,7 +465,7 @@ export function resolveQuizMaxScore(quiz: AimdQuizField): number {
     return roundScore(quiz.score)
   }
 
-  if (quiz.type === "choice") {
+  if (isOptionBasedQuiz(quiz)) {
     const inferredChoiceScore = resolveChoiceOptionPointsMaxScore(
       quiz,
       quiz.grading as AimdChoiceQuizGradingConfig | undefined,
@@ -464,14 +502,19 @@ function isUnansweredQuizAnswer(quiz: AimdQuizField, answer: unknown): boolean {
   }
 
   if (quiz.type === "choice") {
+    const selectedAnswer = getChoiceSelectedAnswer(quiz, answer)
     if (quiz.mode === "single") {
-      return typeof answer === "string" && answer.trim().length === 0
+      return typeof selectedAnswer === "string" && selectedAnswer.trim().length === 0
     }
     if (quiz.mode === "multiple") {
-      return Array.isArray(answer)
-        && answer.filter((item): item is string => typeof item === "string" && item.trim().length > 0).length === 0
+      return Array.isArray(selectedAnswer)
+        && selectedAnswer.filter((item): item is string => typeof item === "string" && item.trim().length > 0).length === 0
     }
     return false
+  }
+
+  if (quiz.type === "true_false") {
+    return typeof answer === "string" && answer.trim().length === 0
   }
 
   if (quiz.type === "blank") {
@@ -504,9 +547,10 @@ function gradeChoiceQuiz(
   const config = quiz.grading as AimdChoiceQuizGradingConfig | undefined
   const strategy = getChoiceScoringStrategy(config)
   const optionPoints = getChoiceOptionPoints(config)
+  const selectedAnswer = getChoiceSelectedAnswer(quiz, answer)
 
   if (quiz.mode === "single") {
-    if (typeof answer !== "string") {
+    if (typeof selectedAnswer !== "string") {
       return {
         quiz_id: quiz.id,
         earned_score: 0,
@@ -518,7 +562,7 @@ function gradeChoiceQuiz(
     }
 
     if (strategy === "option_points") {
-      const rawScore = optionPoints?.[answer] ?? 0
+      const rawScore = optionPoints?.[selectedAnswer] ?? 0
       const earnedScore = roundScore(clamp(isFiniteNumber(rawScore) ? rawScore : 0, 0, maxScore))
       return {
         quiz_id: quiz.id,
@@ -541,7 +585,7 @@ function gradeChoiceQuiz(
       }
     }
 
-    const correct = typeof officialAnswer === "string" && answer === officialAnswer
+    const correct = typeof officialAnswer === "string" && selectedAnswer === officialAnswer
     return {
       quiz_id: quiz.id,
       earned_score: correct ? maxScore : 0,
@@ -551,7 +595,7 @@ function gradeChoiceQuiz(
     }
   }
 
-  if (!Array.isArray(answer)) {
+  if (!Array.isArray(selectedAnswer)) {
     return {
       quiz_id: quiz.id,
       earned_score: 0,
@@ -562,7 +606,7 @@ function gradeChoiceQuiz(
     }
   }
 
-  const selected = new Set(answer.filter((item): item is string => typeof item === "string"))
+  const selected = new Set(selectedAnswer.filter((item): item is string => typeof item === "string"))
 
   if (strategy === "option_points") {
     const rawScore = [...selected].reduce((sum, key) => {
@@ -620,6 +664,61 @@ function gradeChoiceQuiz(
     earned_score: exactMatch ? maxScore : 0,
     max_score: maxScore,
     status: exactMatch ? "correct" : "incorrect",
+    method: "exact_match",
+  }
+}
+
+function gradeTrueFalseQuiz(
+  quiz: AimdQuizField,
+  answer: unknown,
+  maxScore: number,
+): AimdQuizGradeResult {
+  const config = quiz.grading as AimdChoiceQuizGradingConfig | undefined
+  const strategy = getChoiceScoringStrategy(config)
+  const optionPoints = getChoiceOptionPoints(config)
+  const selectedKey = normalizeTrueFalseAnswerKey(answer)
+
+  if (!selectedKey) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "error",
+      method: "invalid_answer",
+      feedback: "True/false grading expects a boolean answer.",
+    }
+  }
+
+  if (strategy === "option_points") {
+    const rawScore = optionPoints?.[selectedKey] ?? 0
+    const earnedScore = roundScore(clamp(isFiniteNumber(rawScore) ? rawScore : 0, 0, maxScore))
+    return {
+      quiz_id: quiz.id,
+      earned_score: earnedScore,
+      max_score: maxScore,
+      status: inferStatus(earnedScore, maxScore),
+      method: "option_points",
+    }
+  }
+
+  const officialKey = normalizeTrueFalseAnswerKey(quiz.answer)
+  if (!officialKey) {
+    return {
+      quiz_id: quiz.id,
+      earned_score: 0,
+      max_score: maxScore,
+      status: "ungraded",
+      method: "manual",
+      feedback: "This true/false quiz does not define an answer key.",
+    }
+  }
+
+  const correct = selectedKey === officialKey
+  return {
+    quiz_id: quiz.id,
+    earned_score: correct ? maxScore : 0,
+    max_score: maxScore,
+    status: correct ? "correct" : "incorrect",
     method: "exact_match",
   }
 }
@@ -834,6 +933,10 @@ export async function gradeQuizAnswer(
 
   if (quiz.type === "choice") {
     return gradeChoiceQuiz(quiz, answer, maxScore)
+  }
+
+  if (quiz.type === "true_false") {
+    return gradeTrueFalseQuiz(quiz, answer, maxScore)
   }
 
   if (quiz.type === "scale") {

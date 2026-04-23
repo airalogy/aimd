@@ -52,7 +52,7 @@ const record = ref<AimdProtocolRecordData>(createEmptyProtocolRecordData())
 - `AiralogyMarkdown` 会渲染为横铺的 AIMD/Markdown 内嵌编辑器，默认打开 `源码` 模式，同时保留切换到 `所见即所得` 的能力。
 - `DNASequence` 会渲染专用序列控件，支持交互式模式、原始结构模式、文件导入导出、拓扑切换、feature 编辑，以及基于 `SeqViz` 的可视化。
 - `ref_var` 如果已有记录值，会优先以内联只读内容显示当前值。
-- `choice`、`blank`、`open`、`scale` 四类 quiz 都有内建 recorder 输入。
+- `choice`、`true_false`、`blank`、`open`、`scale` 五类 quiz 都有内建 recorder 输入。
 - 数值 `var` 输入会识别 `gt`、`ge`、`lt`、`le`、`multiple_of` 这类 Pydantic 风格约束；这些约束只对 `int`、`integer`、`float`、`number` 类型生效。
 - client assigner 会用同一组数值约束判断依赖是否就绪；依赖字段违反声明边界时会跳过执行。
 
@@ -122,6 +122,8 @@ const quiz = {
   <AimdQuizRecorder v-model="answer" :quiz="quiz" />
 </template>
 ```
+
+如果某个 choice 选项定义了 `followups`，recorder 只会在该选项被选中后显示这些补充输入。这类题目的答案值结构为 `{ selected, followups }`；普通 choice 题继续使用原来的字符串或字符串数组格式。
 
 ## 显示评分结果
 

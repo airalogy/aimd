@@ -298,7 +298,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
           : null,
       ]
 
-      if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
+      if ((quizType === "choice" || quizType === "true_false") && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
         previewChildren.push(
           h("ul", { class: "aimd-quiz__options" }, quizNode.options.map(opt =>
             h("li", `${opt.key}. ${opt.text}`),
@@ -313,7 +313,7 @@ const defaultAimdRenderers: Record<string, AimdComponentRenderer> = {
 
       const quizPreview = resolveQuizPreviewOptionsFromContext(ctx)
 
-      if (quizPreview.showAnswers && quizType === "choice" && quizNode.answer !== undefined) {
+      if (quizPreview.showAnswers && (quizType === "choice" || quizType === "true_false") && quizNode.answer !== undefined) {
         const answerText = Array.isArray(quizNode.answer)
           ? quizNode.answer.join(", ")
           : String(quizNode.answer)

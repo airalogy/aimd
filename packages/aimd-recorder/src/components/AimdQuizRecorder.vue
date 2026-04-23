@@ -6,6 +6,7 @@ import {
 } from "@airalogy/aimd-core"
 import {
   type AimdQuizField,
+  type AimdQuizFollowupField,
   type AimdQuizGradeResult,
 } from "@airalogy/aimd-core/types"
 import type { AimdRecorderMessagesInput } from "../locales"
@@ -27,6 +28,8 @@ interface StemBlankSegment {
 }
 
 type StemSegment = StemTextSegment | StemBlankSegment
+type ChoiceFollowupPrimitive = string | number | boolean
+type ChoiceFollowupAnswerMap = Record<string, Record<string, ChoiceFollowupPrimitive>>
 
 const props = withDefaults(defineProps<{
   quiz: AimdQuizField
@@ -92,20 +95,134 @@ const stemSegments = computed<StemSegment[]>(() => {
     : [{ type: "text", value: stem }]
 })
 
+const hasChoiceFollowups = computed(() => (
+  props.quiz.type === "choice"
+  && Array.isArray(props.quiz.options)
+  && props.quiz.options.some(option => Array.isArray(option.followups) && option.followups.length > 0)
+))
+
+function asObjectRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  return value as Record<string, unknown>
+}
+
+function getChoiceSelectedValue(): unknown {
+  if (!hasChoiceFollowups.value) {
+    return props.modelValue
+  }
+  const recordValue = asObjectRecord(props.modelValue)
+  if (recordValue && "selected" in recordValue) {
+    return recordValue.selected
+  }
+  return props.modelValue
+}
+
+function getSelectedChoiceKeys(value: unknown): string[] {
+  if (typeof value === "string") {
+    return value ? [value] : []
+  }
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.length > 0)
+  }
+  return []
+}
+
+function asChoiceFollowupAnswerMap(value: unknown): ChoiceFollowupAnswerMap {
+  const source = asObjectRecord(value)
+  if (!source) {
+    return {}
+  }
+
+  const normalized: ChoiceFollowupAnswerMap = {}
+  for (const [optionKey, rawFields] of Object.entries(source)) {
+    const fieldSource = asObjectRecord(rawFields)
+    if (!fieldSource) {
+      continue
+    }
+    const fields: Record<string, ChoiceFollowupPrimitive> = {}
+    for (const [fieldKey, fieldValue] of Object.entries(fieldSource)) {
+      if (
+        typeof fieldValue === "string"
+        || typeof fieldValue === "number"
+        || typeof fieldValue === "boolean"
+      ) {
+        fields[fieldKey] = fieldValue
+      }
+    }
+    if (Object.keys(fields).length > 0) {
+      normalized[optionKey] = fields
+    }
+  }
+  return normalized
+}
+
+function getChoiceFollowupsMap(): ChoiceFollowupAnswerMap {
+  if (!hasChoiceFollowups.value) {
+    return {}
+  }
+  return asChoiceFollowupAnswerMap(asObjectRecord(props.modelValue)?.followups)
+}
+
+function getChoiceOptionFollowupDefaults(optionKey: string): Record<string, ChoiceFollowupPrimitive> {
+  const option = props.quiz.options?.find(item => item.key === optionKey)
+  const defaults: Record<string, ChoiceFollowupPrimitive> = {}
+  for (const followup of option?.followups || []) {
+    if (followup.default !== undefined) {
+      defaults[followup.key] = followup.default
+    }
+  }
+  return defaults
+}
+
+function buildStructuredChoiceAnswer(
+  selected: unknown,
+  followups: ChoiceFollowupAnswerMap = getChoiceFollowupsMap(),
+): Record<string, unknown> {
+  const selectedKeys = getSelectedChoiceKeys(selected)
+  const nextFollowups: ChoiceFollowupAnswerMap = {}
+
+  for (const selectedKey of selectedKeys) {
+    const values = {
+      ...getChoiceOptionFollowupDefaults(selectedKey),
+      ...(followups[selectedKey] || {}),
+    }
+    if (Object.keys(values).length > 0) {
+      nextFollowups[selectedKey] = values
+    }
+  }
+
+  return {
+    selected,
+    followups: nextFollowups,
+  }
+}
+
+function emitChoiceSelectedValue(value: string | string[]): void {
+  if (hasChoiceFollowups.value) {
+    emit("update:modelValue", buildStructuredChoiceAnswer(value))
+    return
+  }
+  emit("update:modelValue", value)
+}
+
 const singleChoiceValue = computed<string>({
   get() {
-    return typeof props.modelValue === "string" ? props.modelValue : ""
+    const selected = getChoiceSelectedValue()
+    return typeof selected === "string" ? selected : ""
   },
   set(value) {
-    emit("update:modelValue", value)
+    emitChoiceSelectedValue(value)
   },
 })
 
 const multipleChoiceValue = computed<string[]>(() => {
-  if (!Array.isArray(props.modelValue)) {
+  const selected = getChoiceSelectedValue()
+  if (!Array.isArray(selected)) {
     return []
   }
-  return props.modelValue.filter((item): item is string => typeof item === "string")
+  return selected.filter((item): item is string => typeof item === "string")
 })
 
 const selectedChoiceKeys = computed<string[]>(() => {
@@ -120,6 +237,35 @@ const selectedChoiceKeys = computed<string[]>(() => {
   return multipleChoiceValue.value
 })
 
+const trueFalseValue = computed<boolean | null>({
+  get() {
+    return typeof props.modelValue === "boolean" ? props.modelValue : null
+  },
+  set(value) {
+    emit("update:modelValue", value)
+  },
+})
+
+const resolvedTrueFalseOptions = computed<NonNullable<AimdQuizField["options"]>>(() => {
+  if (props.quiz.type !== "true_false") {
+    return []
+  }
+  const options: NonNullable<AimdQuizField["options"]> = Array.isArray(props.quiz.options) && props.quiz.options.length > 0
+    ? props.quiz.options
+    : [
+        { key: "true", text: "True" },
+        { key: "false", text: "False" },
+      ]
+  return options.filter(option => option.key === "true" || option.key === "false")
+})
+
+const selectedQuizOptionKeys = computed<string[]>(() => {
+  if (props.quiz.type === "true_false") {
+    return typeof props.modelValue === "boolean" ? [String(props.modelValue)] : []
+  }
+  return selectedChoiceKeys.value
+})
+
 function isMultipleChecked(key: string): boolean {
   return multipleChoiceValue.value.includes(key)
 }
@@ -129,7 +275,86 @@ function toggleMultipleChoice(key: string, checked: boolean): void {
   const next = checked
     ? [...new Set([...current, key])]
     : current.filter(item => item !== key)
-  emit("update:modelValue", next)
+  emitChoiceSelectedValue(next)
+}
+
+function shouldShowChoiceFollowups(option: NonNullable<AimdQuizField["options"]>[number]): boolean {
+  return Array.isArray(option.followups)
+    && option.followups.length > 0
+    && selectedChoiceKeys.value.includes(option.key)
+}
+
+function getFollowupLabel(followup: AimdQuizFollowupField): string {
+  return followup.title || followup.key
+}
+
+function getFollowupTextValue(optionKey: string, followup: AimdQuizFollowupField): string {
+  const value = getChoiceFollowupsMap()[optionKey]?.[followup.key]
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value)
+  }
+  return ""
+}
+
+function getFollowupBooleanValue(optionKey: string, followup: AimdQuizFollowupField): boolean {
+  return getChoiceFollowupsMap()[optionKey]?.[followup.key] === true
+}
+
+function normalizeFollowupInputValue(
+  followup: AimdQuizFollowupField,
+  value: string | boolean,
+): ChoiceFollowupPrimitive | undefined {
+  if (followup.type === "bool") {
+    return Boolean(value)
+  }
+
+  if (typeof value !== "string") {
+    return undefined
+  }
+
+  if (followup.type === "str") {
+    return value
+  }
+
+  if (!value.trim()) {
+    return undefined
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return undefined
+  }
+
+  if (followup.type === "int") {
+    return Number.isInteger(parsed) ? parsed : undefined
+  }
+
+  return parsed
+}
+
+function setChoiceFollowupValue(
+  optionKey: string,
+  followup: AimdQuizFollowupField,
+  value: string | boolean,
+): void {
+  const nextFollowups = getChoiceFollowupsMap()
+  const optionFollowups = { ...(nextFollowups[optionKey] || {}) }
+  const normalizedValue = normalizeFollowupInputValue(followup, value)
+  if (normalizedValue === undefined) {
+    delete optionFollowups[followup.key]
+  }
+  else {
+    optionFollowups[followup.key] = normalizedValue
+  }
+
+  if (Object.keys(optionFollowups).length > 0) {
+    nextFollowups[optionKey] = optionFollowups
+  }
+  else {
+    delete nextFollowups[optionKey]
+  }
+
+  emit("update:modelValue", buildStructuredChoiceAnswer(getChoiceSelectedValue(), nextFollowups))
 }
 
 function asBlankValueMap(value: unknown): Record<string, string> {
@@ -304,7 +529,7 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
     return false
   }
 
-  if (!selectedChoiceKeys.value.includes(optionKey)) {
+  if (!selectedQuizOptionKeys.value.includes(optionKey)) {
     return false
   }
 
@@ -360,49 +585,136 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
       {{ quiz.description }}
     </div>
 
-    <div v-if="quiz.type === 'choice' && quiz.mode === 'single' && quiz.options?.length" class="aimd-quiz-recorder__options">
-      <label v-for="option in quiz.options" :key="`${quiz.id}-single-${option.key}`" class="aimd-quiz-recorder__option">
-        <input
-          v-model="singleChoiceValue"
-          type="radio"
-          class="aimd-quiz-recorder__choice-input"
-          :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:single:${option.key}`"
-          :name="`${quiz.id}-single`"
-          :value="option.key"
-          :disabled="readonly"
-        />
-        <span class="aimd-quiz-recorder__option-content">
-          <span class="aimd-quiz-recorder__option-label">{{ option.key }}. {{ option.text }}</span>
-          <span
-            v-if="shouldShowChoiceOptionExplanation(option.key, option.explanation)"
-            class="aimd-quiz-recorder__option-explanation"
-          >
-            {{ option.explanation }}
+    <div v-if="quiz.type === 'true_false' && resolvedTrueFalseOptions.length" class="aimd-quiz-recorder__options">
+      <div v-for="option in resolvedTrueFalseOptions" :key="`${quiz.id}-true-false-${option.key}`" class="aimd-quiz-recorder__option-frame">
+        <label class="aimd-quiz-recorder__option">
+          <input
+            v-model="trueFalseValue"
+            type="radio"
+            class="aimd-quiz-recorder__choice-input"
+            :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:true_false:${option.key}`"
+            :name="`${quiz.id}-true-false`"
+            :value="option.key === 'true'"
+            :disabled="readonly"
+          />
+          <span class="aimd-quiz-recorder__option-content">
+            <span class="aimd-quiz-recorder__option-label">{{ option.text }}</span>
+            <span
+              v-if="shouldShowChoiceOptionExplanation(option.key, option.explanation)"
+              class="aimd-quiz-recorder__option-explanation"
+            >
+              {{ option.explanation }}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+      </div>
+    </div>
+
+    <div v-if="quiz.type === 'choice' && quiz.mode === 'single' && quiz.options?.length" class="aimd-quiz-recorder__options">
+      <div v-for="option in quiz.options" :key="`${quiz.id}-single-${option.key}`" class="aimd-quiz-recorder__option-frame">
+        <label class="aimd-quiz-recorder__option">
+          <input
+            v-model="singleChoiceValue"
+            type="radio"
+            class="aimd-quiz-recorder__choice-input"
+            :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:single:${option.key}`"
+            :name="`${quiz.id}-single`"
+            :value="option.key"
+            :disabled="readonly"
+          />
+          <span class="aimd-quiz-recorder__option-content">
+            <span class="aimd-quiz-recorder__option-label">{{ option.key }}. {{ option.text }}</span>
+            <span
+              v-if="shouldShowChoiceOptionExplanation(option.key, option.explanation)"
+              class="aimd-quiz-recorder__option-explanation"
+            >
+              {{ option.explanation }}
+            </span>
+          </span>
+        </label>
+        <div v-if="shouldShowChoiceFollowups(option)" class="aimd-quiz-recorder__followups">
+          <label
+            v-for="followup in option.followups"
+            :key="`${quiz.id}-single-${option.key}-followup-${followup.key}`"
+            class="aimd-quiz-recorder__followup"
+          >
+            <span class="aimd-quiz-recorder__followup-label">{{ getFollowupLabel(followup) }}</span>
+            <input
+              v-if="followup.type === 'bool'"
+              type="checkbox"
+              class="aimd-quiz-recorder__followup-checkbox"
+              :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:single:${option.key}:followup:${followup.key}`"
+              :checked="getFollowupBooleanValue(option.key, followup)"
+              :disabled="readonly"
+              @change="setChoiceFollowupValue(option.key, followup, ($event.target as HTMLInputElement).checked)"
+            />
+            <input
+              v-else
+              :type="followup.type === 'str' ? 'text' : 'number'"
+              :step="followup.type === 'int' ? '1' : undefined"
+              class="aimd-quiz-recorder__followup-input"
+              :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:single:${option.key}:followup:${followup.key}`"
+              :value="getFollowupTextValue(option.key, followup)"
+              :readonly="readonly"
+              @input="setChoiceFollowupValue(option.key, followup, ($event.target as HTMLInputElement).value)"
+            />
+            <span v-if="followup.unit" class="aimd-quiz-recorder__followup-unit">{{ followup.unit }}</span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <div v-if="quiz.type === 'choice' && quiz.mode === 'multiple' && quiz.options?.length" class="aimd-quiz-recorder__options">
-      <label v-for="option in quiz.options" :key="`${quiz.id}-multiple-${option.key}`" class="aimd-quiz-recorder__option">
-        <input
-          type="checkbox"
-          class="aimd-quiz-recorder__choice-input"
-          :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:multiple:${option.key}`"
-          :disabled="readonly"
-          :checked="isMultipleChecked(option.key)"
-          @change="toggleMultipleChoice(option.key, ($event.target as HTMLInputElement).checked)"
-        />
-        <span class="aimd-quiz-recorder__option-content">
-          <span class="aimd-quiz-recorder__option-label">{{ option.key }}. {{ option.text }}</span>
-          <span
-            v-if="shouldShowChoiceOptionExplanation(option.key, option.explanation)"
-            class="aimd-quiz-recorder__option-explanation"
-          >
-            {{ option.explanation }}
+      <div v-for="option in quiz.options" :key="`${quiz.id}-multiple-${option.key}`" class="aimd-quiz-recorder__option-frame">
+        <label class="aimd-quiz-recorder__option">
+          <input
+            type="checkbox"
+            class="aimd-quiz-recorder__choice-input"
+            :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:multiple:${option.key}`"
+            :disabled="readonly"
+            :checked="isMultipleChecked(option.key)"
+            @change="toggleMultipleChoice(option.key, ($event.target as HTMLInputElement).checked)"
+          />
+          <span class="aimd-quiz-recorder__option-content">
+            <span class="aimd-quiz-recorder__option-label">{{ option.key }}. {{ option.text }}</span>
+            <span
+              v-if="shouldShowChoiceOptionExplanation(option.key, option.explanation)"
+              class="aimd-quiz-recorder__option-explanation"
+            >
+              {{ option.explanation }}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
+        <div v-if="shouldShowChoiceFollowups(option)" class="aimd-quiz-recorder__followups">
+          <label
+            v-for="followup in option.followups"
+            :key="`${quiz.id}-multiple-${option.key}-followup-${followup.key}`"
+            class="aimd-quiz-recorder__followup"
+          >
+            <span class="aimd-quiz-recorder__followup-label">{{ getFollowupLabel(followup) }}</span>
+            <input
+              v-if="followup.type === 'bool'"
+              type="checkbox"
+              class="aimd-quiz-recorder__followup-checkbox"
+              :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:multiple:${option.key}:followup:${followup.key}`"
+              :checked="getFollowupBooleanValue(option.key, followup)"
+              :disabled="readonly"
+              @change="setChoiceFollowupValue(option.key, followup, ($event.target as HTMLInputElement).checked)"
+            />
+            <input
+              v-else
+              :type="followup.type === 'str' ? 'text' : 'number'"
+              :step="followup.type === 'int' ? '1' : undefined"
+              class="aimd-quiz-recorder__followup-input"
+              :data-rec-focus-key="`${focusKeyPrefix || `quiz:${quiz.id}`}:multiple:${option.key}:followup:${followup.key}`"
+              :value="getFollowupTextValue(option.key, followup)"
+              :readonly="readonly"
+              @input="setChoiceFollowupValue(option.key, followup, ($event.target as HTMLInputElement).value)"
+            />
+            <span v-if="followup.unit" class="aimd-quiz-recorder__followup-unit">{{ followup.unit }}</span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <textarea
@@ -573,6 +885,12 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
   margin-top: 0;
 }
 
+.aimd-quiz-recorder__option-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .aimd-quiz-recorder__option {
   display: flex;
   align-items: flex-start;
@@ -605,8 +923,48 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
   accent-color: #4181fd;
 }
 
+.aimd-quiz-recorder__followups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 22px;
+  padding: 8px 10px;
+  border-left: 2px solid #dbeafe;
+  background: #f8fbff;
+}
+
+.aimd-quiz-recorder__followup {
+  display: grid;
+  grid-template-columns: minmax(92px, max-content) minmax(120px, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.aimd-quiz-recorder__followup-label {
+  color: #344054;
+  font-weight: 500;
+}
+
+.aimd-quiz-recorder__followup-input {
+  min-width: 0;
+  width: 100%;
+}
+
+.aimd-quiz-recorder__followup-checkbox {
+  justify-self: start;
+  width: 16px;
+  height: 16px;
+  accent-color: #4181fd;
+}
+
+.aimd-quiz-recorder__followup-unit {
+  color: #667085;
+}
+
 .aimd-quiz-recorder__open-input,
-.aimd-quiz-recorder__blank-input {
+.aimd-quiz-recorder__blank-input,
+.aimd-quiz-recorder__followup-input {
   border: 1px solid #d0d7de;
   border-radius: 6px;
   padding: 6px 8px;
@@ -631,7 +989,8 @@ function shouldShowChoiceOptionExplanation(optionKey: string, explanation?: stri
 }
 
 .aimd-quiz-recorder__open-input:focus,
-.aimd-quiz-recorder__blank-input:focus {
+.aimd-quiz-recorder__blank-input:focus,
+.aimd-quiz-recorder__followup-input:focus {
   border-color: #4181fd;
   box-shadow: 0 0 0 2px rgba(65, 129, 253, 0.1);
 }

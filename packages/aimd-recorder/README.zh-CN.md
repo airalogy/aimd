@@ -221,6 +221,8 @@ const quiz = {
 </template>
 ```
 
+如果某个 choice 选项定义了 `followups`，recorder 会在该选项被选中后显示这些补充输入。对于这类题目，`v-model` 使用 `{ selected, followups }`；没有 followups 的 choice 题仍保持原来的字符串或字符串数组答案格式。
+
 `AimdQuizRecorder` 也支持 `scale` 量表题。对于可确定性自动评分的量表，既可以继续传外部 `grade`，也可以通过 `scaleGradeDisplayMode="completed"` 或 `scaleGradeDisplayMode="submitted"` 控制本地总分和分组结果何时显示。
 
 ## 文档

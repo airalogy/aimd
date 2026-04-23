@@ -27,6 +27,82 @@ test('gradeQuizAnswer: single choice exact match', async () => {
   assert.equal(result.method, 'exact_match')
 })
 
+test('gradeQuizAnswer: true_false exact match', async () => {
+  const result = await gradeQuizAnswer({
+    id: 'q_true_false',
+    type: 'true_false',
+    stem: 'The sample stayed cold.',
+    score: 1,
+    options: [
+      { key: 'true', text: 'True' },
+      { key: 'false', text: 'False' },
+    ],
+    answer: true,
+  }, true)
+
+  assert.equal(result.status, 'correct')
+  assert.equal(result.earned_score, 1)
+  assert.equal(result.method, 'exact_match')
+})
+
+test('gradeQuizAnswer: true_false option_points', async () => {
+  const result = await gradeQuizAnswer({
+    id: 'q_true_false_points',
+    type: 'true_false',
+    stem: 'The sample stayed cold.',
+    options: [
+      { key: 'true', text: 'True' },
+      { key: 'false', text: 'False' },
+    ],
+    grading: {
+      strategy: 'option_points',
+      option_points: {
+        true: 2,
+        false: 0,
+      },
+    },
+  }, false)
+
+  assert.equal(result.status, 'incorrect')
+  assert.equal(result.earned_score, 0)
+  assert.equal(result.max_score, 2)
+  assert.equal(result.method, 'option_points')
+})
+
+test('gradeQuizAnswer: single choice with followups grades selected answer', async () => {
+  const result = await gradeQuizAnswer({
+    id: 'q_choice_followup',
+    type: 'choice',
+    stem: 'Do you smoke?',
+    score: 2,
+    mode: 'single',
+    options: [
+      {
+        key: 'yes',
+        text: 'Yes',
+        followups: [
+          { key: 'years', type: 'int', required: true },
+          { key: 'cigarettes_per_day', type: 'float', required: true },
+        ],
+      },
+      { key: 'no', text: 'No' },
+    ],
+    answer: 'yes',
+  }, {
+    selected: 'yes',
+    followups: {
+      yes: {
+        years: 8,
+        cigarettes_per_day: 12.5,
+      },
+    },
+  })
+
+  assert.equal(result.status, 'correct')
+  assert.equal(result.earned_score, 2)
+  assert.equal(result.method, 'exact_match')
+})
+
 test('gradeQuizAnswer: multiple choice partial credit', async () => {
   const result = await gradeQuizAnswer({
     id: 'q_multi',

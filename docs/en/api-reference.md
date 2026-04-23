@@ -94,7 +94,7 @@ import {
 
 | API | Description |
 |-----|-------------|
-| `gradeQuizAnswer(quiz, answer, options?)` | Grade a single quiz item. Supports exact matching for choice, local sum/band scoring for deterministic scales, normalized/numeric matching for blank, and rubric/provider flows for open questions. |
+| `gradeQuizAnswer(quiz, answer, options?)` | Grade a single quiz item. Supports exact matching for choice and `true_false`, local sum/band scoring for deterministic scales, normalized/numeric matching for blank, and rubric/provider flows for open questions. |
 | `gradeScaleQuizLocally(quiz, answer)` | Locally score a deterministic `scale` quiz by summing item option points and optionally resolving a matching band/classification. |
 | `gradeQuizRecordAnswers(fields.quiz, record.quiz, options?)` | Grade a whole quiz submission and return `{ quiz, summary }`, where `summary` contains total score and review counts. |
 | `isScaleQuizAnswerComplete(quiz, answer)` | Check whether every `scale` item has a selected option key before attempting local score display. |
@@ -463,7 +463,7 @@ import {
 |-----------|-------------|
 | `AimdRecorder` | Full protocol recorder: renders AIMD content with inline input fields, can display quiz score/status/feedback through `quizGrades`, can control when choice-option explanations are revealed with `choiceOptionExplanationMode` / `submitted`, and can locally reveal deterministic `scale` results through `scaleGradeDisplayMode`. |
 | `AimdRecorderEditor` | Combined protocol editor + recorder surface. Use with `v-model:content` and `v-model` when users need to restructure AIMD and keep entering data in the same view. Includes built-in field-structure editing and a recorder-side visual edit mode for recorder fields. |
-| `AimdQuizRecorder` | Standalone quiz answer component for choice, blank, open, and scale questions, with optional grade display via `grade`, configurable timing for per-option explanations, and configurable reveal timing for deterministic scale scores/classifications. |
+| `AimdQuizRecorder` | Standalone quiz answer component for choice, `true_false`, blank, open, and scale questions, with optional grade display via `grade`, configurable timing for per-option explanations, and configurable reveal timing for deterministic scale scores/classifications. |
 | `AimdDnaSequenceField` | Specialized DNA sequence input with SeqViz viewer, annotation editing, and GenBank import/export. |
 
 ### Record Data

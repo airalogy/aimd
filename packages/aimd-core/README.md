@@ -62,6 +62,44 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## Choice Followups
+
+Choice options may declare conditional structured fields under `followups`. These are parsed into `options[].followups` and support only `str`, `int`, `float`, and `bool`; `number` is intentionally not accepted.
+
+````aimd
+```quiz
+id: smoking
+type: choice
+mode: single
+stem: "Do you smoke?"
+options:
+  - key: "yes"
+    text: "Yes"
+    followups:
+      - key: years
+        type: int
+        title: "Years"
+      - key: cigarettes_per_day
+        type: float
+        unit: "sticks/day"
+  - key: "no"
+    text: "No"
+```
+````
+
+## True/False Quizzes
+
+Use `type: true_false` for judgment questions. The answer and default value are normalized to booleans, and omitted `options` default to `true. True` and `false. False`.
+
+````aimd
+```quiz
+id: sample_kept_cold
+type: true_false
+stem: "The sample stayed cold during transfer."
+answer: true
+```
+````
+
 ## Validation Helpers
 
 ```ts

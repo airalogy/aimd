@@ -62,6 +62,44 @@ const tree = processor.parse(protectedContent)
 processor.runSync(tree, file)
 ```
 
+## Choice 后续字段
+
+选择题选项可以在 `followups` 下声明条件触发的结构化字段。解析结果会保存在 `options[].followups`，字段类型只支持 `str`、`int`、`float`、`bool`；这里有意不接受 `number`。
+
+````aimd
+```quiz
+id: smoking
+type: choice
+mode: single
+stem: "是否吸烟？"
+options:
+  - key: "yes"
+    text: "是"
+    followups:
+      - key: years
+        type: int
+        title: "年数"
+      - key: cigarettes_per_day
+        type: float
+        unit: "支/天"
+  - key: "no"
+    text: "否"
+```
+````
+
+## 判断题
+
+判断题使用 `type: true_false`。`answer` 和 `default` 会被规范化为布尔值；如果省略 `options`，默认选项为 `true. True` 和 `false. False`。
+
+````aimd
+```quiz
+id: sample_kept_cold
+type: true_false
+stem: "样本转移过程中是否一直保持低温？"
+answer: true
+```
+````
+
 ## 校验辅助函数
 
 ```ts

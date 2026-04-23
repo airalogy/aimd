@@ -146,6 +146,118 @@ describe('AimdQuizRecorder', () => {
     expect(wrapper.text()).not.toContain('Not the best answer.')
   })
 
+  it('renders true/false quizzes and emits boolean answers', async () => {
+    const wrapper = mount(AimdQuizRecorder, {
+      props: {
+        locale: 'en-US',
+        quiz: {
+          id: 'quiz_true_false',
+          type: 'true_false',
+          stem: 'The sample stayed cold.',
+          options: [
+            { key: 'true', text: 'True', explanation: 'Correct.' },
+            { key: 'false', text: 'False', explanation: 'Incorrect.' },
+          ],
+        },
+        modelValue: null,
+        choiceOptionExplanationMode: 'selected',
+      },
+    })
+
+    const trueInput = wrapper.find('input[data-rec-focus-key="quiz:quiz_true_false:true_false:true"]')
+    expect(trueInput.exists()).toBe(true)
+
+    await trueInput.setValue()
+
+    const emitted = wrapper.emitted('update:modelValue') || []
+    expect(emitted[emitted.length - 1]?.[0]).toBe(true)
+
+    await wrapper.setProps({ modelValue: true })
+
+    expect(wrapper.text()).toContain('Correct.')
+    expect(wrapper.text()).not.toContain('Incorrect.')
+  })
+
+  it('renders selected choice followups and emits structured updates', async () => {
+    const wrapper = mount(AimdQuizRecorder, {
+      props: {
+        locale: 'en-US',
+        quiz: {
+          id: 'quiz_smoking',
+          type: 'choice',
+          stem: 'Do you smoke?',
+          mode: 'single',
+          options: [
+            {
+              key: 'yes',
+              text: 'Yes',
+              followups: [
+                { key: 'years', type: 'int', required: true, title: 'Years' },
+                { key: 'cigarettes_per_day', type: 'float', required: true, title: 'Cigarettes per day', unit: 'sticks/day' },
+              ],
+            },
+            { key: 'no', text: 'No' },
+          ],
+        },
+        modelValue: {
+          selected: 'yes',
+          followups: {
+            yes: {
+              years: 3,
+            },
+          },
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('Years')
+    expect(wrapper.text()).toContain('Cigarettes per day')
+    expect(wrapper.text()).toContain('sticks/day')
+
+    await wrapper
+      .find('input[data-rec-focus-key="quiz:quiz_smoking:single:yes:followup:cigarettes_per_day"]')
+      .setValue('12.5')
+
+    const emitted = wrapper.emitted('update:modelValue') || []
+    expect(emitted[emitted.length - 1]?.[0]).toEqual({
+      selected: 'yes',
+      followups: {
+        yes: {
+          years: 3,
+          cigarettes_per_day: 12.5,
+        },
+      },
+    })
+  })
+
+  it('keeps legacy selected choice values readable for followup-enabled quizzes', () => {
+    const wrapper = mount(AimdQuizRecorder, {
+      props: {
+        locale: 'en-US',
+        quiz: {
+          id: 'quiz_legacy_smoking',
+          type: 'choice',
+          stem: 'Do you smoke?',
+          mode: 'single',
+          options: [
+            {
+              key: 'yes',
+              text: 'Yes',
+              followups: [
+                { key: 'years', type: 'int', required: true, title: 'Years' },
+              ],
+            },
+            { key: 'no', text: 'No' },
+          ],
+        },
+        modelValue: 'yes',
+      },
+    })
+
+    expect((wrapper.find('input[type="radio"][value="yes"]').element as HTMLInputElement).checked).toBe(true)
+    expect(wrapper.text()).toContain('Years')
+  })
+
   it('shows local scale grading only after submission when configured', async () => {
     const wrapper = mount(AimdQuizRecorder, {
       props: {

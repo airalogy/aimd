@@ -62,6 +62,15 @@ const CHOICE_MODE_SAMPLE = [
   '```',
 ].join('\n')
 
+const TRUE_FALSE_SAMPLE = [
+  '```quiz',
+  'id: quiz_true_false_1',
+  'type: true_false',
+  'stem: The sample stayed cold.',
+  'answer: true',
+  '```',
+].join('\n')
+
 const ASSIGNER_VISIBILITY_SAMPLE = [
   '{{var|water_volume_ml: float}}',
   '{{var|lemon_juice_ml: float}}',
@@ -223,6 +232,16 @@ test('renderToHtml distinguishes single and multiple choice labels by locale', a
   assert.match(zhHtml, /\(单选\)/)
   assert.match(zhHtml, /\(多选\)/)
   assert.doesNotMatch(zhHtml, /\(选择\)/)
+})
+
+test('renderToHtml renders true/false quiz labels and default options', async () => {
+  const { html, fields } = await renderToHtml(TRUE_FALSE_SAMPLE)
+
+  assert.equal(fields.quiz[0]?.type, 'true_false')
+  assert.equal(fields.quiz[0]?.answer, true)
+  assert.match(html, /\(True\/false\)/)
+  assert.match(html, /true\. True/)
+  assert.match(html, /false\. False/)
 })
 
 test('renderToHtml hides assigner blocks by default while preserving client assigner metadata', async () => {

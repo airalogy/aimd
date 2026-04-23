@@ -39,6 +39,8 @@ export type {
   AimdFigNode,
   AimdNode,
   AimdQuizBlank,
+  AimdQuizFollowupField,
+  AimdQuizFollowupType,
   AimdQuizMode,
   AimdQuizNode,
   AimdQuizOption,

@@ -812,7 +812,7 @@ function renderInlineQuiz(node: AimdQuizNode): VNode {
     scaleGradeDisplayMode: props.scaleGradeDisplayMode,
     "onUpdate:modelValue": (value: unknown) => {
       localRecord.quiz[quizId] = value
-      markRecordChanged()
+      markRecordChanged({ rebuild: true })
       emit("field-change", { section: "quiz", fieldKey: quizId, value })
     },
   })

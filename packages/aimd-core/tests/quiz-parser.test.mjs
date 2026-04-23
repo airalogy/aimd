@@ -77,6 +77,61 @@ options:
   ])
 })
 
+test('quiz choice single: option followups are parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q1_followups
+type: choice
+mode: single
+stem: "Do you smoke?"
+options:
+  - key: "yes"
+    text: "Yes"
+    followups:
+      - key: years
+        type: int
+        title: "Years"
+        required: true
+      - key: cigarettes_per_day
+        type: float
+        title: "Cigarettes per day"
+        unit: "sticks/day"
+        default: 10
+      - key: passive
+        type: bool
+        required: false
+  - key: "no"
+    text: "No"
+answer: "yes"
+\`\`\`
+`)
+  assert.deepEqual(fields.quiz[0].options[0].followups, [
+    { key: 'years', type: 'int', required: true, title: 'Years' },
+    { key: 'cigarettes_per_day', type: 'float', required: true, title: 'Cigarettes per day', unit: 'sticks/day', default: 10 },
+    { key: 'passive', type: 'bool', required: false },
+  ])
+})
+
+test('quiz choice single: followup type number is rejected', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q1_followups_bad
+type: choice
+mode: single
+stem: "Do you smoke?"
+options:
+  - key: "yes"
+    text: "Yes"
+    followups:
+      - key: years
+        type: number
+  - key: "no"
+    text: "No"
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 0)
+})
+
 test('quiz choice single: default value', () => {
   const { fields } = parseAimd(`
 \`\`\`quiz
@@ -93,6 +148,66 @@ default: x
 \`\`\`
 `)
   assert.equal(fields.quiz[0].default, 'x')
+})
+
+// ── True/false quiz ─────────────────────────────────────────────────────────
+
+test('quiz true_false: basic parsing with default options', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_true_false
+type: true_false
+stem: "The sample should remain chilled during transfer."
+answer: true
+default: false
+\`\`\`
+`)
+  assert.equal(fields.quiz.length, 1)
+  const q = fields.quiz[0]
+  assert.equal(q.id, 'q_true_false')
+  assert.equal(q.type, 'true_false')
+  assert.equal(q.mode, 'single')
+  assert.equal(q.answer, true)
+  assert.equal(q.default, false)
+  assert.deepEqual(q.options, [
+    { key: 'true', text: 'True' },
+    { key: 'false', text: 'False' },
+  ])
+})
+
+test('quiz true_false: custom option labels and explanations are parsed', () => {
+  const { fields } = parseAimd(`
+\`\`\`quiz
+id: q_true_false_labels
+type: true_false
+stem: "The sample was stored at room temperature."
+options:
+  - key: true
+    text: "True"
+    explanation: "Room-temperature storage was recorded."
+  - key: false
+    text: "False"
+    explanation: "Correct if the sample was kept cold."
+answer: false
+grading:
+  strategy: option_points
+  option_points:
+    true: 0
+    false: 2
+\`\`\`
+`)
+  assert.deepEqual(fields.quiz[0].options, [
+    { key: 'true', text: 'True', explanation: 'Room-temperature storage was recorded.' },
+    { key: 'false', text: 'False', explanation: 'Correct if the sample was kept cold.' },
+  ])
+  assert.equal(fields.quiz[0].answer, false)
+  assert.deepEqual(fields.quiz[0].grading, {
+    strategy: 'option_points',
+    option_points: {
+      true: 0,
+      false: 2,
+    },
+  })
 })
 
 // ── Choice quiz: multiple mode ───────────────────────────────────────────────

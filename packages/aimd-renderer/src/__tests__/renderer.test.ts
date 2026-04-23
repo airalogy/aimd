@@ -181,6 +181,26 @@ describe('renderToHtmlSync', () => {
     expect(html).toContain('<td')
   })
 
+  it('renders true/false quiz options and report answers', () => {
+    const { html, fields } = renderToHtmlSync(
+      [
+        '```quiz',
+        'id: q_true_false',
+        'type: true_false',
+        'stem: "The sample stayed cold."',
+        'answer: true',
+        '```',
+      ].join('\n'),
+      { mode: 'report' },
+    )
+
+    expect(fields.quiz[0].type).toBe('true_false')
+    expect(html).toContain('True/false')
+    expect(html).toContain('true. True')
+    expect(html).toContain('false. False')
+    expect(html).toContain('Answer: true')
+  })
+
   it('supports host custom element renderers for AIMD nodes', () => {
     const { html } = renderToHtmlSync(
       "{{step|verify, 2, title='Verify Output', subtitle='Cross-check', check=True, result=True}}\n\nStep body content.",

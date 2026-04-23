@@ -286,7 +286,7 @@ export interface AimdQuizField {
   /** Choice options */
   options?: AimdQuizOption[]
   /** Standard answer */
-  answer?: string | string[]
+  answer?: string | string[] | boolean
   /** Blank definitions */
   blanks?: AimdQuizBlank[]
   /** Scale item definitions */

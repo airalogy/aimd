@@ -52,6 +52,44 @@ assigner(
 ```
 ````
 
+## Choice 后续字段
+
+选择题选项可以在 `followups` 下声明条件触发的结构化字段。parser 会把这些字段提取为 `options[].followups`，字段类型只接受 `str`、`int`、`float`、`bool`；`number` 有意不属于 AIMD followup 类型集合。
+
+````aimd
+```quiz
+id: smoking
+type: choice
+mode: single
+stem: "是否吸烟？"
+options:
+  - key: "yes"
+    text: "是"
+    followups:
+      - key: years
+        type: int
+        title: "年数"
+      - key: cigarettes_per_day
+        type: float
+        unit: "支/天"
+  - key: "no"
+    text: "否"
+```
+````
+
+## 判断题
+
+判断题使用 `type: true_false`。`answer` 和 `default` 是布尔值；如果省略 `options`，默认选项为 `true. True` 和 `false. False`。
+
+````aimd
+```quiz
+id: sample_kept_cold
+type: true_false
+stem: "样本转移过程中是否一直保持低温？"
+answer: true
+```
+````
+
 ## Markdown 表格
 
 如果 AIMD 行内模板出现在 Markdown 表格单元格中，需要在 `parse()` 之前先保护模板，避免 GFM 把模板里的 `|` 当成列表格分隔符：

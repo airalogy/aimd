@@ -114,6 +114,50 @@ grading:
 ```
 
 ```quiz
+id: quiz_true_false_1
+type: true_false
+stem: The sample stayed at 4°C before the transfer step.
+score: 1
+options:
+  - key: true
+    text: "True"
+    explanation: Correct. The record indicates the sample stayed at 4°C before transfer.
+  - key: false
+    text: "False"
+    explanation: This would be selected only if the sample warmed before transfer.
+answer: true
+```
+
+```quiz
+id: quiz_followup_1
+type: choice
+mode: single
+stem: Was the sample transferred under documented cold-chain handling?
+score: 1
+options:
+  - key: "yes"
+    text: Yes
+    explanation: Add the handling details so the record keeps both the selection and its structured context.
+    followups:
+      - key: duration_min
+        type: int
+        title: Transfer duration
+        unit: min
+      - key: max_temperature_c
+        type: float
+        title: Maximum observed temperature
+        unit: °C
+      - key: seal_verified
+        type: bool
+        title: Seal verified before transfer
+        required: false
+  - key: "no"
+    text: No
+    explanation: The record should document why cold-chain handling was not used.
+answer: "yes"
+```
+
+```quiz
 id: quiz_multiple_1
 type: choice
 mode: multiple

@@ -94,7 +94,7 @@ import {
 
 | API | 说明 |
 |-----|------|
-| `gradeQuizAnswer(quiz, answer, options?)` | 对单道题评分。支持选择题精确匹配、可确定性量表本地求和/分组、填空题规范化/数值容差，以及开放题 rubric/provider 流程。 |
+| `gradeQuizAnswer(quiz, answer, options?)` | 对单道题评分。支持 choice 和 `true_false` 精确匹配、可确定性量表本地求和/分组、填空题规范化/数值容差，以及开放题 rubric/provider 流程。 |
 | `gradeScaleQuizLocally(quiz, answer)` | 对可确定性 `scale` 量表在前端本地求和评分，并可根据 `bands` 解析分组/分类。 |
 | `gradeQuizRecordAnswers(fields.quiz, record.quiz, options?)` | 对整份 quiz 作答批量评分，返回 `{ quiz, summary }`，其中 `summary` 包含总分与复核数量。 |
 | `isScaleQuizAnswerComplete(quiz, answer)` | 检查 `scale` 量表是否每个 item 都已选中合法选项，适合在决定是否显示本地得分前先判断。 |
@@ -463,7 +463,7 @@ import {
 |------|------|
 | `AimdRecorder` | 完整协议 recorder：在 AIMD 内容中内联渲染输入控件，也可以通过 `quizGrades` 显示题目得分、状态和反馈，并通过 `choiceOptionExplanationMode` / `submitted` 控制选择题讲解何时显示，还可以通过 `scaleGradeDisplayMode` 控制可确定性量表的本地评分何时显示。 |
 | `AimdRecorderEditor` | 组合式 protocol 编辑 + recorder 录入界面。用 `v-model:content` 绑定源码、用 `v-model` 绑定 record，适合一边调整 AIMD 结构一边继续填数据，并内建 recorder field 结构编辑与 recorder 内可视化编辑能力。 |
-| `AimdQuizRecorder` | 可独立复用的题目作答组件，支持 choice / blank / open / scale，也支持通过 `grade` 展示评分结果，并可按选中、提交后或评分后显示选择题选项讲解，还能控制量表本地评分的显示时机。 |
+| `AimdQuizRecorder` | 可独立复用的题目作答组件，支持 choice / true_false / blank / open / scale，也支持通过 `grade` 展示评分结果，并可按选中、提交后或评分后显示选择题选项讲解，还能控制量表本地评分的显示时机。 |
 | `AimdDnaSequenceField` | 专用 DNA 序列输入控件，包含 SeqViz 视图、注释编辑与 GenBank 导入导出。 |
 
 ### 记录数据

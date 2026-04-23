@@ -395,6 +395,47 @@ describe('getQuizDefaultValue', () => {
     expect(getQuizDefaultValue(quiz as any)).toEqual([])
   })
 
+  it('returns structured defaults for choice quiz with followups', () => {
+    const quiz = {
+      id: 'q1', type: 'choice', stem: 'Q?',
+      options: [
+        {
+          key: 'yes',
+          text: 'Yes',
+          followups: [
+            { key: 'years', type: 'int', required: true, default: 5 },
+            { key: 'unit', type: 'str', required: false },
+          ],
+        },
+        { key: 'no', text: 'No' },
+      ],
+      default: 'yes',
+    }
+    expect(getQuizDefaultValue(quiz as any)).toEqual({
+      selected: 'yes',
+      followups: {
+        yes: {
+          years: 5,
+        },
+      },
+    })
+  })
+
+  it('returns nullable boolean default for true/false quiz', () => {
+    expect(getQuizDefaultValue({
+      id: 'q1',
+      type: 'true_false',
+      stem: 'Q?',
+    } as any)).toBeNull()
+
+    expect(getQuizDefaultValue({
+      id: 'q2',
+      type: 'true_false',
+      stem: 'Q?',
+      default: false,
+    } as any)).toBe(false)
+  })
+
   it('returns blank map for blank quiz', () => {
     const quiz = {
       id: 'q1', type: 'blank', stem: 'Fill ____',

@@ -1173,7 +1173,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
       } as Element)
     }
 
-    if (quizType === "choice" && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
+    if ((quizType === "choice" || quizType === "true_false") && Array.isArray(quizNode.options) && quizNode.options.length > 0) {
       children.push({
         type: "element",
         tagName: "ul",
@@ -1192,7 +1192,7 @@ function createAimdHandler(options: AimdRendererOptions = {}) {
       children.push(...buildScaleBandChildren(quizNode))
     }
 
-    if (quizPreview.showAnswers && quizType === "choice" && quizNode.answer !== undefined) {
+    if (quizPreview.showAnswers && (quizType === "choice" || quizType === "true_false") && quizNode.answer !== undefined) {
       const answerText = Array.isArray(quizNode.answer)
         ? quizNode.answer.join(", ")
         : String(quizNode.answer)

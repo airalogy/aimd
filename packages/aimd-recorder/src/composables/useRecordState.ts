@@ -205,20 +205,73 @@ export function normalizeVarTableFields(raw: unknown): AimdVarTableField[] {
 // Quiz default values
 // ---------------------------------------------------------------------------
 
+type ChoiceFollowupPrimitive = string | number | boolean
+
+function quizHasChoiceFollowups(quiz: AimdQuizField): boolean {
+  return quiz.type === "choice"
+    && Array.isArray(quiz.options)
+    && quiz.options.some(option => Array.isArray(option.followups) && option.followups.length > 0)
+}
+
+function buildChoiceFollowupDefaultMap(
+  quiz: AimdQuizField,
+  selectedKeys: string[],
+): Record<string, Record<string, ChoiceFollowupPrimitive>> {
+  const selectedKeySet = new Set(selectedKeys)
+  const followups: Record<string, Record<string, ChoiceFollowupPrimitive>> = {}
+
+  for (const option of quiz.options || []) {
+    if (!selectedKeySet.has(option.key) || !Array.isArray(option.followups)) {
+      continue
+    }
+
+    const fieldDefaults: Record<string, ChoiceFollowupPrimitive> = {}
+    for (const followup of option.followups) {
+      if (followup.default !== undefined) {
+        fieldDefaults[followup.key] = followup.default
+      }
+    }
+    if (Object.keys(fieldDefaults).length > 0) {
+      followups[option.key] = fieldDefaults
+    }
+  }
+
+  return followups
+}
+
 export function getQuizDefaultValue(quiz: AimdQuizField): unknown {
   if (quiz.type === "choice") {
     const optionKeys = new Set((quiz.options || []).map(option => option.key))
+    const hasFollowups = quizHasChoiceFollowups(quiz)
     if (quiz.mode === "multiple") {
+      let selected: string[] = []
       if (Array.isArray(quiz.default)) {
-        return quiz.default.filter((item): item is string => typeof item === "string" && optionKeys.has(item))
+        selected = quiz.default.filter((item): item is string => typeof item === "string" && optionKeys.has(item))
       }
-      return []
+      if (hasFollowups) {
+        return {
+          selected,
+          followups: buildChoiceFollowupDefaultMap(quiz, selected),
+        }
+      }
+      return selected
     }
 
+    let selected = ""
     if (typeof quiz.default === "string" && optionKeys.has(quiz.default)) {
-      return quiz.default
+      selected = quiz.default
     }
-    return ""
+    if (hasFollowups) {
+      return {
+        selected,
+        followups: buildChoiceFollowupDefaultMap(quiz, selected ? [selected] : []),
+      }
+    }
+    return selected
+  }
+
+  if (quiz.type === "true_false") {
+    return typeof quiz.default === "boolean" ? quiz.default : null
   }
 
   if (quiz.type === "blank") {
