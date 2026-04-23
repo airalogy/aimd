@@ -17,7 +17,7 @@
     "docs:dev": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:dev",
     "docs:build": "pnpm --dir docs install --ignore-workspace && DEMO_BASE=\"${BASE_PATH%/}/demo/\" pnpm --filter @airalogy/aimd-demo build && pnpm -C docs docs:build && rm -rf docs/.vitepress/dist/demo && mkdir -p docs/.vitepress/dist/demo && cp -R demo/dist/. docs/.vitepress/dist/demo/ && node ./scripts/create-demo-route-shims.mjs",
     "docs:preview": "pnpm --dir docs install --ignore-workspace && pnpm -C docs docs:preview",
-    "release": "pnpm build && pnpm publish -r --no-git-checks --access public",
+    "release": "pnpm build && pnpm publish -r --no-git-checks --access public --provenance",
     "test": "pnpm -r --if-present test",
     "test:vitest": "vitest run",
     "test:vitest:watch": "vitest",
