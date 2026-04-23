@@ -104,6 +104,7 @@ export interface AimdEditorMessages {
     dragToReorder: string
     answer: string
     correct: string
+    correctAnswer: string
     optionsHint: string
     blanks: string
     blanksHint: string
@@ -318,6 +319,7 @@ const EN_US_MESSAGES: AimdEditorMessages = {
     dragToReorder: 'Drag to reorder',
     answer: 'Answer',
     correct: 'Correct',
+    correctAnswer: 'Correct Answer',
     optionsHint: 'Use unique keys (A/B/C), then mark answer directly in each row.',
     blanks: 'Blanks',
     blanksHint: 'Use keys like b1, b2 and refer to them in stem as [[b1]], [[b2]].',
@@ -514,6 +516,7 @@ const ZH_CN_MESSAGES: AimdEditorMessages = {
     dragToReorder: '拖拽排序',
     answer: '答案',
     correct: '正确',
+    correctAnswer: '正确答案',
     optionsHint: '请使用唯一键（A/B/C），并直接在每一行标记答案。',
     blanks: '填空项',
     blanksHint: '请使用 b1、b2 这样的键，并在题干中写成 [[b1]]、[[b2]]。',

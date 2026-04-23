@@ -139,9 +139,15 @@ export function useEditorContent(options: UseEditorContentOptions) {
   function insertTextIntoActiveEditor(text: string) {
     if (editorMode.value === 'source' && monacoEditor.value) {
       const selection = monacoEditor.value.getSelection()
+      const model = monacoEditor.value.getModel()
+      const position = monacoEditor.value.getPosition()
+      const lineContent = model.getLineContent(position.lineNumber)
+      const beforeCursor = lineContent.substring(0, position.column - 1)
+      const needsLeadingNewline = beforeCursor.trim() !== '' && !text.startsWith('\n')
+      const finalText = needsLeadingNewline ? '\n' + text : text
       monacoEditor.value.executeEdits('toolbar', [{
         range: selection,
-        text,
+        text: finalText,
         forceMoveMarkers: true,
       }])
       monacoEditor.value.focus()

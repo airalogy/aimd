@@ -107,6 +107,12 @@ const refSuggestions = computed(() => {
   return []
 })
 
+const existingQuizIds = computed(() => {
+  const fields = extractedFields.value
+  if (!fields?.quiz) return []
+  return fields.quiz.map(q => q.id)
+})
+
 function openAimdDialog(type: string) {
   aimdDialogType.value = type
   showAimdDialog.value = true
@@ -221,6 +227,7 @@ defineExpose({
       :messages="resolvedMessages"
       :ref-suggestions="refSuggestions"
       :var-type-plugins="varTypePlugins"
+      :existing-quiz-ids="existingQuizIds"
       @update:visible="showAimdDialog = $event"
       @insert="onDialogInsert"
     />

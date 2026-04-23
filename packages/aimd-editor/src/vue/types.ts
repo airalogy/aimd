@@ -261,7 +261,7 @@ function parseQuizOptions(
 function parseBlankItems(input: string): Array<{ key: string, answer: string }> {
   const parts = input.split(',').map(s => s.trim()).filter(Boolean)
   if (parts.length === 0) {
-    return [{ key: 'b1', answer: '21%' }]
+    return [{ key: 'b1', answer: '' }]
   }
 
   return parts.map((part, index) => {
@@ -288,20 +288,30 @@ function parseOptionalScore(value: string): string | null {
 export function getDefaultAimdFields(
   type: string,
   messages?: Pick<AimdEditorMessages, 'defaults'>,
+  existingQuizIds?: Set<string>,
 ): Record<string, string> {
   switch (type) {
     case 'var': return { name: '', type: 'str', default: '', title: '' }
     case 'var_table': return { name: '', subvars: '' }
-    case 'quiz': return {
-      id: 'quiz_choice_1',
-      quizType: 'choice',
-      mode: 'single',
-      stem: messages?.defaults.questionStem || DEFAULT_EDITOR_MESSAGES.defaults.questionStem,
-      options: `A:${getDefaultOptionText('A', messages)}, B:${getDefaultOptionText('B', messages)}`,
-      answer: 'A',
-      blanks: 'b1:21%',
-      rubric: '',
-      score: '',
+    case 'quiz': {
+      const quizType = 'choice'
+      const base = `quiz_${quizType}`
+      let suffix = 1
+      while (existingQuizIds?.has(`${base}_${suffix}`)) {
+        suffix += 1
+      }
+      const id = `${base}_${suffix}`
+      return {
+        id,
+        quizType,
+        mode: 'single',
+        stem: messages?.defaults.questionStem || DEFAULT_EDITOR_MESSAGES.defaults.questionStem,
+        options: `A:${getDefaultOptionText('A', messages)}, B:${getDefaultOptionText('B', messages)}`,
+        answer: 'A',
+        blanks: 'b1:',
+        rubric: '',
+        score: '',
+      }
     }
     case 'step': return { name: '', level: '1' }
     case 'check': return { name: '' }

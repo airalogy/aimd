@@ -795,7 +795,7 @@ function handleFieldsChange(fields: ExtractedAimdFields) {
 }
 
 function handleAddField(fieldType: AimdWorkbenchFieldType) {
-  const nextId = generateNextWorkbenchFieldId(editableFields.value, fieldType)
+  const nextId = generateNextWorkbenchFieldId(editableFields.value, fieldType, fieldType === 'quiz' ? 'choice' : undefined)
   emitWorkbenchContentChange(appendWorkbenchField(contentDraft.value, fieldType, {
     id: nextId,
     valueType: fieldType === 'var' ? 'str' : undefined,
@@ -868,7 +868,7 @@ function toggleFieldInsertMenu(insertionIndex: number) {
 }
 
 function handleInsertField(fieldType: AimdWorkbenchFieldType, insertionIndex: number) {
-  const nextId = generateNextWorkbenchFieldId(editableFields.value, fieldType)
+  const nextId = generateNextWorkbenchFieldId(editableFields.value, fieldType, fieldType === 'quiz' ? 'choice' : undefined)
   fieldInsertMenuIndex.value = null
   emitWorkbenchContentChange(insertWorkbenchField(
     contentDraft.value,

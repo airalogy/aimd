@@ -17,6 +17,7 @@ const props = defineProps<{
   refSuggestions?: string[]
   varTypePlugins?: AimdVarTypePresetOption[]
   allowedTypes?: string[]
+  existingQuizIds?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -42,8 +43,12 @@ function resolveDialogType(type?: string): string {
   return localizedFieldTypes.value[0]?.type ?? type ?? 'var'
 }
 
+const existingQuizIdsSet = computed(() => {
+  return new Set(props.existingQuizIds || [])
+})
+
 const dialogType = ref(resolveDialogType(props.initialType))
-const fields = ref<Record<string, string>>(getDefaultAimdFields(dialogType.value, props.messages))
+const fields = ref<Record<string, string>>(getDefaultAimdFields(dialogType.value, props.messages, existingQuizIdsSet.value))
 
 interface ChoiceOptionItem {
   key: string
@@ -77,12 +82,21 @@ function selectVarTypePreset(value: string) {
   fields.value.type = value
 }
 
+function generateUniqueQuizId(quizType: string, existingIds: Set<string>): string {
+  const base = `quiz_${quizType}`
+  let suffix = 1
+  while (existingIds.has(`${base}_${suffix}`)) {
+    suffix += 1
+  }
+  return `${base}_${suffix}`
+}
+
 function parseChoiceOptions(input: string): ChoiceOptionItem[] {
   const parts = input.split(',').map(s => s.trim()).filter(Boolean)
   if (parts.length === 0) {
     return [
-      { key: 'A', text: props.messages.defaults.optionText('A') },
-      { key: 'B', text: props.messages.defaults.optionText('B') },
+      { key: 'A', text: '' },
+      { key: 'B', text: '' },
     ]
   }
 
@@ -104,7 +118,7 @@ function serializeChoiceOptions(items: ChoiceOptionItem[]): string {
     .filter(item => item.key && item.text)
 
   if (normalized.length === 0) {
-    return `A:${props.messages.defaults.optionText('A')}, B:${props.messages.defaults.optionText('B')}`
+    return 'A:, B:'
   }
 
   return normalized.map(item => `${item.key}:${item.text}`).join(', ')
@@ -113,7 +127,7 @@ function serializeChoiceOptions(items: ChoiceOptionItem[]): string {
 function parseBlankItems(input: string): BlankItem[] {
   const parts = input.split(',').map(s => s.trim()).filter(Boolean)
   if (parts.length === 0) {
-    return [{ key: 'b1', answer: '21%' }]
+    return [{ key: 'b1', answer: '' }]
   }
 
   return parts.map((part, index) => {
@@ -133,7 +147,7 @@ function serializeBlankItems(items: BlankItem[]): string {
     .filter(item => item.key)
 
   if (normalized.length === 0) {
-    return 'b1:21%'
+    return 'b1:'
   }
 
   return normalized.map(item => `${item.key}:${item.answer}`).join(', ')
@@ -199,7 +213,7 @@ function nextChoiceKey(): string {
 
 function addChoiceOption() {
   const key = nextChoiceKey()
-  quizChoiceOptions.value.push({ key, text: props.messages.defaults.optionText(key) })
+  quizChoiceOptions.value.push({ key, text: '' })
 }
 
 function removeChoiceOption(index: number) {
@@ -327,7 +341,7 @@ function validateBeforeInsert(): string | null {
 watch(() => props.initialType, (t) => {
   const resolvedType = resolveDialogType(t)
   dialogType.value = resolvedType
-  fields.value = getDefaultAimdFields(resolvedType, props.messages)
+  fields.value = getDefaultAimdFields(resolvedType, props.messages, existingQuizIdsSet.value)
   hydrateQuizDraftsFromFields()
   formError.value = ''
 })
@@ -339,14 +353,14 @@ watch(localizedFieldTypes, () => {
   }
 
   dialogType.value = resolvedType
-  fields.value = getDefaultAimdFields(resolvedType, props.messages)
+  fields.value = getDefaultAimdFields(resolvedType, props.messages, existingQuizIdsSet.value)
   hydrateQuizDraftsFromFields()
   formError.value = ''
 })
 
 watch(() => props.visible, (v) => {
   if (v) {
-    fields.value = getDefaultAimdFields(dialogType.value, props.messages)
+    fields.value = getDefaultAimdFields(dialogType.value, props.messages, existingQuizIdsSet.value)
     hydrateQuizDraftsFromFields()
     formError.value = ''
   }
@@ -355,7 +369,7 @@ watch(() => props.visible, (v) => {
 function switchType(type: string) {
   const resolvedType = resolveDialogType(type)
   dialogType.value = resolvedType
-  fields.value = getDefaultAimdFields(resolvedType, props.messages)
+  fields.value = getDefaultAimdFields(resolvedType, props.messages, existingQuizIdsSet.value)
   hydrateQuizDraftsFromFields()
   formError.value = ''
 }
@@ -388,6 +402,35 @@ const referencedPlaceholder = computed(() => {
 watch(() => [dialogType.value, fields.value.quizType], ([type, quizType], [prevType, prevQuizType]) => {
   if (type !== 'quiz') return
   if (type !== prevType || quizType !== prevQuizType) {
+    if (quizType !== prevQuizType && prevQuizType) {
+      fields.value.id = generateUniqueQuizId(quizType, existingQuizIdsSet.value)
+
+      if (quizType === 'choice') {
+        fields.value.stem = props.messages.defaults.questionStem
+        fields.value.mode = 'single'
+        fields.value.options = 'A:, B:'
+        fields.value.answer = 'A'
+        fields.value.blanks = ''
+        fields.value.rubric = ''
+      }
+      else if (quizType === 'blank') {
+        fields.value.stem = props.messages.defaults.fillQuestionStem
+        fields.value.blanks = 'b1:'
+        fields.value.options = ''
+        fields.value.answer = ''
+        fields.value.mode = ''
+        fields.value.rubric = ''
+        quizBlankItems.value = [{ key: 'b1', answer: '' }]
+      }
+      else if (quizType === 'open') {
+        fields.value.stem = props.messages.defaults.fillQuestionStem
+        fields.value.rubric = ''
+        fields.value.options = ''
+        fields.value.answer = ''
+        fields.value.blanks = ''
+        fields.value.mode = ''
+      }
+    }
     hydrateQuizDraftsFromFields()
   }
 })
@@ -598,6 +641,8 @@ function close() {
                     >
                       ⋮⋮
                     </span>
+                    <input v-model="option.key" :placeholder="props.messages.placeholders.optionKey" class="aimd-field-input" />
+                    <input v-model="option.text" :placeholder="props.messages.placeholders.optionText" class="aimd-field-input" />
                     <label class="aimd-option-answer-toggle">
                       <input
                         v-if="fields.mode === 'single'"
@@ -614,10 +659,8 @@ function close() {
                         :value="option.key.trim()"
                         :disabled="!option.key.trim()"
                       />
-                      <span>{{ fields.mode === 'single' ? props.messages.dialog.answer : props.messages.dialog.correct }}</span>
+                      <span>{{ props.messages.dialog.correctAnswer }}</span>
                     </label>
-                    <input v-model="option.key" :placeholder="props.messages.placeholders.optionKey" class="aimd-field-input" />
-                    <input v-model="option.text" :placeholder="props.messages.placeholders.optionText" class="aimd-field-input" />
                     <button
                       type="button"
                       class="aimd-mini-btn"
@@ -955,7 +998,7 @@ function close() {
 }
 
 .aimd-option-row {
-  grid-template-columns: 26px 96px 90px 1fr auto;
+  grid-template-columns: 26px 60px 1fr 80px auto;
 }
 
 .aimd-option-row-dragover {

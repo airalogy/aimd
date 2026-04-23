@@ -304,8 +304,8 @@ function buildWorkbenchSyntax(
     case 'check':
       return `{{check|${(fields.name || '').trim() || 'my_check'}}}`
     case 'quiz': {
-      const id = (fields.id || '').trim() || 'quiz_choice_1'
       const quizType = (fields.quizType || '').trim() || 'choice'
+      const id = (fields.id || '').trim() || `quiz_${quizType}_1`
       const stem = fields.stem || 'Fill the question stem'
       if (quizType === 'open') {
         return [
@@ -391,11 +391,13 @@ function buildFieldSyntax(
       return buildWorkbenchSyntax('check', {
         name: id || 'my_check',
       })
-    case 'quiz':
+    case 'quiz': {
+      const quizType = options?.quizType?.trim() || 'choice'
       return buildWorkbenchSyntax('quiz', {
-        id: id || 'quiz_choice_1',
-        quizType: options?.quizType?.trim() || 'choice',
+        id: id || `quiz_${quizType}_1`,
+        quizType,
       })
+    }
   }
 }
 
@@ -524,6 +526,7 @@ export function scanWorkbenchFields(content: string): AimdWorkbenchFieldDescript
 export function generateNextWorkbenchFieldId(
   fields: AimdWorkbenchFieldDescriptor[],
   fieldType: AimdWorkbenchFieldType,
+  quizType?: string,
 ): string {
   const existingIds = new Set(fields.map(field => field.id))
   const base = fieldType === 'var'
@@ -534,7 +537,7 @@ export function generateNextWorkbenchFieldId(
         ? 'new_step'
         : fieldType === 'check'
           ? 'new_check'
-          : 'quiz_choice'
+          : `quiz_${quizType || 'choice'}`
 
   if (!existingIds.has(base)) {
     return base
