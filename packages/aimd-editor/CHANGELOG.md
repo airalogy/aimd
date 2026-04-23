@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.0
+
+### Minor Changes
+
+- e0e1b9f: Add AIMD numeric constraint support, source diagnostics, extracted var definition metadata, and constraint-aware client assigner dependency readiness for Pydantic-style `gt`, `ge`, `lt`, `le`, and `multiple_of` var kwargs.
+
+### Patch Changes
+
+- Updated dependencies [27ae467]
+- Updated dependencies [e0e1b9f]
+  - @airalogy/aimd-core@2.6.0
+  - @airalogy/aimd-renderer@2.5.0
+
 ## 1.7.1
 
 ### Patch Changes

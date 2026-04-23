@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.0
+
+### Minor Changes
+
+- 27ae467: Add `choice.options[].followups` for conditional structured fields on selected choice options, and add first-class `type: true_false` quiz support across core parsing/grading, renderer previews, and recorder inputs.
+- e0e1b9f: Add AIMD numeric constraint support, source diagnostics, extracted var definition metadata, and constraint-aware client assigner dependency readiness for Pydantic-style `gt`, `ge`, `lt`, `le`, and `multiple_of` var kwargs.
+
 ## 2.5.1
 
 ### Patch Changes
