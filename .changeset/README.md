@@ -14,3 +14,5 @@ This repo uses Changesets to manage releases for the publishable `@airalogy/aimd
 - One feature may affect multiple packages. Prefer one multi-package changeset for that release unit.
 - Do not manually bump package versions or edit package changelogs during normal feature work.
 - Release PRs and package publishing are handled by GitHub Actions after changes land on `main`.
+- The release script intentionally uses `pnpm publish -r` instead of `changeset publish` so pnpm rewrites `workspace:*` dependency ranges in published package manifests.
+- npm publishing uses Trusted Publishing/OIDC. Keep `id-token: write` in `.github/workflows/release.yml`, and configure each public package on npm to trust the `release.yml` workflow.
