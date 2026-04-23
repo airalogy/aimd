@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.16.0
+
+### Minor Changes
+
+- 735776f: feat: improve quiz field editing
+
+  - Auto-generate quiz IDs based on type and check existing IDs to avoid duplicates
+  - Reset stem and all type-specific fields when changing quiz type
+  - Change default blank answer from '21%' to empty string
+  - Choice options default to empty text
+  - Move 'Correct Answer' column to last position
+  - Add leading newline when inserting at non-line-start position
+
+### Patch Changes
+
+- Updated dependencies [735776f]
+  - @airalogy/aimd-editor@1.9.0
+
 ## 1.15.0
 
 ### Minor Changes
