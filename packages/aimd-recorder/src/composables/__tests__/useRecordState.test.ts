@@ -436,6 +436,34 @@ describe('getQuizDefaultValue', () => {
     } as any)).toBe(false)
   })
 
+  it('returns structured defaults for true/false quiz with followups', () => {
+    const quiz = {
+      id: 'q1',
+      type: 'true_false',
+      stem: 'Q?',
+      options: [
+        {
+          key: 'true',
+          text: 'Yes',
+          followups: [
+            { key: 'color', type: 'str', required: true, default: 'white' },
+          ],
+        },
+        { key: 'false', text: 'No' },
+      ],
+      default: true,
+    }
+
+    expect(getQuizDefaultValue(quiz as any)).toEqual({
+      selected: true,
+      followups: {
+        true: {
+          color: 'white',
+        },
+      },
+    })
+  })
+
   it('returns blank map for blank quiz', () => {
     const quiz = {
       id: 'q1', type: 'blank', stem: 'Fill ____',

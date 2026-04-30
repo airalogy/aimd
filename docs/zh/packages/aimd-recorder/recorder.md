@@ -123,7 +123,7 @@ const quiz = {
 </template>
 ```
 
-如果某个 choice 选项定义了 `followups`，recorder 只会在该选项被选中后显示这些补充输入。这类题目的答案值结构为 `{ selected, followups }`；普通 choice 题继续使用原来的字符串或字符串数组格式。
+如果某个 `choice` 或 `true_false` 选项定义了 `followups`，recorder 只会在该选项被选中后显示这些补充输入。这类题目的答案值结构为 `{ selected, followups }`；普通 choice 题继续使用原来的字符串或字符串数组格式，普通 true/false 题继续使用布尔值。
 
 ## 显示评分结果
 

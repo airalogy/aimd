@@ -68,22 +68,26 @@ Choice options may declare conditional structured fields under `followups`. Thes
 
 ````aimd
 ```quiz
-id: smoking
+id: sample_storage
 type: choice
 mode: single
-stem: "Do you smoke?"
+stem: "How is the sample currently stored?"
 options:
-  - key: "yes"
-    text: "Yes"
+  - key: A
+    text: "Refrigerated"
     followups:
-      - key: years
-        type: int
-        title: "Years"
-      - key: cigarettes_per_day
+      - key: temperature_c
         type: float
-        unit: "sticks/day"
-  - key: "no"
-    text: "No"
+        title: "Temperature"
+        unit: "°C"
+      - key: duration_hours
+        type: float
+        title: "Duration"
+        unit: "h"
+  - key: B
+    text: "Frozen"
+  - key: C
+    text: "Room temperature"
 ```
 ````
 

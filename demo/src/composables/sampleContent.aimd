@@ -132,11 +132,11 @@ answer: true
 id: quiz_followup_1
 type: choice
 mode: single
-stem: Was the sample transferred under documented cold-chain handling?
+stem: Which transfer handling method was used for this sample?
 score: 1
 options:
-  - key: "yes"
-    text: Yes
+  - key: A
+    text: Ice box transfer
     explanation: Add the handling details so the record keeps both the selection and its structured context.
     followups:
       - key: duration_min
@@ -151,10 +151,27 @@ options:
         type: bool
         title: Seal verified before transfer
         required: false
-  - key: "no"
-    text: No
-    explanation: The record should document why cold-chain handling was not used.
-answer: "yes"
+  - key: B
+    text: Pre-chilled container transfer
+    explanation: Record the container temperature and transfer duration for review.
+    followups:
+      - key: container_temperature_c
+        type: float
+        title: Container temperature
+        unit: °C
+      - key: duration_min
+        type: int
+        title: Transfer duration
+        unit: min
+  - key: C
+    text: Room-temperature transfer
+    explanation: The record should document how long the sample stayed outside cold-chain handling.
+    followups:
+      - key: duration_min
+        type: int
+        title: Time at room temperature
+        unit: min
+answer: A
 ```
 
 ```quiz

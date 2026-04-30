@@ -141,7 +141,7 @@ function followupValueMatchesType(value: unknown, fieldType: AimdQuizFollowupTyp
   }
 }
 
-function normalizeChoiceFollowups(value: unknown, optionKey: string): AimdQuizFollowupField[] {
+function normalizeOptionFollowups(value: unknown, optionKey: string): AimdQuizFollowupField[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error(`options.${optionKey}.followups must be a non-empty list`)
   }
@@ -231,7 +231,7 @@ function normalizeChoiceOptions(value: unknown): AimdQuizOption[] {
       option.explanation = item.explanation.trim()
     }
     if (item.followups !== undefined) {
-      option.followups = normalizeChoiceFollowups(item.followups, key)
+      option.followups = normalizeOptionFollowups(item.followups, key)
     }
 
     normalized.push(option)
@@ -281,6 +281,9 @@ function normalizeTrueFalseOptions(value: unknown): AimdQuizOption[] {
     const option: AimdQuizOption = { key, text }
     if (typeof item.explanation === "string" && item.explanation.trim()) {
       option.explanation = item.explanation.trim()
+    }
+    if (item.followups !== undefined) {
+      option.followups = normalizeOptionFollowups(item.followups, key)
     }
     normalized.push(option)
   }

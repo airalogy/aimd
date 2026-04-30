@@ -68,22 +68,26 @@ processor.runSync(tree, file)
 
 ````aimd
 ```quiz
-id: smoking
+id: sample_storage
 type: choice
 mode: single
-stem: "是否吸烟？"
+stem: "样本当前如何保存？"
 options:
-  - key: "yes"
-    text: "是"
+  - key: A
+    text: "冷藏保存"
     followups:
-      - key: years
-        type: int
-        title: "年数"
-      - key: cigarettes_per_day
+      - key: temperature_c
         type: float
-        unit: "支/天"
-  - key: "no"
-    text: "否"
+        title: "温度"
+        unit: "°C"
+      - key: duration_hours
+        type: float
+        title: "时长"
+        unit: "小时"
+  - key: B
+    text: "冷冻保存"
+  - key: C
+    text: "常温放置"
 ```
 ````
 

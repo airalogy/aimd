@@ -204,8 +204,8 @@ function getChoiceScoringStrategy(
   return getChoiceOptionPoints(config) ? "option_points" : "exact_match"
 }
 
-function choiceTemplateHasFollowups(quiz: AimdQuizField): boolean {
-  return quiz.type === "choice"
+function optionTemplateHasFollowups(quiz: AimdQuizField): boolean {
+  return (quiz.type === "choice" || quiz.type === "true_false")
     && Array.isArray(quiz.options)
     && quiz.options.some(option => Array.isArray(option.followups) && option.followups.length > 0)
 }
@@ -214,9 +214,9 @@ function isOptionBasedQuiz(quiz: AimdQuizField): boolean {
   return quiz.type === "choice" || quiz.type === "true_false"
 }
 
-function getChoiceSelectedAnswer(quiz: AimdQuizField, answer: unknown): unknown {
+function getOptionSelectedAnswer(quiz: AimdQuizField, answer: unknown): unknown {
   if (
-    choiceTemplateHasFollowups(quiz)
+    optionTemplateHasFollowups(quiz)
     && typeof answer === "object"
     && answer !== null
     && !Array.isArray(answer)
@@ -502,7 +502,7 @@ function isUnansweredQuizAnswer(quiz: AimdQuizField, answer: unknown): boolean {
   }
 
   if (quiz.type === "choice") {
-    const selectedAnswer = getChoiceSelectedAnswer(quiz, answer)
+    const selectedAnswer = getOptionSelectedAnswer(quiz, answer)
     if (quiz.mode === "single") {
       return typeof selectedAnswer === "string" && selectedAnswer.trim().length === 0
     }
@@ -514,7 +514,11 @@ function isUnansweredQuizAnswer(quiz: AimdQuizField, answer: unknown): boolean {
   }
 
   if (quiz.type === "true_false") {
-    return typeof answer === "string" && answer.trim().length === 0
+    const selectedAnswer = getOptionSelectedAnswer(quiz, answer)
+    if (selectedAnswer === undefined || selectedAnswer === null) {
+      return true
+    }
+    return typeof selectedAnswer === "string" && selectedAnswer.trim().length === 0
   }
 
   if (quiz.type === "blank") {
@@ -547,7 +551,7 @@ function gradeChoiceQuiz(
   const config = quiz.grading as AimdChoiceQuizGradingConfig | undefined
   const strategy = getChoiceScoringStrategy(config)
   const optionPoints = getChoiceOptionPoints(config)
-  const selectedAnswer = getChoiceSelectedAnswer(quiz, answer)
+  const selectedAnswer = getOptionSelectedAnswer(quiz, answer)
 
   if (quiz.mode === "single") {
     if (typeof selectedAnswer !== "string") {
@@ -676,7 +680,7 @@ function gradeTrueFalseQuiz(
   const config = quiz.grading as AimdChoiceQuizGradingConfig | undefined
   const strategy = getChoiceScoringStrategy(config)
   const optionPoints = getChoiceOptionPoints(config)
-  const selectedKey = normalizeTrueFalseAnswerKey(answer)
+  const selectedKey = normalizeTrueFalseAnswerKey(getOptionSelectedAnswer(quiz, answer))
 
   if (!selectedKey) {
     return {
@@ -685,7 +689,7 @@ function gradeTrueFalseQuiz(
       max_score: maxScore,
       status: "error",
       method: "invalid_answer",
-      feedback: "True/false grading expects a boolean answer.",
+      feedback: "True/false grading expects a boolean answer or a structured answer with selected.",
     }
   }
 

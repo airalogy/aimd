@@ -123,7 +123,7 @@ const quiz = {
 </template>
 ```
 
-If a choice option defines `followups`, the recorder shows those inputs only after the option is selected. For these quizzes the answer value is structured as `{ selected, followups }`, while ordinary choice quizzes continue to use the legacy string or string-array shape.
+If a `choice` or `true_false` option defines `followups`, the recorder shows those inputs only after the option is selected. For these quizzes the answer value is structured as `{ selected, followups }`, while ordinary choice quizzes continue to use the legacy string or string-array shape and ordinary true/false quizzes continue to use booleans.
 
 ## Showing Grade Results
 

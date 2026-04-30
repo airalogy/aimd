@@ -178,6 +178,53 @@ describe('AimdQuizRecorder', () => {
     expect(wrapper.text()).not.toContain('Incorrect.')
   })
 
+  it('renders selected true/false followups and emits structured updates', async () => {
+    const wrapper = mount(AimdQuizRecorder, {
+      props: {
+        locale: 'en-US',
+        quiz: {
+          id: 'quiz_precipitate',
+          type: 'true_false',
+          stem: 'Was precipitate observed?',
+          options: [
+            {
+              key: 'true',
+              text: 'Yes',
+              followups: [
+                { key: 'color', type: 'str', required: true, title: 'Color' },
+              ],
+            },
+            { key: 'false', text: 'No' },
+          ],
+        },
+        modelValue: {
+          selected: true,
+          followups: {
+            true: {
+              color: 'white',
+            },
+          },
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('Color')
+
+    await wrapper
+      .find('input[data-rec-focus-key="quiz:quiz_precipitate:true_false:true:followup:color"]')
+      .setValue('yellow')
+
+    const emitted = wrapper.emitted('update:modelValue') || []
+    expect(emitted[emitted.length - 1]?.[0]).toEqual({
+      selected: true,
+      followups: {
+        true: {
+          color: 'yellow',
+        },
+      },
+    })
+  })
+
   it('renders selected choice followups and emits structured updates', async () => {
     const wrapper = mount(AimdQuizRecorder, {
       props: {

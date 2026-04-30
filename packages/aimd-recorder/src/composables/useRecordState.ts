@@ -205,27 +205,27 @@ export function normalizeVarTableFields(raw: unknown): AimdVarTableField[] {
 // Quiz default values
 // ---------------------------------------------------------------------------
 
-type ChoiceFollowupPrimitive = string | number | boolean
+type OptionFollowupPrimitive = string | number | boolean
 
-function quizHasChoiceFollowups(quiz: AimdQuizField): boolean {
-  return quiz.type === "choice"
+function quizHasOptionFollowups(quiz: AimdQuizField): boolean {
+  return (quiz.type === "choice" || quiz.type === "true_false")
     && Array.isArray(quiz.options)
     && quiz.options.some(option => Array.isArray(option.followups) && option.followups.length > 0)
 }
 
-function buildChoiceFollowupDefaultMap(
+function buildOptionFollowupDefaultMap(
   quiz: AimdQuizField,
   selectedKeys: string[],
-): Record<string, Record<string, ChoiceFollowupPrimitive>> {
+): Record<string, Record<string, OptionFollowupPrimitive>> {
   const selectedKeySet = new Set(selectedKeys)
-  const followups: Record<string, Record<string, ChoiceFollowupPrimitive>> = {}
+  const followups: Record<string, Record<string, OptionFollowupPrimitive>> = {}
 
   for (const option of quiz.options || []) {
     if (!selectedKeySet.has(option.key) || !Array.isArray(option.followups)) {
       continue
     }
 
-    const fieldDefaults: Record<string, ChoiceFollowupPrimitive> = {}
+    const fieldDefaults: Record<string, OptionFollowupPrimitive> = {}
     for (const followup of option.followups) {
       if (followup.default !== undefined) {
         fieldDefaults[followup.key] = followup.default
@@ -242,7 +242,7 @@ function buildChoiceFollowupDefaultMap(
 export function getQuizDefaultValue(quiz: AimdQuizField): unknown {
   if (quiz.type === "choice") {
     const optionKeys = new Set((quiz.options || []).map(option => option.key))
-    const hasFollowups = quizHasChoiceFollowups(quiz)
+    const hasFollowups = quizHasOptionFollowups(quiz)
     if (quiz.mode === "multiple") {
       let selected: string[] = []
       if (Array.isArray(quiz.default)) {
@@ -251,7 +251,7 @@ export function getQuizDefaultValue(quiz: AimdQuizField): unknown {
       if (hasFollowups) {
         return {
           selected,
-          followups: buildChoiceFollowupDefaultMap(quiz, selected),
+          followups: buildOptionFollowupDefaultMap(quiz, selected),
         }
       }
       return selected
@@ -264,14 +264,21 @@ export function getQuizDefaultValue(quiz: AimdQuizField): unknown {
     if (hasFollowups) {
       return {
         selected,
-        followups: buildChoiceFollowupDefaultMap(quiz, selected ? [selected] : []),
+        followups: buildOptionFollowupDefaultMap(quiz, selected ? [selected] : []),
       }
     }
     return selected
   }
 
   if (quiz.type === "true_false") {
-    return typeof quiz.default === "boolean" ? quiz.default : null
+    const selected = typeof quiz.default === "boolean" ? quiz.default : null
+    if (selected !== null && quizHasOptionFollowups(quiz)) {
+      return {
+        selected,
+        followups: buildOptionFollowupDefaultMap(quiz, [String(selected)]),
+      }
+    }
+    return selected
   }
 
   if (quiz.type === "blank") {

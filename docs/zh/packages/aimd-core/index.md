@@ -58,28 +58,32 @@ assigner(
 
 ````aimd
 ```quiz
-id: smoking
+id: sample_storage
 type: choice
 mode: single
-stem: "是否吸烟？"
+stem: "样本当前如何保存？"
 options:
-  - key: "yes"
-    text: "是"
+  - key: A
+    text: "冷藏保存"
     followups:
-      - key: years
-        type: int
-        title: "年数"
-      - key: cigarettes_per_day
+      - key: temperature_c
         type: float
-        unit: "支/天"
-  - key: "no"
-    text: "否"
+        title: "温度"
+        unit: "°C"
+      - key: duration_hours
+        type: float
+        title: "时长"
+        unit: "小时"
+  - key: B
+    text: "冷冻保存"
+  - key: C
+    text: "常温放置"
 ```
 ````
 
 ## 判断题
 
-判断题使用 `type: true_false`。`answer` 和 `default` 是布尔值；如果省略 `options`，默认选项为 `true. True` 和 `false. False`。
+判断题使用 `type: true_false`。`answer` 和 `default` 是布尔值；如果省略 `options`，默认选项为 `true. True` 和 `false. False`。自定义 `options` 时也可以在 `true` / `false` 选项下声明 `followups`。
 
 ````aimd
 ```quiz

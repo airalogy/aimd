@@ -201,6 +201,31 @@ describe('renderToHtmlSync', () => {
     expect(html).toContain('Answer: true')
   })
 
+  it('extracts true/false option followups', () => {
+    const { fields } = renderToHtmlSync(
+      [
+        '```quiz',
+        'id: q_true_false_followups',
+        'type: true_false',
+        'stem: "Was precipitate observed?"',
+        'options:',
+        '  - key: true',
+        '    text: "Yes"',
+        '    followups:',
+        '      - key: color',
+        '        type: str',
+        '        title: Color',
+        '  - key: false',
+        '    text: "No"',
+        '```',
+      ].join('\n'),
+    )
+
+    expect(fields.quiz[0].options?.[0]?.followups).toEqual([
+      { key: 'color', type: 'str', required: true, title: 'Color' },
+    ])
+  })
+
   it('supports host custom element renderers for AIMD nodes', () => {
     const { html } = renderToHtmlSync(
       "{{step|verify, 2, title='Verify Output', subtitle='Cross-check', check=True, result=True}}\n\nStep body content.",
