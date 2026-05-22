@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+set -eu
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "pre-commit: pnpm is required to run tests." >&2
+  echo "pre-commit: install pnpm or enable Corepack before committing." >&2
+  exit 1
+fi
+
+echo "pre-commit: running pnpm test"
+pnpm test
