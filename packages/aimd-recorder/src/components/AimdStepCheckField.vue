@@ -380,10 +380,65 @@ export const AimdCheckField = defineComponent({
     bodyNodes: { type: Array as PropType<VNodeChild[]>, default: () => [] },
     disabled: { type: Boolean, default: false },
     extraClasses: { type: Array as PropType<string[]>, default: () => [] },
+    locale: { type: String, default: "en-US" },
     messages: { type: Object as PropType<AimdRecorderMessages>, required: true },
   },
   emits: ["check-change", "annotation-change", "blur"],
   setup(props, { emit }) {
+    const rootEl = ref<HTMLElement | null>(null)
+    const annotationExpanded = ref(false)
+    let focusOutCheckTimer: ReturnType<typeof setTimeout> | null = null
+
+    const hasAnnotation = computed(() => Boolean(props.state.annotation?.trim()))
+    const showAnnotationEditor = computed(() => hasAnnotation.value || annotationExpanded.value)
+
+    function clearPendingFocusOutCheck() {
+      if (focusOutCheckTimer) {
+        clearTimeout(focusOutCheckTimer)
+        focusOutCheckTimer = null
+      }
+    }
+
+    function collapseTransientDetails() {
+      if (!hasAnnotation.value) {
+        annotationExpanded.value = false
+      }
+    }
+
+    function handleFocusIn() {
+      clearPendingFocusOutCheck()
+    }
+
+    function handleFocusOut(event: FocusEvent) {
+      const nextTarget = event.relatedTarget
+      if (nextTarget instanceof Node && rootEl.value?.contains(nextTarget)) {
+        return
+      }
+
+      clearPendingFocusOutCheck()
+      focusOutCheckTimer = setTimeout(() => {
+        focusOutCheckTimer = null
+        const activeElement = typeof document !== "undefined" ? document.activeElement : null
+        if (activeElement instanceof Node && rootEl.value?.contains(activeElement)) {
+          return
+        }
+
+        collapseTransientDetails()
+      }, 0)
+    }
+
+    function openAnnotationDetail() {
+      annotationExpanded.value = true
+    }
+
+    function preventToggleFocus(event: MouseEvent) {
+      event.preventDefault()
+    }
+
+    onBeforeUnmount(() => {
+      clearPendingFocusOutCheck()
+    })
+
     return () => {
       const node = props.node
       const id = node.id
@@ -393,31 +448,77 @@ export const AimdCheckField = defineComponent({
       const hasBody = props.bodyNodes.length > 0
       const showCheckedMessage = Boolean(state.checked && node.checked_message)
       const fallbackLabel = node.label || id
+      const statusClass = state.checked ? "aimd-rec-inline--check-passed" : "aimd-rec-inline--check-open"
+      const bodyClass = hasBody ? "aimd-rec-inline--check-with-body" : "aimd-rec-inline--check-bodyless"
+      const headerActionChildren = !disabled && !showAnnotationEditor.value
+        ? [
+            h("button", {
+              type: "button",
+              class: "aimd-step-timer__btn aimd-step-timer__btn--ghost aimd-check-field__toggle-btn",
+              onMousedown: preventToggleFocus,
+              onClick: openAnnotationDetail,
+            }, props.messages.check.annotationPlaceholder),
+          ]
+        : []
+      const detailChildren = showAnnotationEditor.value
+        ? [
+            h("span", {
+              class: "aimd-check-field__detail aimd-check-field__detail--annotation",
+            }, [
+              h(AimdMarkdownNoteField, {
+                class: "aimd-check-field__annotation-editor",
+                disabled,
+                locale: props.locale,
+                minHeight: 220,
+                modelValue: state.annotation || "",
+                "onUpdate:modelValue": (value: string) => {
+                  emit("annotation-change", {
+                    id,
+                    value,
+                  })
+                },
+                onClose: () => {
+                  annotationExpanded.value = false
+                  emit("blur", { id })
+                },
+                onBlur: () => emit("blur", { id }),
+              }),
+            ]),
+          ]
+        : []
 
       return h("div", {
-        class: ["aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check", ...extraClasses],
+        ref: rootEl,
+        class: ["aimd-rec-inline aimd-rec-inline--check aimd-field aimd-field--check", statusClass, bodyClass, ...extraClasses],
+        onFocusin: handleFocusIn,
+        onFocusout: handleFocusOut,
       }, [
         h("div", { class: "aimd-check-field__main" }, [
-          h("label", { class: "aimd-rec-inline__check-wrap aimd-check-field__toggle" }, [
-            h("input", {
-              "data-rec-focus-key": `check:${id}:checked`,
-              type: "checkbox",
-              class: "aimd-checkbox",
-              disabled,
-              checked: Boolean(state.checked),
-              onChange: (event: Event) => {
-                emit("check-change", {
-                  id,
-                  value: (event.target as HTMLInputElement).checked,
-                })
-            },
-            onBlur: () => emit("blur", { id }),
-          }),
-          h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", props.messages)),
-          !hasBody
-            ? h("span", { class: "aimd-field__name aimd-check-field__key" }, fallbackLabel)
-            : null,
-        ]),
+          h("div", { class: "aimd-check-field__header" }, [
+            h("label", { class: "aimd-rec-inline__check-wrap aimd-check-field__toggle" }, [
+              h("input", {
+                "data-rec-focus-key": `check:${id}:checked`,
+                type: "checkbox",
+                class: "aimd-checkbox",
+                disabled,
+                checked: Boolean(state.checked),
+                onChange: (event: Event) => {
+                  emit("check-change", {
+                    id,
+                    value: (event.target as HTMLInputElement).checked,
+                  })
+                },
+                onBlur: () => emit("blur", { id }),
+              }),
+              h("span", { class: "aimd-field__scope" }, getAimdRecorderScopeLabel("check", props.messages)),
+              !hasBody
+                ? h("span", { class: "aimd-field__name aimd-check-field__key" }, fallbackLabel)
+                : null,
+            ]),
+            headerActionChildren.length > 0
+              ? h("div", { class: "aimd-check-field__actions" }, headerActionChildren)
+              : null,
+          ]),
           hasBody
             ? h("div", {
               class: [
@@ -430,20 +531,9 @@ export const AimdCheckField = defineComponent({
         showCheckedMessage
           ? h("div", { class: "aimd-check-field__banner" }, node.checked_message)
           : null,
-        h("input", {
-          "data-rec-focus-key": `check:${id}:annotation`,
-          class: "aimd-rec-inline__input aimd-rec-inline__input--annotation",
-          disabled,
-          placeholder: props.messages.check.annotationPlaceholder,
-          value: state.annotation || "",
-          onInput: (event: Event) => {
-            emit("annotation-change", {
-              id,
-              value: (event.target as HTMLInputElement).value,
-            })
-          },
-          onBlur: () => emit("blur", { id }),
-        }),
+        detailChildren.length > 0
+          ? h("div", { class: "aimd-check-field__details" }, detailChildren)
+          : null,
       ])
     }
   },

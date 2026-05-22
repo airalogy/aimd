@@ -83,7 +83,7 @@ Capture a short preparation note here: {{var|prep_observation: str}}
 
 ## Quality Checks
 
-{{check|quality_control}}
+{{check|quality_control}} Confirm data completeness, reagent lots, and sample identifiers before submission.
 
 {{check|safety_verification}}
 

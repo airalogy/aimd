@@ -584,12 +584,7 @@ function isGroupedStepBodyNode(node: unknown): node is VNode {
     return false
   }
 
-  const classValue = props.class
-  const classNames = Array.isArray(classValue)
-    ? classValue
-    : typeof classValue === "string"
-      ? [classValue]
-      : []
+  const classNames = getVNodeClassNames(props.class)
 
   return props["data-aimd-step-body"] === "true"
     || props["data-aimd-step-body"] === true
@@ -644,26 +639,72 @@ function isGroupedCheckBodyNode(node: unknown): node is VNode {
     || classNames.some((className) => typeof className === "string" && className.includes("aimd-check-body"))
 }
 
+function getVNodeClassNames(classValue: unknown): string[] {
+  if (Array.isArray(classValue)) {
+    return classValue.flatMap(item => getVNodeClassNames(item))
+  }
+
+  if (typeof classValue === "string") {
+    return classValue.split(/\s+/).filter(Boolean)
+  }
+
+  if (classValue && typeof classValue === "object") {
+    return Object.entries(classValue as Record<string, unknown>)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([className]) => className)
+  }
+
+  return []
+}
+
+function isDefaultCheckControlNode(node: unknown): boolean {
+  if (!node || typeof node !== "object" || !("type" in node) || !("props" in node)) {
+    return false
+  }
+
+  const vnode = node as VNode
+  const props = vnode.props as Record<string, unknown> | null | undefined
+  if (!props) {
+    return false
+  }
+
+  const classNames = getVNodeClassNames(props.class)
+
+  return (
+    vnode.type === "input"
+    && props.type === "checkbox"
+    && classNames.includes("aimd-checkbox")
+  ) || (
+    vnode.type === "span"
+    && classNames.includes("aimd-field__label")
+  )
+}
+
 function normalizeCheckBodyNodes(bodyNodes: VNodeChild[] = []): VNodeChild[] {
   if (bodyNodes.length === 0) {
     return []
   }
 
   const groupedBody = bodyNodes.find((child) => isGroupedCheckBodyNode(child))
-  if (!groupedBody || typeof groupedBody !== "object" || groupedBody === null) {
-    return bodyNodes
+  if (groupedBody && typeof groupedBody === "object" && groupedBody !== null) {
+    const groupedChildren = (groupedBody as VNode).children
+    if (Array.isArray(groupedChildren)) {
+      return groupedChildren as VNodeChild[]
+    }
+
+    if (groupedChildren == null) {
+      return []
+    }
+
+    return [groupedChildren as VNodeChild]
   }
 
-  const groupedChildren = (groupedBody as VNode).children
-  if (Array.isArray(groupedChildren)) {
-    return groupedChildren as VNodeChild[]
+  const withoutDefaultControl = bodyNodes.filter(child => !isDefaultCheckControlNode(child))
+  if (withoutDefaultControl.length !== bodyNodes.length) {
+    return withoutDefaultControl
   }
 
-  if (groupedChildren == null) {
-    return []
-  }
-
-  return [groupedChildren as VNodeChild]
+  return bodyNodes
 }
 
 function renderInlineStep(node: AimdStepNode, bodyNodes: VNodeChild[] = []): VNode {
@@ -754,6 +795,7 @@ function renderInlineCheck(node: AimdCheckNode, bodyNodes: VNodeChild[] = []): V
     bodyNodes: normalizedBodyNodes,
     disabled,
     extraClasses,
+    locale: resolvedLocale.value,
     messages: resolvedMessages.value,
     onCheckChange: (payload: { id: string, value: boolean }) => {
       state.checked = payload.value
@@ -1108,8 +1150,10 @@ defineExpose({
 .aimd-protocol-recorder__content :deep(.aimd-field--var .aimd-field__scope) { background: #dceaff; color: #255eab; }
 .aimd-protocol-recorder__content :deep(.aimd-field--step) { background: #fff9ef; border-color: #f4d9a8; color: #9a5800; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step > .aimd-step-field__main .aimd-rec-inline__check-wrap > .aimd-field__scope) { background: #ffe8bf; color: #9a5800; }
-.aimd-protocol-recorder__content :deep(.aimd-field--check) { background: #f8fafc; border-color: #d8dfe8; color: #2b3443; padding: 3px 8px; }
-.aimd-protocol-recorder__content :deep(.aimd-field--check .aimd-field__scope) { background: #e7ecf3; color: #4f5f77; }
+.aimd-protocol-recorder__content :deep(.aimd-field--check) { background: #fffafa; border-color: rgba(185, 28, 28, 0.2); color: #2b3443; padding: 3px 8px; }
+.aimd-protocol-recorder__content :deep(.aimd-field--check .aimd-field__scope) { background: #fee2e2; color: #991b1b; }
+.aimd-protocol-recorder__content :deep(.aimd-field--check.aimd-rec-inline--check-passed) { background: #f6fdf9; border-color: rgba(22, 101, 52, 0.22); color: #1f3d2a; }
+.aimd-protocol-recorder__content :deep(.aimd-field--check.aimd-rec-inline--check-passed .aimd-field__scope) { background: #dcfce7; color: #166534; }
 .aimd-protocol-recorder__content :deep(.aimd-field--var-table) {
   display: block;
   width: 100%;
@@ -1274,10 +1318,22 @@ defineExpose({
   max-width: 100%;
   margin: 10px 0;
   padding: 10px 12px;
-  border: 1px solid #d8dfe8;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  border-left-width: 3px;
   border-radius: 14px;
-  background: #f8fafc;
+  background: #fffafa;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 24px rgba(185, 28, 28, 0.025);
   box-sizing: border-box;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check-passed) {
+  border-color: rgba(22, 101, 52, 0.22);
+  background: #f6fdf9;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 24px rgba(22, 101, 52, 0.035);
 }
 .aimd-protocol-recorder__content :deep(.aimd-check-field__main) {
   display: flex;
@@ -1285,18 +1341,41 @@ defineExpose({
   gap: 8px;
   min-width: 0;
 }
-.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__input--annotation) {
-  min-width: 0;
-  width: 100%;
-}
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap) {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
   min-width: 0;
 }
+.aimd-protocol-recorder__content :deep(.aimd-check-field__header) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check-bodyless .aimd-check-field__header) {
+  align-items: center;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__actions) {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .aimd-protocol-recorder__content :deep(.aimd-check-field__toggle) {
   gap: 8px;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__toggle-btn) {
+  color: #475569;
+  border-color: rgba(100, 116, 139, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__toggle-btn:hover:not(:disabled)) {
+  border-color: rgba(100, 116, 139, 0.34);
+  background: rgba(255, 255, 255, 0.96);
+  color: #334155;
 }
 .aimd-protocol-recorder__content :deep(.aimd-check-field__key) {
   font-size: 12px;
@@ -1314,11 +1393,7 @@ defineExpose({
   margin: 0;
 }
 .aimd-protocol-recorder__content :deep(.aimd-check-field__body--checked) {
-  color: #667085;
-  opacity: 0.92;
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-  text-decoration-color: rgba(102, 112, 133, 0.55);
+  color: #24563e;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--check > .aimd-rec-inline__check-wrap > .aimd-field__name),
 .aimd-protocol-recorder__content :deep(.aimd-check-field__body) {
@@ -1334,6 +1409,25 @@ defineExpose({
   font-size: 13px;
   font-weight: 600;
   line-height: 1.5;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__details) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(185, 28, 28, 0.1);
+}
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check-passed .aimd-check-field__details) {
+  border-top-color: rgba(22, 101, 52, 0.12);
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__detail--annotation) {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+.aimd-protocol-recorder__content :deep(.aimd-check-field__annotation-editor) {
+  width: 100%;
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline--step) {
   display: flex;
@@ -1518,6 +1612,8 @@ defineExpose({
 }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline input[type="checkbox"]),
 .aimd-protocol-recorder__content :deep(.aimd-checkbox) { width: 16px; height: 16px; accent-color: var(--rec-focus); }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check-open .aimd-checkbox) { accent-color: #dc2626; }
+.aimd-protocol-recorder__content :deep(.aimd-rec-inline--check-passed .aimd-checkbox) { accent-color: #16a34a; }
 .aimd-protocol-recorder__content :deep(.aimd-rec-inline__input) {
   height: 30px;
   min-width: 94px;

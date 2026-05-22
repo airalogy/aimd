@@ -285,8 +285,8 @@
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  background-color: #f0f0f0;
-  border: 1px solid #d0d0d0;
+  background-color: #fffafa;
+  border: 1px solid rgba(185, 28, 28, 0.2);
   border-radius: 4px;
   color: #333;
   cursor: pointer;
@@ -294,8 +294,19 @@
 }
 
 .aimd-field--check:hover {
-  background-color: #e8e8e8;
-  border-color: #b0b0b0;
+  background-color: #fff5f5;
+  border-color: rgba(185, 28, 28, 0.32);
+}
+
+.aimd-field--check.aimd-rec-inline--check-passed {
+  background-color: #f6fdf9;
+  border-color: rgba(22, 101, 52, 0.22);
+  color: #1f3d2a;
+}
+
+.aimd-field--check.aimd-rec-inline--check-passed:hover {
+  background-color: #effcf4;
+  border-color: rgba(22, 101, 52, 0.34);
 }
 
 .aimd-field--check .aimd-checkbox {
@@ -303,7 +314,11 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #4181fd;
+  accent-color: #dc2626;
+}
+
+.aimd-field--check.aimd-rec-inline--check-passed .aimd-checkbox {
+  accent-color: #16a34a;
 }
 
 .aimd-field--check .aimd-field__label,

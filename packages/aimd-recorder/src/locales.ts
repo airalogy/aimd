@@ -240,7 +240,7 @@ const EN_US_MESSAGES: AimdRecorderMessages = {
     resetTimer: "Reset",
   },
   check: {
-    annotationPlaceholder: "Check notes",
+    annotationPlaceholder: "Notes",
   },
   table: {
     actionColumn: "Actions",
@@ -382,7 +382,7 @@ const ZH_CN_MESSAGES: AimdRecorderMessages = {
     resetTimer: "重置",
   },
   check: {
-    annotationPlaceholder: "检查备注",
+    annotationPlaceholder: "备注",
   },
   table: {
     actionColumn: "操作",

@@ -251,7 +251,7 @@ describe('AimdStepField', () => {
     expect(wrapper.text()).toContain('Timer 0s')
   })
 
-  it('renders check cards as lightweight cards that absorb body text and checked state messaging', () => {
+  it('renders check cards as lightweight cards that absorb body text and checked state messaging', async () => {
     const node: AimdCheckNode = {
       id: 'verify_tube_label',
       label: 'Verify that the tube label matches the sample name and the processing batch identifier before continuing',
@@ -277,12 +277,16 @@ describe('AimdStepField', () => {
       },
     })
 
+    await flushStepFieldAsync()
+
     expect(wrapper.element.tagName).toBe('DIV')
+    expect(wrapper.classes()).toContain('aimd-rec-inline--check-passed')
+    expect(wrapper.classes()).toContain('aimd-rec-inline--check-with-body')
     expect(wrapper.find('.aimd-check-field__body').text()).toContain('Verify that the tube label matches the sample name before continuing.')
     expect(wrapper.find('.aimd-check-field__body--checked').exists()).toBe(true)
     expect(wrapper.find('.aimd-check-field__banner').text()).toContain('Tube label verified')
-    expect(wrapper.find('.aimd-rec-inline__input--annotation').exists()).toBe(true)
-    expect((wrapper.find('.aimd-rec-inline__input--annotation').element as HTMLInputElement).value).toBe('Resolved from assigner context')
+    expect(wrapper.find('.aimd-rec-inline__input--annotation').exists()).toBe(false)
+    expect(wrapper.find('.aimd-check-field__detail--annotation').exists()).toBe(true)
     expect(wrapper.find('.aimd-check-field__key').exists()).toBe(false)
   })
 
@@ -309,6 +313,39 @@ describe('AimdStepField', () => {
       },
     })
 
+    expect(wrapper.classes()).toContain('aimd-rec-inline--check-open')
+    expect(wrapper.classes()).toContain('aimd-rec-inline--check-bodyless')
     expect(wrapper.find('.aimd-check-field__key').text()).toBe('verify_tube_label')
+  })
+
+  it('opens the check annotation editor on demand', async () => {
+    const node: AimdCheckNode = {
+      id: 'verify_tube_label',
+      label: 'verify_tube_label',
+      fieldType: 'check',
+      scope: 'check',
+      type: 'aimd',
+      raw: '{{check|verify_tube_label}}',
+    }
+    const wrapper = mount(AimdCheckField, {
+      props: {
+        node,
+        state: reactive({
+          checked: false,
+          annotation: '',
+        }),
+        bodyNodes: [],
+        disabled: false,
+        extraClasses: [],
+        messages: createAimdRecorderMessages('en-US'),
+      },
+    })
+
+    expect(wrapper.find('.aimd-check-field__detail--annotation').exists()).toBe(false)
+
+    await wrapper.find('.aimd-check-field__toggle-btn').trigger('click')
+    await flushStepFieldAsync()
+
+    expect(wrapper.find('.aimd-check-field__detail--annotation').exists()).toBe(true)
   })
 })
