@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.17.0
+
+### Minor Changes
+
+- 808ab4a: Improve check field recording cards with pass/open visual states, remove the duplicate read-only checkbox from bare checks, and reuse the AIMD note editor for check annotations.
+- 65822de: Add `true_false.options[].followups` support, preserving plain boolean answers for ordinary true/false quizzes while using structured `{ selected, followups }` answers when followups are defined.
+
+### Patch Changes
+
+- Updated dependencies [65822de]
+  - @airalogy/aimd-core@2.7.0
+
 ## 1.16.0
 
 ### Minor Changes

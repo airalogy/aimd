@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.0
+
+### Minor Changes
+
+- 65822de: Add `true_false.options[].followups` support, preserving plain boolean answers for ordinary true/false quizzes while using structured `{ selected, followups }` answers when followups are defined.
+
 ## 2.6.0
 
 ### Minor Changes
