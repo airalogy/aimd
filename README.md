@@ -17,14 +17,14 @@ This repository contains the AIMD packages maintained as a single monorepo:
 
 | Package | npm | Docs | Summary |
 | --- | --- | --- | --- |
-| `@airalogy/aimd-core` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-core?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-core) | [README](./packages/aimd-core/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-core/) | AIMD parser, syntax definitions, and utilities |
-| `@airalogy/aimd-editor` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-editor?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-editor) | [README](./packages/aimd-editor/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-editor/) | Monaco editor integration and Vue authoring workflows |
-| `@airalogy/aimd-renderer` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer) | [README](./packages/aimd-renderer/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-renderer/) | Rendering AIMD to HTML and Vue |
-| `@airalogy/aimd-recorder` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder) | [README](./packages/aimd-recorder/README.md) · [Site](https://airalogy.github.io/aimd/en/packages/aimd-recorder/) | Vue UI components and styles for structured AIMD recording |
+| `@airalogy/aimd-core` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-core?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-core) | [README](./packages/aimd-core/README.md) · [Site](https://airalogy.github.io/airalogy/aimd/en/packages/aimd-core/) | AIMD parser, syntax definitions, and utilities |
+| `@airalogy/aimd-editor` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-editor?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-editor) | [README](./packages/aimd-editor/README.md) · [Site](https://airalogy.github.io/airalogy/aimd/en/packages/aimd-editor/) | Monaco editor integration and Vue authoring workflows |
+| `@airalogy/aimd-renderer` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-renderer?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-renderer) | [README](./packages/aimd-renderer/README.md) · [Site](https://airalogy.github.io/airalogy/aimd/en/packages/aimd-renderer/) | Rendering AIMD to HTML and Vue |
+| `@airalogy/aimd-recorder` | [![npm version](https://img.shields.io/npm/v/%40airalogy%2Faimd-recorder?logo=npm&color=cb3837)](https://www.npmjs.com/package/@airalogy/aimd-recorder) | [README](./packages/aimd-recorder/README.md) · [Site](https://airalogy.github.io/airalogy/aimd/en/packages/aimd-recorder/) | Vue UI components and styles for structured AIMD recording |
 
 ## AIMD Examples
 
-Scenario examples live under [examples/](./examples/) and are registered in the machine-readable [examples/index.json](./examples/index.json). You can preview, edit, and fill these examples on the [Demo examples page](https://airalogy.github.io/aimd/demo/#/examples).
+Scenario examples live under [examples/](./examples/) and are registered in the machine-readable [examples/index.json](./examples/index.json). You can preview, edit, and fill these examples on the [Demo examples page](https://airalogy.github.io/airalogy/aimd/demo/#/examples).
 
 ## Development
 
