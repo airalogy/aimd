@@ -1,5 +1,13 @@
 # Airalogy Markdown (AIMD) Packages Monorepo
 
+> [!IMPORTANT]
+> This repository has moved to the Airalogy monorepo and is kept as a public
+> archived repository for historical reference. Active development now happens
+> at <https://github.com/airalogy/airalogy>.
+>
+> Current package source: <https://github.com/airalogy/airalogy/tree/main/packages/npm>
+> Current AIMD docs: <https://airalogy.github.io/airalogy/aimd/>
+
 [![CI](https://github.com/airalogy/aimd/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/ci.yml)
 [![Docs](https://github.com/airalogy/aimd/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/airalogy/aimd/actions/workflows/docs.yml)
 [![npm scope](https://img.shields.io/badge/npm-%40airalogy%2F*-CB3837?logo=npm)](https://www.npmjs.com/org/airalogy)
