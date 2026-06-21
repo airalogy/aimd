@@ -31,6 +31,16 @@ describe('AimdRecorder render stability', () => {
     expect(source).toMatch(/detailDisplay: props\.stepDetailDisplay/)
   })
 
+  it('routes markdown image nodes through resolveFile when a host resolver is provided', () => {
+    expect(source).toMatch(/function renderResolvedImage\(node: \{ properties\?: Record<string, unknown> \}\): VNode/)
+    expect(source).toMatch(/props\.resolveFile\(originalSrc\) \?\? originalSrc/)
+    expect(source).toMatch(/elementRenderers: props\.resolveFile/)
+    expect(source).toMatch(/img: node => renderResolvedImage\(node as \{ properties\?: Record<string, unknown> \}\)/)
+    expect(source).toMatch(/function renderInlineFigure\(node: AimdFigNode\): VNode/)
+    expect(source).toMatch(/const resolvedSrc = props\.resolveFile\?\.\(node\.src\) \?\? node\.src/)
+    expect(source).toMatch(/fig: node => renderInlineFigure\(node as AimdFigNode\)/)
+  })
+
   it('normalizes grouped step body nodes so grouped content does not re-render the step header inside its own body', () => {
     expect(source).toMatch(/function normalizeStepBodyNodes\(bodyNodes: VNodeChild\[] = \[]\): VNodeChild\[]/)
     expect(source).toMatch(/const groupedBody = bodyNodes\.find\(\(child\) => isGroupedStepBodyNode\(child\)\)/)
